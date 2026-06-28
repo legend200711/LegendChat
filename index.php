@@ -1,0 +1,168 @@
+<?php
+$file = "chat_messages.txt";
+
+/* SEND MESSAGE */
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+
+    $name = trim($_POST["name"] ?? "Guest");
+    $message = trim($_POST["message"] ?? "");
+
+    if ($message !== "") {
+
+        $name = htmlspecialchars($name);
+        $message = htmlspecialchars($message);
+        $time = date("g:i A");
+
+        $line = "
+        <div class='msg'>
+            <b>$name</b>
+            <span class='time'>$time</span><br>
+            $message
+        </div>\n";
+
+        file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
+    }
+
+    exit;
+}
+
+/* LOAD MESSAGES */
+$messages = file_exists($file) ? file_get_contents($file) : "";
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Legend Family Chat</title>
+
+<style>
+
+body{
+    margin:0;
+    font-family:Arial;
+    background:linear-gradient(180deg,#020814,#001a33,#003366);
+    color:white;
+}
+
+header{
+    text-align:center;
+    padding:20px;
+    background:rgba(0,0,0,.6);
+    border-bottom:2px solid #00aaff;
+}
+
+h1{
+    margin:0;
+    color:#66ccff;
+}
+
+#chat{
+    height:70vh;
+    overflow-y:auto;
+    padding:15px;
+}
+
+.msg{
+    background:#0b2545;
+    padding:10px;
+    margin-bottom:10px;
+    border-left:4px solid #00aaff;
+    border-radius:10px;
+    word-wrap:break-word;
+}
+
+.time{
+    font-size:12px;
+    color:#99ddff;
+    margin-left:8px;
+}
+
+.bottom{
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    display:flex;
+    gap:10px;
+    padding:12px;
+    background:#001122;
+}
+
+input{
+    padding:12px;
+    border:none;
+    border-radius:8px;
+    outline:none;
+}
+
+#name{ width:120px; }
+
+#message{ flex:1; }
+
+button{
+    padding:12px 15px;
+    border:none;
+    border-radius:8px;
+    background:#00aaff;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>💙 Legend Family Chat 💙</h1>
+    <p>Standalone Chat Website • No Third Party Apps</p>
+</header>
+
+<div id="chat">
+    <?php echo $messages; ?>
+</div>
+
+<div class="bottom">
+    <input id="name" placeholder="Name">
+    <input id="message" placeholder="Message">
+    <button onclick="send()">Send</button>
+</div>
+
+<script>
+
+function send(){
+
+    const name = document.getElementById("name").value || "Guest";
+    const message = document.getElementById("message").value;
+
+    if(!message.trim()) return;
+
+    fetch("",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/x-www-form-urlencoded"
+        },
+        body:
+            "name=" + encodeURIComponent(name) +
+            "&message=" + encodeURIComponent(message)
+    })
+    .then(() => {
+        document.getElementById("message").value = "";
+        location.reload();
+    });
+
+}
+
+document.getElementById("message").addEventListener("keydown", e => {
+    if(e.key === "Enter"){
+        send();
+    }
+});
+
+</script>
+
+</body>
+</html>

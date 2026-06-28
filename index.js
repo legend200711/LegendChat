@@ -1,44 +1,11 @@
-<?php
-$file = "chat_messages.txt";
-
-/* SEND MESSAGE */
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-
-    $name = trim($_POST["name"] ?? "Guest");
-    $message = trim($_POST["message"] ?? "");
-
-    if ($message !== "") {
-
-        $name = htmlspecialchars($name);
-        $message = htmlspecialchars($message);
-        $time = date("g:i A");
-
-        $line = "
-        <div class='msg'>
-            <b>$name</b>
-            <span class='time'>$time</span><br>
-            $message
-        </div>\n";
-
-        file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
-    }
-
-    exit;
-}
-
-/* LOAD MESSAGES */
-$messages = file_exists($file) ? file_get_contents($file) : "";
-?>
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Legend Family Chat</title>
 
 <style>
-
 body{
     margin:0;
     font-family:Arial;
@@ -53,11 +20,6 @@ header{
     border-bottom:2px solid #00aaff;
 }
 
-h1{
-    margin:0;
-    color:#66ccff;
-}
-
 #chat{
     height:70vh;
     overflow-y:auto;
@@ -68,15 +30,8 @@ h1{
     background:#0b2545;
     padding:10px;
     margin-bottom:10px;
-    border-left:4px solid #00aaff;
     border-radius:10px;
-    word-wrap:break-word;
-}
-
-.time{
-    font-size:12px;
-    color:#99ddff;
-    margin-left:8px;
+    border-left:4px solid #00aaff;
 }
 
 .bottom{
@@ -86,7 +41,7 @@ h1{
     right:0;
     display:flex;
     gap:10px;
-    padding:12px;
+    padding:10px;
     background:#001122;
 }
 
@@ -98,7 +53,6 @@ input{
 }
 
 #name{ width:120px; }
-
 #message{ flex:1; }
 
 button{
@@ -108,9 +62,7 @@ button{
     background:#00aaff;
     color:white;
     font-weight:bold;
-    cursor:pointer;
 }
-
 </style>
 </head>
 
@@ -118,50 +70,61 @@ button{
 
 <header>
     <h1>💙 Legend Family Chat 💙</h1>
-    <p>Standalone Chat Website • No Third Party Apps</p>
 </header>
 
-<div id="chat">
-    <?php echo $messages; ?>
-</div>
+<div id="chat"></div>
 
 <div class="bottom">
     <input id="name" placeholder="Name">
     <input id="message" placeholder="Message">
-    <button onclick="send()">Send</button>
+    <button onclick="sendMessage()">Send</button>
 </div>
 
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
+
 <script>
+// 🔥 PUT YOUR FIREBASE CONFIG HERE
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "YOUR_DATABASE_URL",
+    projectId: "YOUR_PROJECT_ID",
+};
 
-function send(){
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database().ref("chat");
 
+// SEND MESSAGE
+function sendMessage(){
     const name = document.getElementById("name").value || "Guest";
     const message = document.getElementById("message").value;
 
     if(!message.trim()) return;
 
-    fetch("",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/x-www-form-urlencoded"
-        },
-        body:
-            "name=" + encodeURIComponent(name) +
-            "&message=" + encodeURIComponent(message)
-    })
-    .then(() => {
-        document.getElementById("message").value = "";
-        location.reload();
+    db.push({
+        name:name,
+        message:message,
+        time:Date.now()
     });
 
+    document.getElementById("message").value="";
 }
 
-document.getElementById("message").addEventListener("keydown", e => {
-    if(e.key === "Enter"){
-        send();
-    }
-});
+// RECEIVE MESSAGES (LIVE)
+db.on("child_added", function(snapshot){
+    const data = snapshot.val();
 
+    const div = document.createElement("div");
+    div.className = "msg";
+    div.innerHTML = "<b>" + data.name + "</b><br>" + data.message;
+
+    document.getElementById("chat").appendChild(div);
+
+    document.getElementById("chat").scrollTop =
+        document.getElementById("chat").scrollHeight;
+});
 </script>
 
 </body>

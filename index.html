@@ -3,9 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Legend Energy Chat</title>
+<title>Legend Chat Pro</title>
 
-<meta name="theme-color" content="#001a33">
+<meta name="theme-color" content="#001a2a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 <style>
 html, body{
@@ -14,36 +17,26 @@ html, body{
     height:100%;
     overflow:hidden;
     font-family:Arial;
+    background:#000a14;
     color:white;
-    background: radial-gradient(circle at top,#001a33,#000a12,#000000);
 }
 
-/* ENERGY BACKGROUND */
-body::before{
-    content:"";
-    position:fixed;
-    inset:0;
-    background:
-        radial-gradient(circle at 20% 20%, rgba(0,255,170,0.15), transparent 40%),
-        radial-gradient(circle at 80% 30%, rgba(0,170,255,0.18), transparent 45%);
-    opacity:0.2;
-    animation:energy 10s infinite alternate;
-    pointer-events:none;
-}
-
-@keyframes energy{
-    0%{filter:brightness(1);}
-    100%{filter:brightness(1.3);}
+body{
+    background: radial-gradient(circle at top,#001a2a,#000a14,#000);
 }
 
 /* HEADER */
 header{
     text-align:center;
     padding:14px;
-    background:rgba(0,20,30,0.75);
-    backdrop-filter:blur(12px);
-    border-bottom:2px solid #00ffaa;
-    text-shadow:0 0 12px #00aaff, 0 0 18px #00ffaa;
+    font-weight:bold;
+    background:rgba(0,30,40,0.65);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid rgba(0,255,200,0.4);
+    box-shadow:0 10px 25px rgba(0,0,0,0.6),
+               0 0 20px rgba(0,170,255,0.3),
+               0 0 20px rgba(0,255,170,0.2);
+    text-shadow:0 0 10px #00aaff, 0 0 10px #00ffaa;
 }
 
 /* CHAT */
@@ -53,17 +46,16 @@ header{
     padding:12px;
 }
 
-/* MESSAGES */
+/* MESSAGE */
 .msg{
-    background:linear-gradient(135deg,#001a33,#003344,#00110f);
+    background:linear-gradient(145deg,#001a2a,#002b3a,#001018);
     padding:12px;
     margin-bottom:10px;
     border-radius:14px;
-    border:1px solid rgba(0,255,170,0.4);
-    box-shadow:
-        0 10px 25px rgba(0,0,0,0.6),
-        0 0 15px rgba(0,170,255,0.4),
-        0 0 15px rgba(0,255,170,0.3);
+    border:1px solid rgba(0,255,200,0.3);
+    box-shadow:0 12px 25px rgba(0,0,0,0.7),
+               0 0 15px rgba(0,170,255,0.3),
+               0 0 15px rgba(0,255,170,0.2);
 }
 
 /* INPUT BAR */
@@ -75,15 +67,15 @@ header{
     display:flex;
     gap:8px;
     padding:10px;
-    background:rgba(0,15,25,0.85);
-    backdrop-filter:blur(10px);
-    border-top:2px solid #00ffaa;
+    background:rgba(0,20,30,0.75);
+    backdrop-filter:blur(14px);
+    border-top:1px solid rgba(0,255,200,0.4);
 }
 
 input{
     border:none;
-    border-radius:10px;
     padding:12px;
+    border-radius:10px;
     outline:none;
     background:#001a2a;
     color:white;
@@ -106,28 +98,25 @@ button{
 #intro{
     position:fixed;
     inset:0;
-    background:radial-gradient(circle,#000a12,#001a33,#000);
+    background:#000;
     display:flex;
     flex-direction:column;
     justify-content:center;
     align-items:center;
-    text-align:center;
     z-index:999;
 }
 
-#intro h1{
-    color:#00ffaa;
-    text-shadow:0 0 20px #00aaff, 0 0 25px #00ffaa;
+#intro h2{
+    text-shadow:0 0 10px #00aaff;
 }
 
-/* REAPER */
-.reaper{
-    position:fixed;
-    bottom:-20px;
-    right:-20px;
-    width:250px;
-    opacity:0.2;
-    filter:drop-shadow(0 0 25px #00ffaa);
+#intro button{
+    margin-top:10px;
+    padding:12px 18px;
+    border:none;
+    border-radius:10px;
+    background:linear-gradient(90deg,#00aaff,#00ffaa);
+    font-weight:bold;
 }
 </style>
 </head>
@@ -135,86 +124,64 @@ button{
 <body>
 
 <div id="intro">
-    <h1>💀 LEGEND ENERGY CHAT 💀</h1>
-    <p>Blue × Green Underworld</p>
+    <h2>💀 Legend Chat Pro</h2>
     <button onclick="start()">ENTER</button>
 </div>
 
-<header>💀 Legend Energy Chat 💀</header>
+<header>💀 Legend Chat Pro 💀</header>
 
 <div id="chat"></div>
 
 <div class="bottom">
     <input id="name" placeholder="Name">
     <input id="message" placeholder="Message">
-    <button id="sendBtn">Send</button>
+    <button onclick="sendMessage()">Send</button>
 </div>
 
-<img class="reaper" src="https://i.imgur.com/7yUve5Q.png">
-
-<!-- ================= FIREBASE v12 MODULE ================= -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import {
-    getDatabase,
-    ref,
-    push,
-    onChildAdded
-} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
-/* YOUR FIREBASE CONFIG (YOUR UPDATED ONE) */
 const firebaseConfig = {
-    apiKey: "AIzaSyBDTQ4_06Z3dt-c_GYgvrTmsKng7C42rS8",
-    authDomain: "legendsamiam.firebaseapp.com",
-    databaseURL: "https://legendsamiam-default-rtdb.firebaseio.com",
-    projectId: "legendsamiam",
-    storageBucket: "legendsamiam.firebasestorage.app",
-    messagingSenderId: "770205565259",
-    appId: "1:770205565259:web:c49a750cc2ceba041228ce"
+  apiKey: "AIzaSyBDTQ4_06Z3dt-c_GYgvrTmsKng7C42rS8",
+  authDomain: "legendsamiam.firebaseapp.com",
+  databaseURL: "https://legendsamiam-default-rtdb.firebaseio.com",
+  projectId: "legendsamiam"
 };
 
-/* INIT */
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const chatRef = ref(db, "chat");
 
-/* UI */
-const chatBox = document.getElementById("chat");
-
-/* START */
 window.start = function(){
-    document.getElementById("intro").style.display = "none";
+    document.getElementById("intro").style.display="none";
 };
 
-/* SEND MESSAGE */
-function sendMessage(){
+window.sendMessage = function(){
     const name = document.getElementById("name").value || "Ghost";
     const message = document.getElementById("message").value;
 
     if(!message.trim()) return;
 
-    push(chatRef, {
+    push(chatRef,{
         name,
         message,
-        time: Date.now()
+        time:Date.now()
     });
 
-    document.getElementById("message").value = "";
-}
+    document.getElementById("message").value="";
+};
 
-/* BUTTON */
-document.getElementById("sendBtn").addEventListener("click", sendMessage);
-
-/* LIVE CHAT */
-onChildAdded(chatRef, (data)=>{
-    const d = data.val();
+onChildAdded(chatRef, (snap)=>{
+    const d = snap.val();
 
     const div = document.createElement("div");
-    div.className = "msg";
+    div.className="msg";
     div.innerHTML = `<b>${d.name}</b><br>${d.message}`;
 
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
+    const chat = document.getElementById("chat");
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
 });
 </script>
 

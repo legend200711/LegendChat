@@ -1,0 +1,1 @@
+importScripts("https://progressier.app/VRlcnCeJoZZaJ3FMmadU/sw.js");

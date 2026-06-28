@@ -2,136 +2,212 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Legend Chat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Legend Energy Chat</title>
+
+<meta name="theme-color" content="#001a33">
 
 <style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:linear-gradient(180deg,#020814,#001a33,#003366);
-  color:white;
+html, body{
+    margin:0;
+    padding:0;
+    height:100%;
+    overflow:hidden;
+    font-family:Arial;
+    color:white;
+    background: radial-gradient(circle at top,#001a33,#000a12,#000000);
 }
 
+/* BLUE + GREEN ENERGY GLOW BACKGROUND */
+body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    background:
+        radial-gradient(circle at 20% 20%, rgba(0,255,170,0.15), transparent 40%),
+        radial-gradient(circle at 80% 30%, rgba(0,170,255,0.18), transparent 45%),
+        url("https://i.imgur.com/8QfQv4S.png");
+    opacity:0.18;
+    animation:energy 10s infinite alternate;
+    pointer-events:none;
+}
+
+@keyframes energy{
+    0%{filter:hue-rotate(0deg) brightness(1);}
+    100%{filter:hue-rotate(20deg) brightness(1.2);}
+}
+
+/* HEADER */
 header{
-  text-align:center;
-  padding:15px;
-  background:rgba(0,0,0,.6);
-  border-bottom:2px solid #00aaff;
+    text-align:center;
+    padding:14px;
+    background:rgba(0,20,30,0.75);
+    backdrop-filter:blur(12px);
+    border-bottom:2px solid #00ffaa;
+    text-shadow:0 0 12px #00aaff, 0 0 18px #00ffaa;
 }
 
+/* CHAT */
 #chat{
-  height:70vh;
-  overflow-y:auto;
-  padding:15px;
+    height:calc(100vh - 140px);
+    overflow-y:auto;
+    padding:12px;
 }
 
+/* MESSAGE POP STYLE (BLUE + GREEN GLOW) */
 .msg{
-  background:#0b2545;
-  padding:10px;
-  margin-bottom:10px;
-  border-radius:10px;
-  border-left:4px solid #00aaff;
+    background:linear-gradient(135deg,#001a33,#003344,#00110f);
+    padding:12px;
+    margin-bottom:10px;
+    border-radius:14px;
+
+    border:1px solid rgba(0,255,170,0.4);
+
+    box-shadow:
+        0 10px 25px rgba(0,0,0,0.6),
+        0 0 15px rgba(0,170,255,0.4),
+        0 0 15px rgba(0,255,170,0.3);
+
+    transition:0.2s ease;
 }
 
+.msg:active{
+    transform:scale(1.03);
+}
+
+/* INPUT BAR */
 .bottom{
-  position:fixed;
-  bottom:0;
-  left:0;
-  right:0;
-  display:flex;
-  gap:10px;
-  padding:10px;
-  background:#001122;
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    display:flex;
+    gap:8px;
+    padding:10px;
+
+    background:rgba(0,15,25,0.85);
+    backdrop-filter:blur(10px);
+
+    border-top:2px solid #00ffaa;
 }
 
 input{
-  padding:12px;
-  border:none;
-  border-radius:8px;
-  outline:none;
+    border:none;
+    border-radius:10px;
+    padding:12px;
+    outline:none;
+
+    background:#001a2a;
+    color:white;
 }
 
-#name{width:120px;}
-#message{flex:1;}
+#name{ width:90px; }
+#message{ flex:1; }
 
+/* BUTTON */
 button{
-  padding:12px 15px;
-  background:#00aaff;
-  border:none;
-  border-radius:8px;
-  color:white;
-  font-weight:bold;
+    padding:12px 14px;
+    border:none;
+    border-radius:10px;
+
+    background:linear-gradient(90deg,#00aaff,#00ffaa);
+    color:black;
+    font-weight:bold;
+
+    box-shadow:0 0 15px #00aaff, 0 0 15px #00ffaa;
+}
+
+/* INTRO */
+#intro{
+    position:fixed;
+    inset:0;
+    background:radial-gradient(circle,#000a12,#001a33,#000);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+    z-index:999;
+}
+
+#intro h1{
+    color:#00ffaa;
+    text-shadow:0 0 20px #00aaff, 0 0 25px #00ffaa;
+}
+
+/* REAPER GLOW */
+.reaper{
+    position:fixed;
+    bottom:-20px;
+    right:-20px;
+    width:260px;
+    opacity:0.22;
+    filter:drop-shadow(0 0 25px #00ffaa);
 }
 </style>
 </head>
 
 <body>
 
-<header>
-  <h1>💙 Legend Chat 💙</h1>
-</header>
+<div id="intro">
+    <h1>💀 LEGEND ENERGY CHAT 💀</h1>
+    <p style="opacity:0.8">Blue Lightning × Green Fire</p>
+    <button onclick="start()">ENTER</button>
+</div>
+
+<header>💀 Legend Energy Chat 💀</header>
 
 <div id="chat"></div>
 
 <div class="bottom">
-  <input id="name" placeholder="Name">
-  <input id="message" placeholder="Message">
-  <button id="sendBtn">Send</button>
+    <input id="name" placeholder="Name">
+    <input id="message" placeholder="Message">
+    <button onclick="send()">Send</button>
 </div>
 
-<!-- FIREBASE MODULE -->
-<script type="module">
+<img class="reaper" src="https://i.imgur.com/7yUve5Q.png">
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded } 
-from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 
+<script>
 const firebaseConfig = {
-  apiKey: "AIzaSyAOnAtWjIx-L5suOt6_26eAbgf3k4ggmb4",
-  authDomain: "legend-chat-246fd.firebaseapp.com",
-  databaseURL: "https://legend-chat-246fd-default-rtdb.firebaseio.com",
-  projectId: "legend-chat-246fd",
-  storageBucket: "legend-chat-246fd.firebasestorage.app",
-  messagingSenderId: "365662264136",
-  appId: "1:365662264136:web:ae013a89b0c49442a1f17d"
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "YOUR_DATABASE_URL",
+    projectId: "YOUR_PROJECT_ID",
 };
 
-// INIT
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const chatRef = ref(db, "chat");
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database().ref("chat");
 
-// SEND MESSAGE
-document.getElementById("sendBtn").onclick = () => {
-  const name = document.getElementById("name").value || "Guest";
-  const message = document.getElementById("message").value;
+function start(){
+    document.getElementById("intro").style.display="none";
+}
 
-  if(!message.trim()) return;
+function send(){
+    const name = document.getElementById("name").value || "Ghost";
+    const message = document.getElementById("message").value;
 
-  push(chatRef, {
-    name: name,
-    message: message,
-    time: Date.now()
-  });
+    if(!message.trim()) return;
 
-  document.getElementById("message").value = "";
-};
+    db.push({ name, message, time:Date.now() });
 
-// RECEIVE MESSAGES
-onChildAdded(chatRef, (data) => {
-  const val = data.val();
+    document.getElementById("message").value="";
+}
 
-  const div = document.createElement("div");
-  div.className = "msg";
-  div.innerHTML = `<b>${val.name}</b><br>${val.message}`;
+db.on("child_added", snap=>{
+    const d = snap.val();
 
-  document.getElementById("chat").appendChild(div);
+    const div = document.createElement("div");
+    div.className="msg";
+    div.innerHTML = `<b>${d.name}</b><br>${d.message}`;
 
-  document.getElementById("chat").scrollTop =
-    document.getElementById("chat").scrollHeight;
+    const chat = document.getElementById("chat");
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
 });
-
 </script>
 
 </body>

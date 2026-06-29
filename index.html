@@ -3,12 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Legend Chat Pro</title>
+<title>Legend Chat Pro - Rooms</title>
 
 <meta name="theme-color" content="#001a2a">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 <style>
 html, body{
@@ -21,24 +18,45 @@ html, body{
     color:white;
 }
 
-body{
-    background: radial-gradient(circle at top,#001a2a,#000a14,#000);
-    position:relative;
-    z-index:0;
-}
-
 /* HEADER */
 header{
     text-align:center;
-    padding:14px;
+    padding:12px;
     font-weight:bold;
-    background:rgba(0,30,40,0.65);
-    backdrop-filter:blur(14px);
+    background:rgba(0,30,40,0.7);
     border-bottom:1px solid rgba(0,255,200,0.4);
-    box-shadow:0 10px 25px rgba(0,0,0,0.6),
-               0 0 20px rgba(0,170,255,0.3),
-               0 0 20px rgba(0,255,170,0.2);
-    text-shadow:0 0 10px #00aaff, 0 0 10px #00ffaa;
+}
+
+/* ROOM SCREEN */
+#roomScreen{
+    position:fixed;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    background:#000;
+    z-index:999;
+}
+
+#roomScreen input{
+    padding:12px;
+    border-radius:10px;
+    border:none;
+    outline:none;
+    margin-top:10px;
+    background:#001a2a;
+    color:white;
+    text-align:center;
+}
+
+#roomScreen button{
+    margin-top:10px;
+    padding:12px 18px;
+    border:none;
+    border-radius:10px;
+    background:linear-gradient(90deg,#00aaff,#00ffaa);
+    font-weight:bold;
 }
 
 /* CHAT */
@@ -46,8 +64,6 @@ header{
     height:calc(100vh - 140px);
     overflow-y:auto;
     padding:12px;
-    position:relative;
-    z-index:2;
 }
 
 /* MESSAGE */
@@ -56,10 +72,6 @@ header{
     padding:12px;
     margin-bottom:10px;
     border-radius:14px;
-    border:1px solid rgba(0,255,200,0.3);
-    box-shadow:0 12px 25px rgba(0,0,0,0.7),
-               0 0 15px rgba(0,170,255,0.3),
-               0 0 15px rgba(0,255,170,0.2);
 }
 
 /* INPUT BAR */
@@ -72,9 +84,6 @@ header{
     gap:8px;
     padding:10px;
     background:rgba(0,20,30,0.75);
-    backdrop-filter:blur(14px);
-    border-top:1px solid rgba(0,255,200,0.4);
-    z-index:3;
 }
 
 input{
@@ -94,65 +103,25 @@ button{
     border:none;
     border-radius:10px;
     background:linear-gradient(90deg,#00aaff,#00ffaa);
-    color:black;
     font-weight:bold;
-    box-shadow:0 0 15px #00aaff, 0 0 15px #00ffaa;
-}
-
-/* INTRO */
-#intro{
-    position:fixed;
-    inset:0;
-    background:#000;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    z-index:999;
-}
-
-#intro h2{
-    text-shadow:0 0 10px #00aaff;
-}
-
-#intro button{
-    margin-top:10px;
-    padding:12px 18px;
-    border:none;
-    border-radius:10px;
-    background:linear-gradient(90deg,#00aaff,#00ffaa);
-    font-weight:bold;
-}
-
-/* 🌧 BLUE + GREEN RAIN (FULL BACKGROUND) */
-.rain-drop{
-    position:fixed;
-    top:-10px;
-    width:2px;
-    height:20px;
-    background:linear-gradient(to bottom,#00aaff,#00ff88);
-    opacity:0.8;
-    animation:fall linear infinite;
-    z-index:-1;
-    pointer-events:none;
-}
-
-@keyframes fall{
-    to{
-        transform:translateY(110vh);
-    }
 }
 </style>
 </head>
 
 <body>
 
-<div id="intro">
-    <h2>💀 Legend Chat Pro</h2>
-    <button onclick="start()">ENTER</button>
+<!-- ROOM SELECT -->
+<div id="roomScreen">
+    <h2>💀 Enter Room Code</h2>
+
+    <input id="roomInput" placeholder="ROOM123">
+    <input id="nameInput" placeholder="Your Name">
+
+    <button onclick="joinRoom()">Join Room</button>
+    <button onclick="joinLobby()">Enter Lobby (Public Chat)</button>
 </div>
 
-<header>💀 Legend Chat Pro 💀</header>
+<header id="roomTitle">💀 Legend Chat Pro 💀</header>
 
 <div id="chat"></div>
 
@@ -164,24 +133,78 @@ button{
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+import { getDatabase, ref, push, onChildAdded }
+from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
+/* FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyBDTQ4_06Z3dt-c_GYgvrTmsKng7C42rS8",
   authDomain: "legendsamiam.firebaseapp.com",
   databaseURL: "https://legendsamiam-default-rtdb.firebaseio.com",
-  projectId: "legendsamiam"
+  projectId: "legendsamiam",
+  storageBucket: "legendsamiam.firebasestorage.app",
+  messagingSenderId: "770205565259",
+  appId: "1:770205565259:web:c49a750cc2ceba041228ce"
 };
 
+/* INIT */
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const chatRef = ref(db, "chat");
 
-window.start = function(){
-    document.getElementById("intro").style.display="none";
+/* STATE */
+let currentRoom = null;
+let chatRef = null;
+
+/* JOIN ROOM */
+window.joinRoom = function(){
+    const room = document.getElementById("roomInput").value.trim().toUpperCase();
+    const name = document.getElementById("nameInput").value.trim() || "Ghost";
+
+    if(!room) return;
+
+    enterRoom(room, name);
 };
 
+/* LOBBY (PUBLIC ROOM) */
+window.joinLobby = function(){
+    const name = document.getElementById("nameInput").value.trim() || "Ghost";
+    enterRoom("LOBBY", name);
+};
+
+/* CORE ROOM FUNCTION */
+function enterRoom(room, name){
+    currentRoom = room;
+
+    document.getElementById("roomScreen").style.display = "none";
+    document.getElementById("name").value = name;
+
+    document.getElementById("roomTitle").innerText = "💀 Room: " + room;
+
+    document.getElementById("chat").innerHTML = "";
+
+    chatRef = ref(db, "rooms/" + room + "/messages");
+
+    listenMessages();
+}
+
+/* REALTIME LISTENER */
+function listenMessages(){
+    onChildAdded(chatRef, (snap)=>{
+        const d = snap.val();
+
+        const div = document.createElement("div");
+        div.className = "msg";
+        div.innerHTML = `<b>${d.name}</b><br>${d.message}`;
+
+        document.getElementById("chat").appendChild(div);
+        document.getElementById("chat").scrollTop = 999999;
+    });
+}
+
+/* SEND MESSAGE */
 window.sendMessage = function(){
+    if(!chatRef) return;
+
     const name = document.getElementById("name").value || "Ghost";
     const message = document.getElementById("message").value;
 
@@ -190,39 +213,11 @@ window.sendMessage = function(){
     push(chatRef,{
         name,
         message,
-        time:Date.now()
+        time: Date.now()
     });
 
-    document.getElementById("message").value="";
+    document.getElementById("message").value = "";
 };
-
-onChildAdded(chatRef, (snap)=>{
-    const d = snap.val();
-
-    const div = document.createElement("div");
-    div.className="msg";
-    div.innerHTML = `<b>${d.name}</b><br>${d.message}`;
-
-    document.getElementById("chat").appendChild(div);
-});
-</script>
-
-<script>
-function createRain(){
-    const drop = document.createElement("div");
-    drop.className = "rain-drop";
-
-    drop.style.left = Math.random() * window.innerWidth + "px";
-    drop.style.animationDuration = (Math.random() * 2 + 1) + "s";
-
-    document.body.appendChild(drop);
-
-    setTimeout(()=>{
-        drop.remove();
-    }, 3000);
-}
-
-setInterval(createRain, 50);
 </script>
 
 </body>

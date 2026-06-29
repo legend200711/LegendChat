@@ -345,6 +345,372 @@ document.addEventListener("click", (e)=>{
     setTimeout(()=> ripple.remove(), 800);
 });
 </script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#001a2a">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Legend Chat Pro - Storm Mode</title>
 
+<meta name="theme-color" content="#001a2a">
+
+<style>
+html, body{
+    margin:0;
+    padding:0;
+    height:100%;
+    overflow:hidden;
+    font-family:Arial;
+    background:#000a14;
+    color:white;
+}
+
+/* 🌧️ BLUE RAIN (FULL SCREEN) */
+#rainCanvas{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    z-index:9999;
+    pointer-events:none;
+    mix-blend-mode:screen;
+    opacity:0.85;
+}
+
+/* 🔥 BLUE FLAME ATMOSPHERE */
+#flameLayer{
+    position:fixed;
+    inset:0;
+    z-index:1;
+    pointer-events:none;
+    background:radial-gradient(circle at bottom,
+        rgba(0,170,255,0.25),
+        rgba(0,80,255,0.08),
+        transparent 70%);
+    filter:blur(2px);
+    animation:flameFlicker 2s infinite alternate;
+}
+
+@keyframes flameFlicker{
+    0%{opacity:0.6; transform:scale(1);}
+    100%{opacity:1; transform:scale(1.02);}
+}
+
+/* HEADER */
+header{
+    position:relative;
+    z-index:2;
+    text-align:center;
+    padding:12px;
+    font-weight:bold;
+    background:rgba(0,30,40,0.7);
+    border-bottom:1px solid rgba(0,255,200,0.4);
+}
+
+/* ROOM SCREEN */
+#roomScreen{
+    position:fixed;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    background:rgba(0,0,0,0.9);
+    z-index:999;
+}
+
+#roomScreen input{
+    padding:12px;
+    border-radius:10px;
+    border:none;
+    outline:none;
+    margin-top:10px;
+    background:#001a2a;
+    color:white;
+    text-align:center;
+}
+
+#roomScreen button{
+    margin-top:10px;
+    padding:12px 18px;
+    border:none;
+    border-radius:10px;
+    background:linear-gradient(90deg,#00aaff,#00ffaa);
+    font-weight:bold;
+}
+
+/* CHAT */
+#chat{
+    position:relative;
+    z-index:2;
+    height:calc(100vh - 140px);
+    overflow-y:auto;
+    padding:12px;
+}
+
+.msg{
+    background:linear-gradient(145deg,#001a2a,#002b3a,#001018);
+    padding:12px;
+    margin-bottom:10px;
+    border-radius:14px;
+    border:1px solid rgba(0,170,255,0.25);
+}
+
+/* INPUT BAR */
+.bottom{
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    display:flex;
+    gap:8px;
+    padding:10px;
+    background:rgba(0,20,30,0.75);
+    z-index:3;
+}
+
+input{
+    border:none;
+    padding:12px;
+    border-radius:10px;
+    outline:none;
+    background:#001a2a;
+    color:white;
+}
+
+#name{ width:90px; }
+#message{ flex:1; }
+
+button{
+    padding:12px 14px;
+    border:none;
+    border-radius:10px;
+    background:linear-gradient(90deg,#00aaff,#00ffaa);
+    font-weight:bold;
+}
+
+/* 💧 RIPPLE EFFECT */
+.ripple{
+    position:fixed;
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    border:2px solid rgba(0,170,255,0.8);
+    transform:translate(-50%,-50%);
+    animation:ripple 0.8s ease-out forwards;
+    pointer-events:none;
+    z-index:9999;
+}
+
+@keyframes ripple{
+    0%{
+        transform:translate(-50%,-50%) scale(1);
+        opacity:1;
+    }
+    100%{
+        transform:translate(-50%,-50%) scale(10);
+        opacity:0;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- 🌧️ RAIN + 🔥 FLAME -->
+<canvas id="rainCanvas"></canvas>
+<div id="flameLayer"></div>
+
+<!-- ROOM SCREEN -->
+<div id="roomScreen">
+    <h2>💀 Enter Room Code</h2>
+
+    <input id="roomInput" placeholder="ROOM123">
+    <input id="nameInput" placeholder="Your Name">
+
+    <button onclick="joinRoom()">Join Room</button>
+    <button onclick="joinLobby()">Enter Lobby (Public Chat)</button>
+</div>
+
+<header id="roomTitle">💀 Legend Chat Pro 💀</header>
+
+<div id="chat"></div>
+
+<div class="bottom">
+    <input id="name" placeholder="Name">
+    <input id="message" placeholder="Message">
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getDatabase, ref, push, onChildAdded, remove }
+from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBDTQ4_06Z3dt-c_GYgvrTmsKng7C42rS8",
+  authDomain: "legendsamiam.firebaseapp.com",
+  databaseURL: "https://legendsamiam-default-rtdb.firebaseio.com",
+  projectId: "legendsamiam",
+  storageBucket: "legendsamiam.firebasestorage.app",
+  messagingSenderId: "770205565259",
+  appId: "1:770205565259:web:c49a750cc2ceba041228ce"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+let currentRoom = null;
+let chatRef = null;
+
+/* ROOM */
+window.joinRoom = function(){
+    const room = document.getElementById("roomInput").value.trim().toUpperCase();
+    const name = document.getElementById("nameInput").value.trim() || "Ghost";
+    if(!room) return;
+    enterRoom(room, name);
+};
+
+window.joinLobby = function(){
+    const name = document.getElementById("nameInput").value.trim() || "Ghost";
+    enterRoom("LOBBY", name);
+};
+
+function clearRoom(room){
+    const roomRef = ref(db, "rooms/" + room + "/messages");
+    remove(roomRef);
+}
+
+function enterRoom(room, name){
+    currentRoom = room;
+
+    document.getElementById("roomScreen").style.display = "none";
+    document.getElementById("name").value = name;
+
+    document.getElementById("roomTitle").innerText = "💀 Room: " + room;
+
+    document.getElementById("chat").innerHTML = "";
+
+    chatRef = ref(db, "rooms/" + room + "/messages");
+
+    clearRoom(room);
+    listenMessages();
+}
+
+function listenMessages(){
+    onChildAdded(chatRef, (snap)=>{
+        const d = snap.val();
+
+        const div = document.createElement("div");
+        div.className = "msg";
+        div.innerHTML = `<b>${d.name}</b><br>${d.message}`;
+
+        document.getElementById("chat").appendChild(div);
+        document.getElementById("chat").scrollTop = 999999;
+    });
+}
+
+window.sendMessage = function(){
+    if(!chatRef) return;
+
+    const name = document.getElementById("name").value || "Ghost";
+    const message = document.getElementById("message").value;
+
+    if(!message.trim()) return;
+
+    push(chatRef,{
+        name,
+        message,
+        time: Date.now()
+    });
+
+    document.getElementById("message").value = "";
+};
+
+/* 🌧️ RAIN SYSTEM */
+const canvas = document.getElementById("rainCanvas");
+const ctx = canvas.getContext("2d");
+
+function resize(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
+
+let drops = [];
+
+function initRain(){
+    drops = [];
+    let count = 180;
+
+    for(let i=0;i<count;i++){
+        drops.push({
+            x: Math.random()*canvas.width,
+            y: Math.random()*canvas.height,
+            len: Math.random()*25 + 10,
+            speed: Math.random()*7 + 4,
+            thick: Math.random()*1.5 + 0.5
+        });
+    }
+}
+initRain();
+
+function drawRain(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    for(let d of drops){
+        ctx.beginPath();
+        ctx.strokeStyle = "rgba(0,170,255,0.6)";
+        ctx.lineWidth = d.thick;
+
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(d.x, d.y + d.len);
+        ctx.stroke();
+
+        d.y += d.speed;
+
+        if(d.y > canvas.height){
+            d.y = -20;
+            d.x = Math.random()*canvas.width;
+        }
+    }
+
+    requestAnimationFrame(drawRain);
+}
+drawRain();
+
+/* 💧 RIPPLE */
+document.addEventListener("click", (e)=>{
+    const ripple = document.createElement("div");
+    ripple.className = "ripple";
+    ripple.style.left = e.clientX + "px";
+    ripple.style.top = e.clientY + "px";
+    document.body.appendChild(ripple);
+    setTimeout(()=> ripple.remove(), 800);
+});
+let deferredPrompt;
+
+window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+});
+
+document.getElementById("installBtn").addEventListener("click", async () => {
+    if (!deferredPrompt) {
+        alert("Open this site in Chrome or Edge to install it.");
+        return;
+    }
+
+    deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+});
+</script>
+
+</body>
+</html>
 </body>
 </html>

@@ -18,7 +18,42 @@ html, body{
     color:white;
 }
 
+/* 🌧️ BLUE RAIN CANVAS */
+#rainCanvas{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    z-index:0;
+    pointer-events:none;
+}
+
+/* 🔥 BLUE FLAME GLOW */
+#flameLayer{
+    position:fixed;
+    bottom:0;
+    left:0;
+    width:100%;
+    height:40%;
+    pointer-events:none;
+    z-index:1;
+    background:radial-gradient(circle at bottom,
+        rgba(0,180,255,0.25),
+        rgba(0,80,255,0.08),
+        transparent 70%);
+    filter:blur(2px);
+    animation:flameFlicker 2s infinite alternate;
+}
+
+@keyframes flameFlicker{
+    0%{opacity:0.6; transform:scale(1);}
+    100%{opacity:1; transform:scale(1.02);}
+}
+
 header{
+    position:relative;
+    z-index:2;
     text-align:center;
     padding:12px;
     font-weight:bold;
@@ -33,7 +68,7 @@ header{
     flex-direction:column;
     justify-content:center;
     align-items:center;
-    background:#000;
+    background:rgba(0,0,0,0.9);
     z-index:999;
 }
 
@@ -58,6 +93,8 @@ header{
 }
 
 #chat{
+    position:relative;
+    z-index:2;
     height:calc(100vh - 140px);
     overflow-y:auto;
     padding:12px;
@@ -68,6 +105,7 @@ header{
     padding:12px;
     margin-bottom:10px;
     border-radius:14px;
+    border:1px solid rgba(0,180,255,0.2);
 }
 
 .bottom{
@@ -79,6 +117,7 @@ header{
     gap:8px;
     padding:10px;
     background:rgba(0,20,30,0.75);
+    z-index:3;
 }
 
 input{
@@ -105,6 +144,10 @@ button{
 
 <body>
 
+<!-- 🌧️ RAIN + 🔥 FLAME LAYERS -->
+<canvas id="rainCanvas"></canvas>
+<div id="flameLayer"></div>
+
 <!-- ROOM SCREEN -->
 <div id="roomScreen">
     <h2>💀 Enter Room Code</h2>
@@ -128,7 +171,7 @@ button{
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded, remove } 
+import { getDatabase, ref, push, onChildAdded, remove }
 from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
 /* FIREBASE CONFIG */
@@ -145,7 +188,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-/* STATE */
 let currentRoom = null;
 let chatRef = null;
 
@@ -159,19 +201,16 @@ window.joinRoom = function(){
     enterRoom(room, name);
 };
 
-/* LOBBY */
 window.joinLobby = function(){
     const name = document.getElementById("nameInput").value.trim() || "Ghost";
     enterRoom("LOBBY", name);
 };
 
-/* CLEAR ROOM CHAT */
 function clearRoom(room){
     const roomRef = ref(db, "rooms/" + room + "/messages");
     remove(roomRef);
 }
 
-/* ENTER ROOM */
 function enterRoom(room, name){
     currentRoom = room;
 
@@ -184,13 +223,10 @@ function enterRoom(room, name){
 
     chatRef = ref(db, "rooms/" + room + "/messages");
 
-    // 🔥 RESET CHAT WHEN ENTERING
     clearRoom(room);
-
     listenMessages();
 }
 
-/* LISTEN */
 function listenMessages(){
     onChildAdded(chatRef, (snap)=>{
         const d = snap.val();
@@ -204,7 +240,6 @@ function listenMessages(){
     });
 }
 
-/* SEND MESSAGE */
 window.sendMessage = function(){
     if(!chatRef) return;
 
@@ -221,6 +256,49 @@ window.sendMessage = function(){
 
     document.getElementById("message").value = "";
 };
+
+/* 🌧️ BLUE RAIN EFFECT */
+const canvas = document.getElementById("rainCanvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let drops = [];
+
+for(let i=0;i<120;i++){
+    drops.push({
+        x: Math.random()*canvas.width,
+        y: Math.random()*canvas.height,
+        len: Math.random()*20+10,
+        speed: Math.random()*4+4
+    });
+}
+
+function drawRain(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    ctx.strokeStyle = "rgba(0,170,255,0.5)";
+    ctx.lineWidth = 1;
+
+    for(let d of drops){
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(d.x, d.y + d.len);
+        ctx.stroke();
+
+        d.y += d.speed;
+
+        if(d.y > canvas.height){
+            d.y = -20;
+            d.x = Math.random()*canvas.width;
+        }
+    }
+
+    requestAnimationFrame(drawRain);
+}
+
+drawRain();
 </script>
 
 </body>

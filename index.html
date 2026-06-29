@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
- 
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Legend Chat Pro - Storm Mode</title>
+<title>Legend Chat Pro - BLOOD HORROR MODE</title>
 
-<meta name="theme-color" content="#001a2a">
+<meta name="theme-color" content="#2a0000">
 
 <style>
 html, body{
@@ -15,11 +15,11 @@ html, body{
     height:100%;
     overflow:hidden;
     font-family:Arial;
-    background:#000a14;
-    color:white;
+    background:#050000;
+    color:#ff2b2b;
 }
 
-/* 🌧️ BLUE RAIN (FULL SCREEN) */
+/* 🩸 BLOOD RAIN CANVAS */
 #rainCanvas{
     position:fixed;
     inset:0;
@@ -28,26 +28,66 @@ html, body{
     z-index:9999;
     pointer-events:none;
     mix-blend-mode:screen;
-    opacity:0.85;
+    opacity:0.9;
 }
 
-/* 🔥 BLUE FLAME ATMOSPHERE */
+/* 🔥 BLOOD GLOW */
 #flameLayer{
     position:fixed;
     inset:0;
     z-index:1;
     pointer-events:none;
     background:radial-gradient(circle at bottom,
-        rgba(0,170,255,0.25),
-        rgba(0,80,255,0.08),
+        rgba(255,0,0,0.35),
+        rgba(80,0,0,0.25),
         transparent 70%);
-    filter:blur(2px);
-    animation:flameFlicker 2s infinite alternate;
+    filter:blur(3px);
+    animation:bloodPulse 2s infinite alternate;
 }
 
-@keyframes flameFlicker{
-    0%{opacity:0.6; transform:scale(1);}
-    100%{opacity:1; transform:scale(1.02);}
+@keyframes bloodPulse{
+    0%{opacity:0.5; transform:scale(1);}
+    100%{opacity:1; transform:scale(1.03);}
+}
+
+/* 📡 VHS SCANLINES */
+#scanlines{
+    position:fixed;
+    inset:0;
+    z-index:9998;
+    pointer-events:none;
+    background:repeating-linear-gradient(
+        to bottom,
+        rgba(0,0,0,0.0),
+        rgba(0,0,0,0.0) 2px,
+        rgba(0,0,0,0.25) 3px
+    );
+    opacity:0.5;
+    mix-blend-mode:overlay;
+}
+
+/* 👤 SHADOWS */
+#shadowLayer{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+}
+
+.shadow{
+    position:absolute;
+    width:140px;
+    height:220px;
+    background:rgba(0,0,0,0.3);
+    border-radius:50%;
+    filter:blur(12px);
+    animation:float 14s linear infinite;
+}
+
+@keyframes float{
+    0%{transform:translateY(110vh);opacity:0;}
+    20%{opacity:0.3;}
+    100%{transform:translateY(-20vh);opacity:0;}
 }
 
 /* HEADER */
@@ -57,8 +97,10 @@ header{
     text-align:center;
     padding:12px;
     font-weight:bold;
-    background:rgba(0,30,40,0.7);
-    border-bottom:1px solid rgba(0,255,200,0.4);
+    background:rgba(60,0,0,0.75);
+    border-bottom:1px solid rgba(255,0,0,0.5);
+    text-shadow:0 0 12px red;
+    color:#ff3b3b;
 }
 
 /* ROOM SCREEN */
@@ -69,18 +111,17 @@ header{
     flex-direction:column;
     justify-content:center;
     align-items:center;
-    background:rgba(0,0,0,0.9);
+    background:rgba(0,0,0,0.92);
     z-index:999;
 }
 
 #roomScreen input{
     padding:12px;
-    border-radius:10px;
-    border:none;
-    outline:none;
     margin-top:10px;
-    background:#001a2a;
-    color:white;
+    border-radius:10px;
+    border:1px solid red;
+    background:#120000;
+    color:#ff3b3b;
     text-align:center;
 }
 
@@ -89,7 +130,8 @@ header{
     padding:12px 18px;
     border:none;
     border-radius:10px;
-    background:linear-gradient(90deg,#00aaff,#00ffaa);
+    background:linear-gradient(90deg,#8b0000,#ff0000);
+    color:white;
     font-weight:bold;
 }
 
@@ -103,11 +145,13 @@ header{
 }
 
 .msg{
-    background:linear-gradient(145deg,#001a2a,#002b3a,#001018);
+    background:linear-gradient(145deg,#2a0000,#120000,#000000);
     padding:12px;
     margin-bottom:10px;
     border-radius:14px;
-    border:1px solid rgba(0,170,255,0.25);
+    border:1px solid rgba(255,0,0,0.3);
+    box-shadow:0 0 12px rgba(255,0,0,0.25);
+    color:#ff4d4d;
 }
 
 /* INPUT BAR */
@@ -119,7 +163,8 @@ header{
     display:flex;
     gap:8px;
     padding:10px;
-    background:rgba(0,20,30,0.75);
+    background:rgba(20,0,0,0.85);
+    border-top:1px solid rgba(255,0,0,0.3);
     z-index:3;
 }
 
@@ -128,8 +173,9 @@ input{
     padding:12px;
     border-radius:10px;
     outline:none;
-    background:#001a2a;
-    color:white;
+    background:#120000;
+    color:#ff3b3b;
+    border:1px solid red;
 }
 
 #name{ width:90px; }
@@ -139,17 +185,18 @@ button{
     padding:12px 14px;
     border:none;
     border-radius:10px;
-    background:linear-gradient(90deg,#00aaff,#00ffaa);
+    background:linear-gradient(90deg,#8b0000,#ff0000);
+    color:white;
     font-weight:bold;
 }
 
-/* 💧 RIPPLE EFFECT */
+/* RIPPLE */
 .ripple{
     position:fixed;
     width:20px;
     height:20px;
     border-radius:50%;
-    border:2px solid rgba(0,170,255,0.8);
+    border:2px solid rgba(255,0,0,0.8);
     transform:translate(-50%,-50%);
     animation:ripple 0.8s ease-out forwards;
     pointer-events:none;
@@ -157,36 +204,48 @@ button{
 }
 
 @keyframes ripple{
-    0%{
-        transform:translate(-50%,-50%) scale(1);
-        opacity:1;
-    }
-    100%{
-        transform:translate(-50%,-50%) scale(10);
-        opacity:0;
-    }
+    0%{transform:translate(-50%,-50%) scale(1);opacity:1;}
+    100%{transform:translate(-50%,-50%) scale(10);opacity:0;}
+}
+
+/* 👁️ WATCHING TEXT */
+#watching{
+    position:fixed;
+    bottom:15px;
+    right:15px;
+    font-size:12px;
+    color:rgba(255,0,0,0.6);
+    z-index:99999;
+    animation:flicker 1.5s infinite;
+}
+
+@keyframes flicker{
+    0%{opacity:0.2;}
+    50%{opacity:1;}
+    100%{opacity:0.3;}
 }
 </style>
 </head>
 
 <body>
 
-<!-- 🌧️ RAIN + 🔥 FLAME -->
 <canvas id="rainCanvas"></canvas>
 <div id="flameLayer"></div>
+<div id="scanlines"></div>
+<div id="shadowLayer"></div>
+<div id="watching"></div>
 
-<!-- ROOM SCREEN -->
 <div id="roomScreen">
-    <h2>💀 Enter Room Code</h2>
+    <h2>💀 Enter the Blood Room</h2>
 
     <input id="roomInput" placeholder="ROOM123">
     <input id="nameInput" placeholder="Your Name">
 
-    <button onclick="joinRoom()">Join Room</button>
-    <button onclick="joinLobby()">Enter Lobby (Public Chat)</button>
+    <button onclick="joinRoom()">Enter Room</button>
+    <button onclick="joinLobby()">Enter Lobby</button>
 </div>
 
-<header id="roomTitle">💀 Legend Chat Pro 💀</header>
+<header id="roomTitle">🩸 BLOOD HORROR CHAT</header>
 
 <div id="chat"></div>
 
@@ -198,7 +257,7 @@ button{
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded, remove }
+import { getDatabase, ref, push, onChildAdded }
 from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -214,7 +273,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let currentRoom = null;
 let chatRef = null;
 
 /* ROOM */
@@ -230,27 +288,21 @@ window.joinLobby = function(){
     enterRoom("LOBBY", name);
 };
 
-function clearRoom(room){
-    const roomRef = ref(db, "rooms/" + room + "/messages");
-    remove(roomRef);
-}
-
 function enterRoom(room, name){
-    currentRoom = room;
 
     document.getElementById("roomScreen").style.display = "none";
     document.getElementById("name").value = name;
 
-    document.getElementById("roomTitle").innerText = "💀 Room: " + room;
+    document.getElementById("roomTitle").innerText = "🩸 Room: " + room;
 
     document.getElementById("chat").innerHTML = "";
 
     chatRef = ref(db, "rooms/" + room + "/messages");
 
-    clearRoom(room);
     listenMessages();
 }
 
+/* LISTEN */
 function listenMessages(){
     onChildAdded(chatRef, (snap)=>{
         const d = snap.val();
@@ -264,13 +316,15 @@ function listenMessages(){
     });
 }
 
+/* SEND */
 window.sendMessage = function(){
+
     if(!chatRef) return;
 
-    const name = document.getElementById("name").value || "Ghost";
-    const message = document.getElementById("message").value;
+    const name = document.getElementById("name").value.trim() || "Ghost";
+    const message = document.getElementById("message").value.trim();
 
-    if(!message.trim()) return;
+    if(!message) return;
 
     push(chatRef,{
         name,
@@ -281,7 +335,17 @@ window.sendMessage = function(){
     document.getElementById("message").value = "";
 };
 
-/* 🌧️ RAIN SYSTEM */
+/* SHADOWS */
+function spawnShadow(){
+    const s = document.createElement("div");
+    s.className = "shadow";
+    s.style.left = Math.random()*window.innerWidth + "px";
+    document.getElementById("shadowLayer").appendChild(s);
+    setTimeout(()=>s.remove(), 14000);
+}
+setInterval(spawnShadow, 2500);
+
+/* BLOOD RAIN */
 const canvas = document.getElementById("rainCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -290,58 +354,55 @@ function resize(){
     canvas.height = window.innerHeight;
 }
 resize();
-window.addEventListener("resize", resize);
 
 let drops = [];
-
-function initRain(){
-    drops = [];
-    let count = 180;
-
-    for(let i=0;i<count;i++){
-        drops.push({
-            x: Math.random()*canvas.width,
-            y: Math.random()*canvas.height,
-            len: Math.random()*25 + 10,
-            speed: Math.random()*7 + 4,
-            thick: Math.random()*1.5 + 0.5
-        });
-    }
+for(let i=0;i<180;i++){
+    drops.push({
+        x:Math.random()*canvas.width,
+        y:Math.random()*canvas.height,
+        len:Math.random()*25+10,
+        speed:Math.random()*7+4
+    });
 }
-initRain();
 
-function drawRain(){
+function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
-
+    ctx.strokeStyle="rgba(255,0,0,0.6)";
     for(let d of drops){
         ctx.beginPath();
-        ctx.strokeStyle = "rgba(0,170,255,0.6)";
-        ctx.lineWidth = d.thick;
-
-        ctx.moveTo(d.x, d.y);
-        ctx.lineTo(d.x, d.y + d.len);
+        ctx.moveTo(d.x,d.y);
+        ctx.lineTo(d.x,d.y+d.len);
         ctx.stroke();
-
-        d.y += d.speed;
-
-        if(d.y > canvas.height){
-            d.y = -20;
-            d.x = Math.random()*canvas.width;
+        d.y+=d.speed;
+        if(d.y>canvas.height){
+            d.y=0;
+            d.x=Math.random()*canvas.width;
         }
     }
-
-    requestAnimationFrame(drawRain);
+    requestAnimationFrame(draw);
 }
-drawRain();
+draw();
 
-/* 💧 RIPPLE */
-document.addEventListener("click", (e)=>{
-    const ripple = document.createElement("div");
-    ripple.className = "ripple";
-    ripple.style.left = e.clientX + "px";
-    ripple.style.top = e.clientY + "px";
-    document.body.appendChild(ripple);
-    setTimeout(()=> ripple.remove(), 800);
+/* WATCHING TEXT */
+setInterval(()=>{
+    const el=document.getElementById("watching");
+    const msgs=[
+        "something is watching...",
+        "you are not alone...",
+        "it sees everything...",
+        "stay in the blood room..."
+    ];
+    el.innerText=msgs[Math.floor(Math.random()*msgs.length)];
+},3000);
+
+/* RIPPLE */
+document.addEventListener("click",(e)=>{
+    const r=document.createElement("div");
+    r.className="ripple";
+    r.style.left=e.clientX+"px";
+    r.style.top=e.clientY+"px";
+    document.body.appendChild(r);
+    setTimeout(()=>r.remove(),800);
 });
 </script>
 

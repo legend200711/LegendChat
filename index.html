@@ -4,7 +4,7 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Legend Chat Pro - BLOOD HORROR MODE</title>
+<title>Legend Chat Pro - BLOOD HORROR CHAT</title>
 
 <meta name="theme-color" content="#2a0000">
 
@@ -19,7 +19,7 @@ html, body{
     color:#ff2b2b;
 }
 
-/* 🩸 BLOOD RAIN CANVAS */
+/* BLOOD RAIN */
 #rainCanvas{
     position:fixed;
     inset:0;
@@ -28,10 +28,9 @@ html, body{
     z-index:9999;
     pointer-events:none;
     mix-blend-mode:screen;
-    opacity:0.9;
 }
 
-/* 🔥 BLOOD GLOW */
+/* BLOOD GLOW */
 #flameLayer{
     position:fixed;
     inset:0;
@@ -50,46 +49,6 @@ html, body{
     100%{opacity:1; transform:scale(1.03);}
 }
 
-/* 📡 VHS SCANLINES */
-#scanlines{
-    position:fixed;
-    inset:0;
-    z-index:9998;
-    pointer-events:none;
-    background:repeating-linear-gradient(
-        to bottom,
-        rgba(0,0,0,0.0),
-        rgba(0,0,0,0.0) 2px,
-        rgba(0,0,0,0.25) 3px
-    );
-    opacity:0.5;
-    mix-blend-mode:overlay;
-}
-
-/* 👤 SHADOWS */
-#shadowLayer{
-    position:fixed;
-    inset:0;
-    z-index:0;
-    pointer-events:none;
-}
-
-.shadow{
-    position:absolute;
-    width:140px;
-    height:220px;
-    background:rgba(0,0,0,0.3);
-    border-radius:50%;
-    filter:blur(12px);
-    animation:float 14s linear infinite;
-}
-
-@keyframes float{
-    0%{transform:translateY(110vh);opacity:0;}
-    20%{opacity:0.3;}
-    100%{transform:translateY(-20vh);opacity:0;}
-}
-
 /* HEADER */
 header{
     position:relative;
@@ -100,7 +59,6 @@ header{
     background:rgba(60,0,0,0.75);
     border-bottom:1px solid rgba(255,0,0,0.5);
     text-shadow:0 0 12px red;
-    color:#ff3b3b;
 }
 
 /* ROOM SCREEN */
@@ -151,7 +109,6 @@ header{
     border-radius:14px;
     border:1px solid rgba(255,0,0,0.3);
     box-shadow:0 0 12px rgba(255,0,0,0.25);
-    color:#ff4d4d;
 }
 
 /* INPUT BAR */
@@ -207,23 +164,6 @@ button{
     0%{transform:translate(-50%,-50%) scale(1);opacity:1;}
     100%{transform:translate(-50%,-50%) scale(10);opacity:0;}
 }
-
-/* 👁️ WATCHING TEXT */
-#watching{
-    position:fixed;
-    bottom:15px;
-    right:15px;
-    font-size:12px;
-    color:rgba(255,0,0,0.6);
-    z-index:99999;
-    animation:flicker 1.5s infinite;
-}
-
-@keyframes flicker{
-    0%{opacity:0.2;}
-    50%{opacity:1;}
-    100%{opacity:0.3;}
-}
 </style>
 </head>
 
@@ -231,9 +171,6 @@ button{
 
 <canvas id="rainCanvas"></canvas>
 <div id="flameLayer"></div>
-<div id="scanlines"></div>
-<div id="shadowLayer"></div>
-<div id="watching"></div>
 
 <div id="roomScreen">
     <h2>💀 Enter the Blood Room</h2>
@@ -274,6 +211,8 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 let chatRef = null;
+let lastMessageTime = Date.now();
+let chatTimer = null;
 
 /* ROOM */
 window.joinRoom = function(){
@@ -300,12 +239,15 @@ function enterRoom(room, name){
     chatRef = ref(db, "rooms/" + room + "/messages");
 
     listenMessages();
+    startChatAutoClear();
 }
 
 /* LISTEN */
 function listenMessages(){
     onChildAdded(chatRef, (snap)=>{
         const d = snap.val();
+
+        lastMessageTime = Date.now();
 
         const div = document.createElement("div");
         div.className = "msg";
@@ -335,15 +277,25 @@ window.sendMessage = function(){
     document.getElementById("message").value = "";
 };
 
-/* SHADOWS */
-function spawnShadow(){
-    const s = document.createElement("div");
-    s.className = "shadow";
-    s.style.left = Math.random()*window.innerWidth + "px";
-    document.getElementById("shadowLayer").appendChild(s);
-    setTimeout(()=>s.remove(), 14000);
+/* 💀 CHAT AUTO CLEAR ONLY */
+function startChatAutoClear(){
+
+    if(chatTimer) clearInterval(chatTimer);
+
+    chatTimer = setInterval(()=>{
+
+        const now = Date.now();
+        const fiveMin = 5 * 60 * 1000;
+
+        if(now - lastMessageTime > fiveMin){
+
+            document.getElementById("chat").innerHTML = "";
+
+            console.log("💀 Chat cleared (UI only)");
+        }
+
+    }, 10000);
 }
-setInterval(spawnShadow, 2500);
 
 /* BLOOD RAIN */
 const canvas = document.getElementById("rainCanvas");
@@ -368,32 +320,24 @@ for(let i=0;i<180;i++){
 function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.strokeStyle="rgba(255,0,0,0.6)";
+
     for(let d of drops){
         ctx.beginPath();
         ctx.moveTo(d.x,d.y);
         ctx.lineTo(d.x,d.y+d.len);
         ctx.stroke();
+
         d.y+=d.speed;
+
         if(d.y>canvas.height){
             d.y=0;
             d.x=Math.random()*canvas.width;
         }
     }
+
     requestAnimationFrame(draw);
 }
 draw();
-
-/* WATCHING TEXT */
-setInterval(()=>{
-    const el=document.getElementById("watching");
-    const msgs=[
-        "something is watching...",
-        "you are not alone...",
-        "it sees everything...",
-        "stay in the blood room..."
-    ];
-    el.innerText=msgs[Math.floor(Math.random()*msgs.length)];
-},3000);
 
 /* RIPPLE */
 document.addEventListener("click",(e)=>{

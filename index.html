@@ -25,7 +25,7 @@ html, body{
     inset:0;
     width:100%;
     height:100%;
-    z-index:9999;
+    z-index:1;
     pointer-events:none;
     mix-blend-mode:screen;
 }
@@ -146,24 +146,6 @@ button{
     color:white;
     font-weight:bold;
 }
-
-/* RIPPLE */
-.ripple{
-    position:fixed;
-    width:20px;
-    height:20px;
-    border-radius:50%;
-    border:2px solid rgba(255,0,0,0.8);
-    transform:translate(-50%,-50%);
-    animation:ripple 0.8s ease-out forwards;
-    pointer-events:none;
-    z-index:9999;
-}
-
-@keyframes ripple{
-    0%{transform:translate(-50%,-50%) scale(1);opacity:1;}
-    100%{transform:translate(-50%,-50%) scale(10);opacity:0;}
-}
 </style>
 </head>
 
@@ -182,7 +164,7 @@ button{
     <button onclick="joinLobby()">Enter Lobby</button>
 </div>
 
-<header id="roomTitle">🩸 BLOOD HORROR CHAT</header>
+<header id="roomTitle">🩸 BLOOD HORROR CHAT (NO SAVE)</header>
 
 <div id="chat"></div>
 
@@ -192,42 +174,24 @@ button{
     <button onclick="sendMessage()">Send</button>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded }
-from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+<script>
+let currentRoom = null;
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBDTQ4_06Z3dt-c_GYgvrTmsKng7C42rS8",
-  authDomain: "legendsamiam.firebaseapp.com",
-  databaseURL: "https://legendsamiam-default-rtdb.firebaseio.com",
-  projectId: "legendsamiam",
-  storageBucket: "legendsamiam.firebasestorage.app",
-  messagingSenderId: "770205565259",
-  appId: "1:770205565259:web:c49a750cc2ceba041228ce"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-let chatRef = null;
-let lastMessageTime = Date.now();
-let chatTimer = null;
-
-/* ROOM */
-window.joinRoom = function(){
-    const room = document.getElementById("roomInput").value.trim().toUpperCase();
+/* ROOM (VISUAL ONLY) */
+function joinRoom(){
+    const room = document.getElementById("roomInput").value.trim().toUpperCase() || "LOBBY";
     const name = document.getElementById("nameInput").value.trim() || "Ghost";
-    if(!room) return;
-    enterRoom(room, name);
-};
 
-window.joinLobby = function(){
+    enterRoom(room, name);
+}
+
+function joinLobby(){
     const name = document.getElementById("nameInput").value.trim() || "Ghost";
     enterRoom("LOBBY", name);
-};
+}
 
 function enterRoom(room, name){
+    currentRoom = room;
 
     document.getElementById("roomScreen").style.display = "none";
     document.getElementById("name").value = name;
@@ -235,69 +199,37 @@ function enterRoom(room, name){
     document.getElementById("roomTitle").innerText = "🩸 Room: " + room;
 
     document.getElementById("chat").innerHTML = "";
-
-    chatRef = ref(db, "rooms/" + room + "/messages");
-
-    listenMessages();
-    startChatAutoClear();
 }
 
-/* LISTEN */
-function listenMessages(){
-    onChildAdded(chatRef, (snap)=>{
-        const d = snap.val();
-
-        lastMessageTime = Date.now();
-
-        const div = document.createElement("div");
-        div.className = "msg";
-        div.innerHTML = `<b>${d.name}</b><br>${d.message}`;
-
-        document.getElementById("chat").appendChild(div);
-        document.getElementById("chat").scrollTop = 999999;
-    });
-}
-
-/* SEND */
-window.sendMessage = function(){
-
-    if(!chatRef) return;
+/* SEND MESSAGE (NO SAVE ANYWHERE) */
+function sendMessage(){
 
     const name = document.getElementById("name").value.trim() || "Ghost";
     const message = document.getElementById("message").value.trim();
 
     if(!message) return;
 
-    push(chatRef,{
-        name,
-        message,
-        time: Date.now()
-    });
+    const div = document.createElement("div");
+    div.className = "msg";
+
+    div.innerHTML = `<b>${escapeHtml(name)}</b><br>${escapeHtml(message)}`;
+
+    document.getElementById("chat").appendChild(div);
+
+    document.getElementById("chat").scrollTop = 999999;
 
     document.getElementById("message").value = "";
-};
-
-/* 💀 CHAT AUTO CLEAR ONLY */
-function startChatAutoClear(){
-
-    if(chatTimer) clearInterval(chatTimer);
-
-    chatTimer = setInterval(()=>{
-
-        const now = Date.now();
-        const fiveMin = 5 * 60 * 1000;
-
-        if(now - lastMessageTime > fiveMin){
-
-            document.getElementById("chat").innerHTML = "";
-
-            console.log("💀 Chat cleared (UI only)");
-        }
-
-    }, 10000);
 }
 
-/* BLOOD RAIN */
+/* SAFE TEXT */
+function escapeHtml(str){
+    return str
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;");
+}
+
+/* BLOOD RAIN EFFECT */
 const canvas = document.getElementById("rainCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -327,27 +259,17 @@ function draw(){
         ctx.lineTo(d.x,d.y+d.len);
         ctx.stroke();
 
-        d.y+=d.speed;
+        d.y += d.speed;
 
-        if(d.y>canvas.height){
-            d.y=0;
-            d.x=Math.random()*canvas.width;
+        if(d.y > canvas.height){
+            d.y = 0;
+            d.x = Math.random()*canvas.width;
         }
     }
 
     requestAnimationFrame(draw);
 }
 draw();
-
-/* RIPPLE */
-document.addEventListener("click",(e)=>{
-    const r=document.createElement("div");
-    r.className="ripple";
-    r.style.left=e.clientX+"px";
-    r.style.top=e.clientY+"px";
-    document.body.appendChild(r);
-    setTimeout(()=>r.remove(),800);
-});
 </script>
 
 </body>

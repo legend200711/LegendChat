@@ -4,9 +4,9 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Legend Chat Pro - BLOOD HORROR CHAT</title>
+<title>Legend Chat Pro - Storm Mode</title>
 
-<meta name="theme-color" content="#2a0000">
+<meta name="theme-color" content="#001a2a">
 
 <style>
 html, body{
@@ -15,38 +15,39 @@ html, body{
     height:100%;
     overflow:hidden;
     font-family:Arial;
-    background:#050000;
-    color:#ff2b2b;
+    background:#000a14;
+    color:white;
 }
 
-/* BLOOD RAIN */
+/* 🌧️ BLUE RAIN (FULL SCREEN) */
 #rainCanvas{
     position:fixed;
     inset:0;
     width:100%;
     height:100%;
-    z-index:1;
+    z-index:9999;
     pointer-events:none;
     mix-blend-mode:screen;
+    opacity:0.85;
 }
 
-/* BLOOD GLOW */
+/* 🔥 BLUE FLAME ATMOSPHERE */
 #flameLayer{
     position:fixed;
     inset:0;
     z-index:1;
     pointer-events:none;
     background:radial-gradient(circle at bottom,
-        rgba(255,0,0,0.35),
-        rgba(80,0,0,0.25),
+        rgba(0,170,255,0.25),
+        rgba(0,80,255,0.08),
         transparent 70%);
-    filter:blur(3px);
-    animation:bloodPulse 2s infinite alternate;
+    filter:blur(2px);
+    animation:flameFlicker 2s infinite alternate;
 }
 
-@keyframes bloodPulse{
-    0%{opacity:0.5; transform:scale(1);}
-    100%{opacity:1; transform:scale(1.03);}
+@keyframes flameFlicker{
+    0%{opacity:0.6; transform:scale(1);}
+    100%{opacity:1; transform:scale(1.02);}
 }
 
 /* HEADER */
@@ -56,9 +57,8 @@ header{
     text-align:center;
     padding:12px;
     font-weight:bold;
-    background:rgba(60,0,0,0.75);
-    border-bottom:1px solid rgba(255,0,0,0.5);
-    text-shadow:0 0 12px red;
+    background:rgba(0,30,40,0.7);
+    border-bottom:1px solid rgba(0,255,200,0.4);
 }
 
 /* ROOM SCREEN */
@@ -69,17 +69,18 @@ header{
     flex-direction:column;
     justify-content:center;
     align-items:center;
-    background:rgba(0,0,0,0.92);
+    background:rgba(0,0,0,0.9);
     z-index:999;
 }
 
 #roomScreen input{
     padding:12px;
-    margin-top:10px;
     border-radius:10px;
-    border:1px solid red;
-    background:#120000;
-    color:#ff3b3b;
+    border:none;
+    outline:none;
+    margin-top:10px;
+    background:#001a2a;
+    color:white;
     text-align:center;
 }
 
@@ -88,8 +89,7 @@ header{
     padding:12px 18px;
     border:none;
     border-radius:10px;
-    background:linear-gradient(90deg,#8b0000,#ff0000);
-    color:white;
+    background:linear-gradient(90deg,#00aaff,#00ffaa);
     font-weight:bold;
 }
 
@@ -103,12 +103,11 @@ header{
 }
 
 .msg{
-    background:linear-gradient(145deg,#2a0000,#120000,#000000);
+    background:linear-gradient(145deg,#001a2a,#002b3a,#001018);
     padding:12px;
     margin-bottom:10px;
     border-radius:14px;
-    border:1px solid rgba(255,0,0,0.3);
-    box-shadow:0 0 12px rgba(255,0,0,0.25);
+    border:1px solid rgba(0,170,255,0.25);
 }
 
 /* INPUT BAR */
@@ -120,8 +119,7 @@ header{
     display:flex;
     gap:8px;
     padding:10px;
-    background:rgba(20,0,0,0.85);
-    border-top:1px solid rgba(255,0,0,0.3);
+    background:rgba(0,20,30,0.75);
     z-index:3;
 }
 
@@ -130,9 +128,8 @@ input{
     padding:12px;
     border-radius:10px;
     outline:none;
-    background:#120000;
-    color:#ff3b3b;
-    border:1px solid red;
+    background:#001a2a;
+    color:white;
 }
 
 #name{ width:90px; }
@@ -142,29 +139,54 @@ button{
     padding:12px 14px;
     border:none;
     border-radius:10px;
-    background:linear-gradient(90deg,#8b0000,#ff0000);
-    color:white;
+    background:linear-gradient(90deg,#00aaff,#00ffaa);
     font-weight:bold;
+}
+
+/* 💧 RIPPLE EFFECT */
+.ripple{
+    position:fixed;
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    border:2px solid rgba(0,170,255,0.8);
+    transform:translate(-50%,-50%);
+    animation:ripple 0.8s ease-out forwards;
+    pointer-events:none;
+    z-index:9999;
+}
+
+@keyframes ripple{
+    0%{
+        transform:translate(-50%,-50%) scale(1);
+        opacity:1;
+    }
+    100%{
+        transform:translate(-50%,-50%) scale(10);
+        opacity:0;
+    }
 }
 </style>
 </head>
 
 <body>
 
+<!-- 🌧️ RAIN + 🔥 FLAME -->
 <canvas id="rainCanvas"></canvas>
 <div id="flameLayer"></div>
 
+<!-- ROOM SCREEN -->
 <div id="roomScreen">
-    <h2>💀 Enter the Blood Room</h2>
+    <h2>💀 Enter Room Code</h2>
 
     <input id="roomInput" placeholder="ROOM123">
     <input id="nameInput" placeholder="Your Name">
 
-    <button onclick="joinRoom()">Enter Room</button>
-    <button onclick="joinLobby()">Enter Lobby</button>
+    <button onclick="joinRoom()">Join Room</button>
+    <button onclick="joinLobby()">Enter Lobby (Public Chat)</button>
 </div>
 
-<header id="roomTitle">🩸 BLOOD HORROR CHAT (NO SAVE)</header>
+<header id="roomTitle">💀 Legend Chat Pro 💀</header>
 
 <div id="chat"></div>
 
@@ -174,20 +196,43 @@ button{
     <button onclick="sendMessage()">Send</button>
 </div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getDatabase, ref, push, onChildAdded, remove }
+from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBDTQ4_06Z3dt-c_GYgvrTmsKng7C42rS8",
+  authDomain: "legendsamiam.firebaseapp.com",
+  databaseURL: "https://legendsamiam-default-rtdb.firebaseio.com",
+  projectId: "legendsamiam",
+  storageBucket: "legendsamiam.firebasestorage.app",
+  messagingSenderId: "770205565259",
+  appId: "1:770205565259:web:c49a750cc2ceba041228ce"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
 let currentRoom = null;
+let chatRef = null;
 
-/* ROOM (VISUAL ONLY) */
-function joinRoom(){
-    const room = document.getElementById("roomInput").value.trim().toUpperCase() || "LOBBY";
+/* ROOM */
+window.joinRoom = function(){
+    const room = document.getElementById("roomInput").value.trim().toUpperCase();
     const name = document.getElementById("nameInput").value.trim() || "Ghost";
-
+    if(!room) return;
     enterRoom(room, name);
-}
+};
 
-function joinLobby(){
+window.joinLobby = function(){
     const name = document.getElementById("nameInput").value.trim() || "Ghost";
     enterRoom("LOBBY", name);
+};
+
+function clearRoom(room){
+    const roomRef = ref(db, "rooms/" + room + "/messages");
+    remove(roomRef);
 }
 
 function enterRoom(room, name){
@@ -196,40 +241,47 @@ function enterRoom(room, name){
     document.getElementById("roomScreen").style.display = "none";
     document.getElementById("name").value = name;
 
-    document.getElementById("roomTitle").innerText = "🩸 Room: " + room;
+    document.getElementById("roomTitle").innerText = "💀 Room: " + room;
 
     document.getElementById("chat").innerHTML = "";
+
+    chatRef = ref(db, "rooms/" + room + "/messages");
+
+    clearRoom(room);
+    listenMessages();
 }
 
-/* SEND MESSAGE (NO SAVE ANYWHERE) */
-function sendMessage(){
+function listenMessages(){
+    onChildAdded(chatRef, (snap)=>{
+        const d = snap.val();
 
-    const name = document.getElementById("name").value.trim() || "Ghost";
-    const message = document.getElementById("message").value.trim();
+        const div = document.createElement("div");
+        div.className = "msg";
+        div.innerHTML = `<b>${d.name}</b><br>${d.message}`;
 
-    if(!message) return;
+        document.getElementById("chat").appendChild(div);
+        document.getElementById("chat").scrollTop = 999999;
+    });
+}
 
-    const div = document.createElement("div");
-    div.className = "msg";
+window.sendMessage = function(){
+    if(!chatRef) return;
 
-    div.innerHTML = `<b>${escapeHtml(name)}</b><br>${escapeHtml(message)}`;
+    const name = document.getElementById("name").value || "Ghost";
+    const message = document.getElementById("message").value;
 
-    document.getElementById("chat").appendChild(div);
+    if(!message.trim()) return;
 
-    document.getElementById("chat").scrollTop = 999999;
+    push(chatRef,{
+        name,
+        message,
+        time: Date.now()
+    });
 
     document.getElementById("message").value = "";
-}
+};
 
-/* SAFE TEXT */
-function escapeHtml(str){
-    return str
-        .replaceAll("&","&amp;")
-        .replaceAll("<","&lt;")
-        .replaceAll(">","&gt;");
-}
-
-/* BLOOD RAIN EFFECT */
+/* 🌧️ RAIN SYSTEM */
 const canvas = document.getElementById("rainCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -238,38 +290,59 @@ function resize(){
     canvas.height = window.innerHeight;
 }
 resize();
+window.addEventListener("resize", resize);
 
 let drops = [];
-for(let i=0;i<180;i++){
-    drops.push({
-        x:Math.random()*canvas.width,
-        y:Math.random()*canvas.height,
-        len:Math.random()*25+10,
-        speed:Math.random()*7+4
-    });
-}
 
-function draw(){
+function initRain(){
+    drops = [];
+    let count = 180;
+
+    for(let i=0;i<count;i++){
+        drops.push({
+            x: Math.random()*canvas.width,
+            y: Math.random()*canvas.height,
+            len: Math.random()*25 + 10,
+            speed: Math.random()*7 + 4,
+            thick: Math.random()*1.5 + 0.5
+        });
+    }
+}
+initRain();
+
+function drawRain(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.strokeStyle="rgba(255,0,0,0.6)";
 
     for(let d of drops){
         ctx.beginPath();
-        ctx.moveTo(d.x,d.y);
-        ctx.lineTo(d.x,d.y+d.len);
+        ctx.strokeStyle = "rgba(0,170,255,0.6)";
+        ctx.lineWidth = d.thick;
+
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(d.x, d.y + d.len);
         ctx.stroke();
 
         d.y += d.speed;
 
         if(d.y > canvas.height){
-            d.y = 0;
+            d.y = -20;
             d.x = Math.random()*canvas.width;
         }
     }
 
-    requestAnimationFrame(draw);
+    requestAnimationFrame(drawRain);
 }
-draw();
+drawRain();
+
+/* 💧 RIPPLE */
+document.addEventListener("click", (e)=>{
+    const ripple = document.createElement("div");
+    ripple.className = "ripple";
+    ripple.style.left = e.clientX + "px";
+    ripple.style.top = e.clientY + "px";
+    document.body.appendChild(ripple);
+    setTimeout(()=> ripple.remove(), 800);
+});
 </script>
 
 </body>

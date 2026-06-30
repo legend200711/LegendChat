@@ -156,6 +156,35 @@ button{
     font-weight:bold;
 }
 </style>
+  <style>
+/* FULL PAGE BACKGROUND IMAGE */
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+
+    background-image: url("wolf.png"); /* <-- your image file */
+    background-size: cover;            /* makes it fill screen */
+    background-position: center;       /* centers image */
+    background-repeat: no-repeat;      /* stops tiling */
+    background-attachment: fixed;      /* keeps it still when scrolling */
+
+    font-family: Arial, sans-serif;
+    color: white;
+}
+
+/* optional overlay so text is readable */
+.overlay {
+    background: rgba(0, 0, 0, 0.6);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+</style>
+
+
 </head>
 
 <body>

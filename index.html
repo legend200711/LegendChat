@@ -4,9 +4,9 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Legend Chat Pro - HAUNTED FIREBASE MODE</title>
+<title>Legend Chat Pro - Storm Mode</title>
 
-<meta name="theme-color" content="#0a0000">
+<meta name="theme-color" content="#001a2a">
 
 <style>
 html, body{
@@ -15,53 +15,39 @@ html, body{
     height:100%;
     overflow:hidden;
     font-family:Arial;
-    background:#000;
-    color:#ffdddd;
+    background:#000a14;
+    color:white;
 }
 
-/* 🩸 HORROR BACKGROUND */
-body::before{
-    content:"";
-    position:fixed;
-    inset:0;
-    background:
-        radial-gradient(circle at 20% 30%, rgba(255,0,0,0.08), transparent 40%),
-        radial-gradient(circle at 80% 70%, rgba(150,0,0,0.10), transparent 45%),
-        linear-gradient(#000, #050000);
-    z-index:-3;
-}
-
-/* 📺 VHS FLICKER */
-body::after{
-    content:"";
-    position:fixed;
-    inset:0;
-    background:repeating-linear-gradient(
-        to bottom,
-        rgba(255,255,255,0.02),
-        rgba(0,0,0,0.02) 2px
-    );
-    animation:flicker 0.12s infinite;
-    mix-blend-mode:overlay;
-    z-index:9998;
-    pointer-events:none;
-}
-
-@keyframes flicker{
-    0%{opacity:0.9;}
-    50%{opacity:0.6;}
-    100%{opacity:0.95;}
-}
-
-/* 🌧️ RAIN */
+/* 🌧️ BLUE RAIN (FULL SCREEN) */
 #rainCanvas{
     position:fixed;
     inset:0;
     width:100%;
     height:100%;
-    z-index:9996;
+    z-index:9999;
     pointer-events:none;
-    opacity:0.75;
+    mix-blend-mode:screen;
+    opacity:0.85;
+}
+
+/* 🔥 BLUE FLAME ATMOSPHERE */
+#flameLayer{
+    position:fixed;
+    inset:0;
+    z-index:1;
+    pointer-events:none;
+    background:radial-gradient(circle at bottom,
+        rgba(0,170,255,0.25),
+        rgba(0,80,255,0.08),
+        transparent 70%);
+    filter:blur(2px);
+    animation:flameFlicker 2s infinite alternate;
+}
+
+@keyframes flameFlicker{
+    0%{opacity:0.6; transform:scale(1);}
+    100%{opacity:1; transform:scale(1.02);}
 }
 
 /* HEADER */
@@ -71,9 +57,8 @@ header{
     text-align:center;
     padding:12px;
     font-weight:bold;
-    background:rgba(40,0,0,0.7);
-    border-bottom:1px solid rgba(255,0,0,0.3);
-    text-shadow:0 0 10px red;
+    background:rgba(0,30,40,0.7);
+    border-bottom:1px solid rgba(0,255,200,0.4);
 }
 
 /* ROOM SCREEN */
@@ -84,18 +69,28 @@ header{
     flex-direction:column;
     justify-content:center;
     align-items:center;
-    background:rgba(0,0,0,0.95);
+    background:rgba(0,0,0,0.9);
     z-index:999;
 }
 
 #roomScreen input{
     padding:12px;
-    margin-top:10px;
     border-radius:10px;
-    border:1px solid rgba(255,0,0,0.3);
-    background:#120000;
+    border:none;
+    outline:none;
+    margin-top:10px;
+    background:#001a2a;
     color:white;
     text-align:center;
+}
+
+#roomScreen button{
+    margin-top:10px;
+    padding:12px 18px;
+    border:none;
+    border-radius:10px;
+    background:linear-gradient(90deg,#00aaff,#00ffaa);
+    font-weight:bold;
 }
 
 /* CHAT */
@@ -107,19 +102,12 @@ header{
     padding:12px;
 }
 
-/* MESSAGE */
 .msg{
-    background:linear-gradient(145deg,#1a0000,#000);
+    background:linear-gradient(145deg,#001a2a,#002b3a,#001018);
     padding:12px;
     margin-bottom:10px;
-    border-radius:12px;
-    border:1px solid rgba(255,0,0,0.2);
-    animation:pop 0.3s ease;
-}
-
-@keyframes pop{
-    from{transform:translateY(10px); opacity:0;}
-    to{transform:translateY(0); opacity:1;}
+    border-radius:14px;
+    border:1px solid rgba(0,170,255,0.25);
 }
 
 /* INPUT BAR */
@@ -131,8 +119,7 @@ header{
     display:flex;
     gap:8px;
     padding:10px;
-    background:rgba(20,0,0,0.85);
-    border-top:1px solid rgba(255,0,0,0.3);
+    background:rgba(0,20,30,0.75);
     z-index:3;
 }
 
@@ -140,66 +127,69 @@ input{
     border:none;
     padding:12px;
     border-radius:10px;
-    background:#120000;
+    outline:none;
+    background:#001a2a;
     color:white;
 }
 
-#name{width:90px;}
-#message{flex:1;}
+#name{ width:90px; }
+#message{ flex:1; }
 
 button{
     padding:12px 14px;
     border:none;
     border-radius:10px;
-    background:linear-gradient(90deg,#550000,#ff0000);
-    color:white;
+    background:linear-gradient(90deg,#00aaff,#00ffaa);
     font-weight:bold;
 }
-</style>
-  <style>
-/* FULL PAGE BACKGROUND IMAGE */
-body {
-    margin: 0;
-    padding: 0;
-    height: 100vh;
 
-    background-image: url("wolf.png"); /* <-- your image file */
-    background-size: cover;            /* makes it fill screen */
-    background-position: center;       /* centers image */
-    background-repeat: no-repeat;      /* stops tiling */
-    background-attachment: fixed;      /* keeps it still when scrolling */
-
-    font-family: Arial, sans-serif;
-    color: white;
+/* 💧 RIPPLE EFFECT */
+.ripple{
+    position:fixed;
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    border:2px solid rgba(0,170,255,0.8);
+    transform:translate(-50%,-50%);
+    animation:ripple 0.8s ease-out forwards;
+    pointer-events:none;
+    z-index:9999;
 }
 
-/* optional overlay so text is readable */
-.overlay {
-    background: rgba(0, 0, 0, 0.6);
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
+@keyframes ripple{
+    0%{
+        transform:translate(-50%,-50%) scale(1);
+        opacity:1;
+    }
+    100%{
+        transform:translate(-50%,-50%) scale(10);
+        opacity:0;
+    }
+}
 }
 </style>
 
-
+    
 </head>
 
 <body>
 
+<!-- 🌧️ RAIN + 🔥 FLAME -->
 <canvas id="rainCanvas"></canvas>
+<div id="flameLayer"></div>
 
+<!-- ROOM SCREEN -->
 <div id="roomScreen">
-    <h2>💀 ENTER HAUNTED ROOM</h2>
-    <input id="roomInput" placeholder="ROOM CODE">
-    <input id="nameInput" placeholder="NAME">
+    <h2>💀 Enter Room Code</h2>
+
+    <input id="roomInput" placeholder="ROOM123">
+    <input id="nameInput" placeholder="Your Name">
+
     <button onclick="joinRoom()">Join Room</button>
-    <button onclick="joinLobby()">Enter Lobby</button>
+    <button onclick="joinLobby()">Enter Lobby (Public Chat)</button>
 </div>
 
-<header id="roomTitle">💀 LEGEND HAUNTED CHAT</header>
+<header id="roomTitle">💀 Legend Chat Pro 💀</header>
 
 <div id="chat"></div>
 
@@ -211,7 +201,7 @@ body {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded }
+import { getDatabase, ref, push, onChildAdded, remove }
 from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -227,8 +217,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-let chatRef;
-let currentRoom;
+let currentRoom = null;
+let chatRef = null;
 
 /* ROOM */
 window.joinRoom = function(){
@@ -243,24 +233,27 @@ window.joinLobby = function(){
     enterRoom("LOBBY", name);
 };
 
+function clearRoom(room){
+    const roomRef = ref(db, "rooms/" + room + "/messages");
+    remove(roomRef);
+}
+
 function enterRoom(room, name){
     currentRoom = room;
 
     document.getElementById("roomScreen").style.display = "none";
     document.getElementById("name").value = name;
 
-    document.getElementById("roomTitle").innerText =
-        "💀 ROOM: " + room + " — IT REMEMBERS YOU (10 MIN ONLY)";
+    document.getElementById("roomTitle").innerText = "💀 Room: " + room;
 
     document.getElementById("chat").innerHTML = "";
 
     chatRef = ref(db, "rooms/" + room + "/messages");
 
+    clearRoom(room);
     listenMessages();
-    startAutoCleanup(); // 💀 AUTO DELETE ON
 }
 
-/* 💬 CHAT LISTENER */
 function listenMessages(){
     onChildAdded(chatRef, (snap)=>{
         const d = snap.val();
@@ -274,7 +267,6 @@ function listenMessages(){
     });
 }
 
-/* 📤 SEND */
 window.sendMessage = function(){
     if(!chatRef) return;
 
@@ -292,32 +284,7 @@ window.sendMessage = function(){
     document.getElementById("message").value = "";
 };
 
-/* ⏳ AUTO DELETE (10 MIN CLEANUP) */
-function startAutoCleanup(){
-    setInterval(async () => {
-        const cutoff = Date.now() - 10 * 60 * 1000;
-
-        const snapshot = await fetch(
-            `${firebaseConfig.databaseURL}/rooms/${currentRoom}/messages.json`
-        ).then(r => r.json());
-
-        if(!snapshot) return;
-
-        for(const key in snapshot){
-            const msg = snapshot[key];
-            if(msg.time && msg.time < cutoff){
-                await fetch(
-                    `${firebaseConfig.databaseURL}/rooms/${currentRoom}/messages/${key}.json`,
-                    { method: "DELETE" }
-                );
-            }
-        }
-    }, 30000);
-}
-</script>
-
-<!-- 🌧️ RAIN SYSTEM -->
-<script>
+/* 🌧️ RAIN SYSTEM */
 const canvas = document.getElementById("rainCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -328,29 +295,34 @@ function resize(){
 resize();
 window.addEventListener("resize", resize);
 
-const drops = [];
-const count = 260;
+let drops = [];
 
-for(let i=0;i<count;i++){
-    drops.push({
-        x: Math.random()*window.innerWidth,
-        y: Math.random()*window.innerHeight,
-        len: Math.random()*20+10,
-        speed: Math.random()*7+4,
-        opacity: Math.random()*0.4+0.2
-    });
+function initRain(){
+    drops = [];
+    let count = 180;
+
+    for(let i=0;i<count;i++){
+        drops.push({
+            x: Math.random()*canvas.width,
+            y: Math.random()*canvas.height,
+            len: Math.random()*25 + 10,
+            speed: Math.random()*7 + 4,
+            thick: Math.random()*1.5 + 0.5
+        });
+    }
 }
+initRain();
 
-function animate(){
+function drawRain(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
     for(let d of drops){
         ctx.beginPath();
-        ctx.strokeStyle = `rgba(255,0,0,${d.opacity})`;
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(0,170,255,0.6)";
+        ctx.lineWidth = d.thick;
 
-        ctx.moveTo(d.x,d.y);
-        ctx.lineTo(d.x,d.y+d.len);
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(d.x, d.y + d.len);
         ctx.stroke();
 
         d.y += d.speed;
@@ -361,10 +333,19 @@ function animate(){
         }
     }
 
-    requestAnimationFrame(animate);
+    requestAnimationFrame(drawRain);
 }
+drawRain();
 
-animate();
+/* 💧 RIPPLE */
+document.addEventListener("click", (e)=>{
+    const ripple = document.createElement("div");
+    ripple.className = "ripple";
+    ripple.style.left = e.clientX + "px";
+    ripple.style.top = e.clientY + "px";
+    document.body.appendChild(ripple);
+    setTimeout(()=> ripple.remove(), 800);
+});
 </script>
 
 </body>

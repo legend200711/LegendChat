@@ -1,0 +1,63 @@
+{
+  "name": "Shadow Nexus Social",
+  "short_name": "Shadow Nexus",
+  "description": "Shadow Nexus Social is a social media platform for connecting with friends, posting updates, messaging, and sharing content.",
+  "start_url": "/ShadowNexusSocial/",
+  "scope": "/ShadowNexusSocial/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "lang": "en-US",
+  "theme_color": "#0066FF",
+  "background_color": "#000000",
+  "categories": ["social", "communication"],
+  "icons": [
+    {
+      "src": "favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Home Feed",
+      "short_name": "Feed",
+      "description": "Open the Eclipse Feed",
+      "url": "/ShadowNexusSocial/#feed",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Messages",
+      "short_name": "DMs",
+      "description": "Open your Nexus DMs",
+      "url": "/ShadowNexusSocial/#messages",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
+}

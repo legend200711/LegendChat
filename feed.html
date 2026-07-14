@@ -5066,18 +5066,18 @@ body::after {
       const qElements = collection(db, "posts");
       feedUnsubscribe = onSnapshot(qElements, (snapshot) => {
           try {
-          const bar = document.getElementById('snx-debug-bar');
-          if (bar) bar.style.display = 'none'; // hide debug bar on success
           const container = document.getElementById("feedPosts");
           const now = Date.now();
 
-          // Collect valid (non-expired) docs and sort newest-first client-side
+          // Collect ALL docs — track expired separately for diagnostics
+          const allDocs = [];
           const validDocs = [];
           snapshot.forEach(pDoc => {
               const post = pDoc.data();
               const ts = typeof post.timestamp === 'number' ? post.timestamp
                        : post.timestamp?.toMillis ? post.timestamp.toMillis()
                        : 0;
+              allDocs.push({ pDoc, ts });
               if (ts && (now - ts) > TTL_MS) return;
               validDocs.push({ pDoc, ts });
           });
@@ -5086,32 +5086,38 @@ body::after {
           // Apply scroll limit after sorting
           const limitedDocs = validDocs.slice(0, scrollLimit);
 
-          // Collect the set of post IDs in this snapshot (after TTL filter)
+          // Collect the set of post IDs
           const incomingIds = new Set(limitedDocs.map(v => v.pDoc.id));
 
-          // Remove DOM nodes for posts no longer in the snapshot (deleted / expired)
+          // Remove DOM nodes for posts no longer in the snapshot
           container.querySelectorAll('.postBox[id^="post-"]').forEach(el => {
               const id = el.id.replace('post-', '');
               if (!incomingIds.has(id)) el.remove();
           });
 
-          // Build an ordered list of post IDs to maintain correct DOM order
+          // Build an ordered list of post IDs
           const finalOrderedIds = limitedDocs.map(v => v.pDoc.id);
 
-          // Empty feed state
+          // Empty feed state — show diagnostics
           if (incomingIds.size === 0) {
-              // Show how many total docs came from Firestore vs how many passed TTL
-              const totalRaw = snapshot.size;
-              const totalValid = validDocs.length;
+              const expiredCount = allDocs.length - validDocs.length;
+              if (allDocs.length === 0) {
+                  _snxDebug('Firestore returned 0 posts — either no posts exist yet, or Firestore rules are blocking reads.');
+              } else if (expiredCount > 0) {
+                  _snxDebug('Firestore has ' + allDocs.length + ' post(s) but all are filtered as expired. Timestamps may be wrong (got: ' + allDocs[0].ts + ')');
+              }
               container.innerHTML = `
                 <div style="text-align:center;padding:48px 20px;color:#3a5a7a;">
                     <div style="font-size:40px;margin-bottom:14px;">🌑</div>
                     <div style="font-size:15px;font-weight:700;color:#4a7aaa;margin-bottom:8px;">The Eclipse is empty</div>
                     <div style="font-size:13px;color:#334;line-height:1.6;">No posts yet. Be the first to share something with the Nexus!</div>
-                    <div style="font-size:11px;color:#2a4a6a;margin-top:10px;">Firestore returned ${totalRaw} doc(s), ${totalValid} passed TTL filter.</div>
                 </div>`;
               return;
           }
+
+          // Posts are rendering — hide debug bar
+          const bar = document.getElementById('snx-debug-bar');
+          if (bar) bar.style.display = 'none';
 
           limitedDocs.forEach(({ pDoc, ts }, idx) => {
               const post = pDoc.data();
@@ -5296,6 +5302,7 @@ body::after {
           });
           } catch (renderErr) {
               console.error('[Feed] Render error:', renderErr);
+              _snxDebug('Render crash: ' + renderErr.message);
           }
       }, (err) => {
           console.error('[Feed] onSnapshot error:', err);

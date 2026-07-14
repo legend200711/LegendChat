@@ -1676,6 +1676,13 @@ img.post-media-preview::before {
     overflow: hidden;
     background: var(--bg-main);
 }
+/* Applied by closeChatPanel() to guarantee the panel cannot intercept
+   any pointer events when the inbox list is active. Cleared by
+   establishDirectMessageChannel() before showing the panel again. */
+.msg-chat-panel.dm-panel-closed {
+    display: none !important;
+    pointer-events: none !important;
+}
 .chat-header {
     display: flex;
     align-items: center;
@@ -2504,6 +2511,9 @@ img, video { max-width: 100%; height: auto; }
     .msg-layout.chat-open .msg-chat-panel { display: flex !important; flex: 1; }
     /* Default: chat panel hidden on mobile until a conversation is selected */
     .msg-chat-panel { display: none; }
+    /* dm-panel-closed is applied by closeChatPanel() — beats every other display
+       rule including the desktop display:flex !important. */
+    .msg-chat-panel.dm-panel-closed { display: none !important; pointer-events: none !important; }
     /* But when NOT in chat-open, still let the footer show inside the panel if visible */
     #chatBackBtn { display: inline-flex !important; }
     /* Footer always takes its natural space inside the flex col when panel is shown */
@@ -6738,7 +6748,13 @@ body::after {
       document.querySelectorAll('.conv-item').forEach(el =>
           el.classList.toggle('active-conv', el.dataset.uid === targetUid));
 
-      navTo('messagesInbox');
+      // Only navigate if not already on the messages page — calling navTo() while
+      // already here re-triggers the page fade-in animation and briefly removes
+      // the 'active' class, which can disrupt pointer events on the inbox list.
+      const messagesPage = document.getElementById('messagesInbox');
+      if (!messagesPage || !messagesPage.classList.contains('active')) {
+          navTo('messagesInbox');
+      }
 
       // Ensure chat doc exists
       await setDoc(doc(db, "chats", channelId), {
@@ -6776,14 +6792,19 @@ body::after {
       // so a Back tap while awaiting above will stale-out this call here.
       if (myToken !== _dmOpenToken) return;
 
-      // Show footer + panel — use classes, never inline style, so CSS media queries stay in control
+      // Show footer + panel — remove the dm-panel-closed guard class so CSS
+      // media queries regain control (mobile: display:flex via chat-open rule;
+      // desktop: always display:flex).  Also clear any stale inline override.
       document.getElementById("chatFooter").classList.remove("footer-hidden");
       // #chatEmptyState may have been rebuilt by _dmCleanupChat() — use getElementById
       const emptyState = document.getElementById("chatEmptyState");
       if (emptyState) emptyState.style.display = "none";
       document.getElementById("msgLayout").classList.add("chat-open");
-      // Remove any lingering inline display override so CSS flex rules take over
-      document.getElementById("msgChatPanel").style.display = "";
+      const _cp = document.getElementById("msgChatPanel");
+      if (_cp) {
+          _cp.classList.remove('dm-panel-closed');
+          _cp.style.display = '';   // clear any lingering inline override
+      }
 
       // Highlight active conv item
       document.querySelectorAll('.conv-item').forEach(el =>
@@ -7115,7 +7136,7 @@ body::after {
           // Reset local state and close chat — reuse the shared cleanup helper
           if (typeof window._dmCleanupChat === 'function') window._dmCleanupChat();
           const chatPanel = document.getElementById('msgChatPanel');
-          if (chatPanel) chatPanel.style.display = 'none';
+          if (chatPanel) { chatPanel.classList.add('dm-panel-closed'); chatPanel.style.display = ''; }
           document.getElementById('chatFooter').classList.add('footer-hidden');
           document.getElementById('msgLayout').classList.remove('chat-open');
           toastNotification('Conversation deleted.');
@@ -8088,6 +8109,10 @@ body::after {
       if (typing) typing.textContent = '';
       const read = document.getElementById('chatReadElement');
       if (read) read.textContent = '';
+      // Detach stale typing-indicator oninput handler so it cannot
+      // fire against an old channelId after the panel is re-opened
+      const inp = document.getElementById('msgInputBox');
+      if (inp) { inp.oninput = null; inp.value = ''; }
       // Remove active highlight from all conv items
       document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active-conv'));
       // Reset chat header
@@ -8245,19 +8270,20 @@ function switchFriendsTab(tab) {
 function closeChatPanel() {
     // 1. Invalidate any in-flight establishDirectMessageChannel() call so its
     //    async continuation cannot re-add 'chat-open' after we remove it here.
-    //    The token is a module-scoped var; incrementing it makes every pending
-    //    invocation's myToken !== _dmOpenToken check fail on its next guard.
     if (typeof window._dmInvalidateOpenToken === 'function') window._dmInvalidateOpenToken();
 
     // 2. Tear down Firestore listeners, reset state, clear rendered messages
     if (typeof window._dmCleanupChat === 'function') window._dmCleanupChat();
 
-    // 3. Force-hide the chat panel with an inline style so it can never
-    //    overlap or swallow touches/clicks on the inbox list below it.
-    //    establishDirectMessageChannel() clears this with style.display=""
-    //    before showing it again, so CSS media-query rules remain in control.
+    // 3. Hide the chat panel via a CSS class (not an inline style).
+    //    .dm-panel-closed uses display:none !important + pointer-events:none !important
+    //    which beats every other CSS rule including the desktop display:flex !important.
+    //    establishDirectMessageChannel() removes this class before showing the panel.
     const chatPanel = document.getElementById('msgChatPanel');
-    if (chatPanel) chatPanel.style.display = 'none';
+    if (chatPanel) {
+        chatPanel.classList.add('dm-panel-closed');
+        chatPanel.style.display = '';   // clear any lingering inline override
+    }
 
     // 4. Hide any open context menu (position:fixed z-index:9000 could block taps)
     const ctxMenu = document.getElementById('msgCtxMenu');
@@ -8267,7 +8293,11 @@ function closeChatPanel() {
     document.getElementById("msgLayout").classList.remove("chat-open");
     document.getElementById("chatFooter").classList.add("footer-hidden");
 
-    // 6. Close emoji picker
+    // 6. Restore inbox panel interactivity explicitly
+    const inboxPanel = document.getElementById('msgInboxPanel');
+    if (inboxPanel) inboxPanel.style.pointerEvents = '';
+
+    // 7. Close emoji picker
     closeEmojiPicker();
 }
 

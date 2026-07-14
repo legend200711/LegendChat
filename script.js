@@ -37,27 +37,33 @@
       console.log('[SW] Registered, scope:', registration.scope);
 
       // Detect when a new SW is waiting (update available)
+      // Only auto-apply if we have a controller already (not first install)
       const onUpdateFound = () => {
         const newWorker = registration.installing;
         if (!newWorker) return;
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            showUpdateToast(newWorker);
+            // New version ready — skip waiting so it activates
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
           }
         });
       };
 
       registration.addEventListener('updatefound', onUpdateFound);
 
+      // If a SW is already waiting AND we already have a controller, activate it
       if (registration.waiting && navigator.serviceWorker.controller) {
-        showUpdateToast(registration.waiting);
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
       }
 
-      // Reload page after the new SW takes control
+      // Reload once after the new SW takes control — but only once per session
+      // and only if the user isn't actively on the login screen
       let refreshing = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (refreshing) return;
+        if (sessionStorage.getItem('snx_sw_reloaded')) return;
         refreshing = true;
+        sessionStorage.setItem('snx_sw_reloaded', '1');
         window.location.reload();
       });
 

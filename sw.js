@@ -12,7 +12,7 @@
  * and the new one is pre-cached, so users always get the latest shell.
  */
 
-const CACHE_NAME    = 'shadow-nexus-v1';
+const CACHE_NAME    = 'shadow-nexus-v2';
 const OFFLINE_URL   = '/ShadowNexusSocial/offline.html';
 
 /** Files that make up the app shell — pre-cached on install */
@@ -59,9 +59,12 @@ self.addEventListener('install', (event) => {
           })
         )
       );
-    }).then(() => {
-      // Skip waiting so the new SW activates immediately
-      return self.skipWaiting();
+      // Note: we do NOT call skipWaiting() here automatically.
+      // Auto-skipping causes controllerchange to fire on first install,
+      // which script.js would interpret as an update and reload the page
+      // (the 6-7 reload loop on phones). The SW waits for the current
+      // page to close naturally, or the user can tap "Update" in the
+      // update toast which sends SKIP_WAITING via postMessage.
     })
   );
 });
@@ -80,9 +83,11 @@ self.addEventListener('activate', (event) => {
             return caches.delete(name);
           })
       );
-    }).then(() => {
-      // Take control of all open clients immediately
-      return self.clients.claim();
+      // Note: we do NOT call clients.claim() here automatically.
+      // Claiming immediately after activation causes controllerchange to
+      // fire on every page that was open without a controller, triggering
+      // the reload loop in script.js. Pages will pick up the SW naturally
+      // on their next navigation.
     })
   );
 });

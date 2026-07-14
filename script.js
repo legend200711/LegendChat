@@ -21,6 +21,12 @@
 (function registerSW() {
   if (!('serviceWorker' in navigator)) return;
 
+  // Capture whether a SW was already controlling the page at load time.
+  // If not, this is a first install — we must NOT reload on controllerchange
+  // because that would cause a startup loop (SW installs → claims → reload
+  // → SW installs again → ...).
+  const _hadControllerOnLoad = !!navigator.serviceWorker.controller;
+
   // Determine base path — GitHub Pages vs local
   const isGH    = location.pathname.startsWith('/ShadowNexusSocial');
   const base    = isGH ? '/ShadowNexusSocial/' : './';
@@ -53,10 +59,15 @@
         showUpdateToast(registration.waiting);
       }
 
-      // Reload page after the new SW takes control
+      // Reload the page ONLY when a new SW takes over from an existing one
+      // (i.e. a real app update). On first install there is no previous
+      // controller, so we skip the reload to avoid the startup loop.
       let refreshing = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (refreshing) return;
+        // navigator.serviceWorker.controller is already the NEW worker here,
+        // so we check the flag we set before registering.
+        if (!_hadControllerOnLoad) return; // first install — no reload needed
         refreshing = true;
         window.location.reload();
       });

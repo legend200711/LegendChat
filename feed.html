@@ -6501,13 +6501,26 @@ body::after {
   // Track the live-status unsubscribe for the current chat partner
   // activeChatStatusUnsub declared at top of module (line ~2179)
 
-  // Open a chat panel with a given user
+  // Open a chat panel with a given user.
+  // Guard against concurrent calls: if the user taps a second conversation
+  // before the first await resolves we bail out of the stale call so only
+  // the latest tap wins and there is never more than one active-conv highlight.
+  let _dmOpenToken = 0;
   window.establishDirectMessageChannel = async function(targetUid) {
       if(targetUid === currentUser.uid) return;
+
+      // Stamp this invocation so we can detect if another tap superseded us.
+      const myToken = ++_dmOpenToken;
 
       const channelId = [currentUser.uid, targetUid].sort().join('_');
       activeChatChannelId = channelId;
       activeChatTargetUid = targetUid;
+
+      // Apply the highlight immediately (before any await) so the user sees
+      // instant feedback. The inbox-monitor snapshot will also set it correctly
+      // on its next render, keeping both paths in sync.
+      document.querySelectorAll('.conv-item').forEach(el =>
+          el.classList.toggle('active-conv', el.dataset.uid === targetUid));
 
       navTo('messagesInbox');
 
@@ -6518,8 +6531,14 @@ body::after {
           [`unread_${currentUser.uid}`]: 0
       }, { merge: true });
 
+      // Another tap came in while we were awaiting — abandon this call.
+      if (myToken !== _dmOpenToken) return;
+
       // Fetch partner profile
       const targetSnap = await getDoc(doc(db, "users", targetUid));
+
+      if (myToken !== _dmOpenToken) return;
+
       const tData = targetSnap.exists()
           ? targetSnap.data()
           : { displayName: targetUid.substring(0,8), avatar: '', status: 'offline', mood: '' };
@@ -6544,7 +6563,8 @@ body::after {
       // Remove any lingering inline display override so CSS flex rules take over
       document.getElementById("msgChatPanel").style.display = "";
 
-      // Highlight active conv item
+      // Re-apply highlight after the await (inbox-monitor may have rebuilt
+      // the list while we were fetching the profile).
       document.querySelectorAll('.conv-item').forEach(el =>
           el.classList.toggle('active-conv', el.dataset.uid === targetUid));
 
@@ -6884,13 +6904,26 @@ body::after {
   // Inbox monitor — scoped to this user's channels only via a where() query,
   // avoiding a full collection scan that would read every chat on the platform
   function initInboxMonitor() {
+      // Sequence counter: each snapshot invocation gets a unique number.
+      // After the async profile fetches complete we check if a newer snapshot
+      // already rendered — if so we discard this one. This prevents two
+      // concurrent snapshot calls from both writing to the DOM and producing
+      // duplicate active-conv highlights or stale onclick handlers.
+      let renderSeq = 0;
+
       const q = query(
           collection(db, "chats"),
           where("participants", "array-contains", currentUser.uid)
       );
       const unsub = onSnapshot(q, async (snap) => {
+          const mySeq = ++renderSeq;
           const inboxBox = document.getElementById("inboxChannelsList");
           let totalUnreadCount = 0;
+
+          // Capture the active conversation uid NOW, before any await, so
+          // the highlight decision is locked to this snapshot's moment in time
+          // and cannot be poisoned by a tap the user makes during the fetch.
+          const activeUidAtRender = activeChatTargetUid;
 
           const convPromises = [];
           snap.forEach(cDoc => {
@@ -6910,6 +6943,11 @@ body::after {
           });
 
           const convs = await Promise.all(convPromises);
+
+          // A newer snapshot already fired while we were awaiting — discard
+          // this render to avoid overwriting a more up-to-date list.
+          if (mySeq !== renderSeq) return;
+
           // Sort by lastMsgTs (top-level field written on send) or fall back to last message timestamp
           convs.sort((a, b) => (b.lastMsg?.timestamp || 0) - (a.lastMsg?.timestamp || 0));
           inboxBox.innerHTML = '';
@@ -6920,7 +6958,9 @@ body::after {
               convs.forEach(c => {
                   totalUnreadCount += c.unreadCount;
                   const el = document.createElement("div");
-                  el.className = "conv-item" + (c.partnerUid === activeChatTargetUid ? ' active-conv' : '');
+                  // Use the uid captured before the await — never the live
+                  // activeChatTargetUid which may have changed since then.
+                  el.className = "conv-item" + (c.partnerUid === activeUidAtRender ? ' active-conv' : '');
                   el.dataset.uid = c.partnerUid;
 
                   // Preview text — show 📷 for image messages

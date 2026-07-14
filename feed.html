@@ -6803,13 +6803,12 @@ body::after {
               participants: (await getDoc(doc(db, 'chats', activeChatChannelId)))
                   .data().participants.filter(uid => uid !== currentUser.uid)
           });
-          // Reset local state and close chat
-          activeChatChannelId = null;
-          activeChatTargetUid = null;
-          if (activeChatUnsubscribe) { activeChatUnsubscribe(); activeChatUnsubscribe = null; }
+          // Reset local state and close chat — reuse the shared cleanup helper
+          if (typeof window._dmCleanupChat === 'function') window._dmCleanupChat();
+          const chatPanel = document.getElementById('msgChatPanel');
+          if (chatPanel) chatPanel.style.display = 'none';
           document.getElementById('chatFooter').classList.add('footer-hidden');
           document.getElementById('msgLayout').classList.remove('chat-open');
-          document.getElementById('chatBoxContainer').innerHTML = '';
           toastNotification('Conversation deleted.');
       } catch(e) { toastNotification('Could not delete: ' + e.message); }
   };
@@ -7757,6 +7756,38 @@ body::after {
       await adminAuditLog('EXPORT_USERS','Exported user list as CSV');
   };
 
+  // ── Exposed for closeChatPanel() (non-module scope) ──
+  // Cancels active chat Firestore listeners, resets shared state, and
+  // restores the empty-state placeholder so the panel is clean on next open.
+  window._dmCleanupChat = function() {
+      if (activeChatUnsubscribe)  { activeChatUnsubscribe();  activeChatUnsubscribe  = null; }
+      if (activeChatStatusUnsub)  { activeChatStatusUnsub();  activeChatStatusUnsub  = null; }
+      activeChatChannelId = null;
+      activeChatTargetUid = null;
+      // Clear rendered messages and restore the empty-state placeholder
+      const box = document.getElementById('chatBoxContainer');
+      if (box) {
+          box.innerHTML = '';
+          const es = document.createElement('div');
+          es.id = 'chatEmptyState';
+          es.className = 'chat-empty-state';
+          es.innerHTML = '<span>💬</span>Select a conversation to start chatting';
+          box.appendChild(es);
+      }
+      // Clear typing / read-receipt indicators
+      const typing = document.getElementById('chatTypingElement');
+      if (typing) typing.textContent = '';
+      const read = document.getElementById('chatReadElement');
+      if (read) read.textContent = '';
+      // Remove active highlight from all conv items
+      document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active-conv'));
+      // Reset chat header
+      const hName = document.getElementById('chatHeaderName');
+      if (hName) hName.textContent = '—';
+      const hStatus = document.getElementById('chatHeaderStatus');
+      if (hStatus) hStatus.textContent = 'Select a conversation';
+  };
+
 </script>
 
 <script>
@@ -7903,9 +7934,25 @@ function switchFriendsTab(tab) {
 
 /* ── Messaging UI helpers (non-module, called from HTML) ── */
 function closeChatPanel() {
+    // 1. Tear down Firestore listeners, reset state, clear rendered messages
+    if (typeof window._dmCleanupChat === 'function') window._dmCleanupChat();
+
+    // 2. Force-hide the chat panel with an inline style so it can never
+    //    overlap or swallow touches/clicks on the inbox list below it.
+    //    establishDirectMessageChannel() clears this with style.display=""
+    //    before showing it again, so CSS media-query rules remain in control.
+    const chatPanel = document.getElementById('msgChatPanel');
+    if (chatPanel) chatPanel.style.display = 'none';
+
+    // 3. Hide any open context menu (position:fixed z-index:9000 could block taps)
+    const ctxMenu = document.getElementById('msgCtxMenu');
+    if (ctxMenu) ctxMenu.style.display = 'none';
+
+    // 4. Collapse layout and hide input bar
     document.getElementById("msgLayout").classList.remove("chat-open");
-    // Restore footer-hidden so layout doesn't show orphan input bar
     document.getElementById("chatFooter").classList.add("footer-hidden");
+
+    // 5. Close emoji picker
     closeEmojiPicker();
 }
 

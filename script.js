@@ -42,22 +42,24 @@
 
       console.log('[SW] Registered, scope:', registration.scope);
 
-      // Detect when a new SW is waiting (update available)
-      const onUpdateFound = () => {
+      // Auto-apply any update that is already waiting when the page loads
+      // (e.g. the SW updated while the app was in the background).
+      if (registration.waiting && navigator.serviceWorker.controller) {
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+
+      // Auto-apply future updates as soon as a new SW finishes installing
+      registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
         if (!newWorker) return;
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            showUpdateToast(newWorker);
+            // Silently skip waiting — the controllerchange handler below
+            // will reload the page so users instantly get the new version.
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
           }
         });
-      };
-
-      registration.addEventListener('updatefound', onUpdateFound);
-
-      if (registration.waiting && navigator.serviceWorker.controller) {
-        showUpdateToast(registration.waiting);
-      }
+      });
 
       // Reload the page ONLY when a new SW takes over from an existing one
       // (i.e. a real app update). On first install there is no previous

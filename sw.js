@@ -83,12 +83,12 @@ self.addEventListener('activate', (event) => {
             return caches.delete(name);
           })
       );
-      // Note: we do NOT call clients.claim() here automatically.
-      // Claiming immediately after activation causes controllerchange to
-      // fire on every page that was open without a controller, triggering
-      // the reload loop in script.js. Pages will pick up the SW naturally
-      // on their next navigation.
-    })
+    }).then(() => self.clients.claim())
+    // clients.claim() lets the new SW take over all open tabs immediately
+    // after an update activates, so the reloaded page is served by the
+    // fresh SW right away. On first install this fires but the page has no
+    // prior controller so _hadControllerOnLoad is false and script.js will
+    // not trigger a reload.
   );
 });
 

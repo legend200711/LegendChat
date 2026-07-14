@@ -662,10 +662,13 @@ input:focus, textarea:focus, select:focus {
 .profile-handle-text { font-size: 13px; color: #3a6a9a; }
 .profile-bio-text { font-size: 13px; color: #8ab0cc; margin: 5px 0 6px; line-height: 1.5; }
 .profile-mood-text { font-size: 12px; color: #00ff88; margin-bottom: 4px; text-shadow: 0 0 8px rgba(0,255,136,0.4); }
-.mood-sticker-display { font-size: 22px; animation: moodBounce 1.4s ease-in-out infinite; display: inline-block; }
 @keyframes moodBounce { 0%,100%{transform:translateY(0) scale(1);} 50%{transform:translateY(-4px) scale(1.12);} }
 /* Mood chip on posts/comments */
-.post-mood-chip { font-size:11px; background:rgba(0,255,136,0.1); border:1px solid rgba(0,255,136,0.3); color:#00ff88; border-radius:20px; padding:1px 7px; margin-left:2px; white-space:nowrap; }
+.post-mood-chip { font-size:12px; background:rgba(0,255,136,0.1); border:1px solid rgba(0,255,136,0.3); color:#00ff88; border-radius:20px; padding:1px 7px; margin-left:2px; white-space:nowrap; display:inline-block; }
+/* Sticker mood animates in any context */
+.mood-sticker-display { animation: moodBounce 1.4s ease-in-out infinite; display: inline-block; }
+/* Profile mood text — larger sticker on profile page */
+.profile-mood-text.mood-sticker-display { font-size: 22px; }
 /* ── Edit Profile Modal tabs ── */
 .ep-tabs { display:flex; gap:4px; margin-bottom:14px; border-bottom:1px solid rgba(0,120,255,0.18); padding-bottom:8px; flex-wrap:wrap; }
 .ep-tab { background:transparent; border:1px solid rgba(0,120,255,0.2); color:#4a7aaa; border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer; transition:all 0.15s; }
@@ -3692,6 +3695,9 @@ body::after {
                     <div style="margin-top:8px;font-size:11px;color:#3a5a7a;">Preview: <span id="moodStatusPreview" class="mood-preview-chip"></span></div>
                 </div>
 
+                <div style="margin-top:14px;display:flex;gap:8px;">
+                    <button class="mood-fmt-btn" onclick="clearMoodSelection()" style="flex:1;border-color:rgba(255,60,60,0.3);color:#ff7788;">✕ Remove Mood</button>
+                </div>
                 <input type="hidden" id="editMoodValue">
                 <input type="hidden" id="editMoodFmt">
             </div>
@@ -6125,6 +6131,8 @@ service cloud.firestore {
               author:        userData.displayName,
               authorBadges:  userData.badges || [],
               authorRole:    userData.role   || 'member',
+              authorMood:    userData.mood   || '',
+              authorMoodFmt: userData.moodFmt || 'emoji',
               text:          txt,
               ts:            Date.now()
           })
@@ -6185,10 +6193,13 @@ service cloud.firestore {
               // Legacy comments written before badge system — render Founder badge directly
               badgeHtml = `<span class="badge-inline badge-founder" title="Founder">👑 Founder</span>`;
           }
+          const moodChip = c.authorMood
+              ? `<span class="post-mood-chip${c.authorMoodFmt === 'sticker' ? ' mood-sticker-display' : ''}">${escFeed(c.authorMood)}</span>`
+              : '';
           d.innerHTML = `
             <div class="comment-body">
                 <span style="display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap;">
-                    <b class="comment-author">${escFeed(c.author)}</b>${badgeHtml}
+                    <b class="comment-author">${escFeed(c.author)}</b>${badgeHtml}${moodChip}
                 </span>
                 <span class="comment-text" style="margin-left:4px;">${escFeed(c.text)}</span>
                 ${tsLabel ? `<span class="comment-ts">${tsLabel}</span>` : ''}
@@ -8062,8 +8073,15 @@ service cloud.firestore {
       // Store UID so clicking avatar/name opens that person's profile
       window._ipcModalUid = targetUid;
 
-      if (nameEl)  nameEl.innerHTML = escapeHtml(_m_tgtData.displayName || 'User') + buildBadgeHtml(_m_tgtData.badges||[], _m_tgtData.role||'member');
-      if (subEl)   subEl.textContent  = _m_tgtData.status === 'online' ? '🟢 Online now' : (_m_tgtData.mood || '⚫ Offline');
+      if (nameEl) {
+          const tgtMood = _m_tgtData.mood || '';
+          const tgtMoodFmt = _m_tgtData.moodFmt || 'emoji';
+          const moodSpan = tgtMood
+              ? ` <span class="post-mood-chip${tgtMoodFmt === 'sticker' ? ' mood-sticker-display' : ''}" style="font-size:12px;">${escapeHtml(tgtMood)}</span>`
+              : '';
+          nameEl.innerHTML = escapeHtml(_m_tgtData.displayName || 'User') + buildBadgeHtml(_m_tgtData.badges||[], _m_tgtData.role||'member') + moodSpan;
+      }
+      if (subEl)   subEl.textContent  = _m_tgtData.status === 'online' ? '🟢 Online now' : '⚫ Offline';
 
       if (avatarEl) {
           // Clear any previous initial / background from the last conversation
@@ -8790,6 +8808,20 @@ function updateStatusPreview() {
     document.getElementById('editMoodFmt').value = 'status';
     const prev = document.getElementById('moodStatusPreview');
     if (prev) prev.textContent = val;
+}
+
+function clearMoodSelection() {
+    document.getElementById('editMoodValue').value = '';
+    document.getElementById('editMoodFmt').value = 'emoji';
+    // Deselect all items
+    document.querySelectorAll('.mood-emoji-item.selected,.mood-sticker-item.selected').forEach(el => el.classList.remove('selected'));
+    // Clear all previews
+    ['moodEmojiPreview','moodStickerPreview','moodStatusPreview'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.textContent = '';
+    });
+    const si = document.getElementById('moodCustomStatus');
+    if (si) si.value = '';
+    toastNotification('Mood removed. Save your profile to apply.');
 }
 
 // ── Style Editor ──

@@ -4457,10 +4457,14 @@ body::after {
 
               let mediaHTML = '';
               if (post.mediaUrl) {
-                  if (post.mediaUrl.match(/\.(mp4|webm|ogg)/i) || post.mediaUrl.includes('video')) {
-                      mediaHTML = `<video class="post-media-preview" src="${post.mediaUrl}" controls></video>`;
+                  // Rewrite old R2 public URLs to go through the Worker (which serves files correctly)
+                  let mu = post.mediaUrl;
+                  mu = mu.replace('https://pub-e5efe8c515324a8ab89ca15c5fa731dd.r2.dev/', 'https://yellow-term-11e6.nthntjrn.workers.dev/');
+                  mu = mu.replace('https://pub-1cb8318faddb49f0b2c91fbd098c271f.r2.dev/', 'https://yellow-term-11e6.nthntjrn.workers.dev/');
+                  if (mu.match(/\.(mp4|webm|ogg)/i) || mu.includes('video')) {
+                      mediaHTML = `<video class="post-media-preview" src="${mu}" controls></video>`;
                   } else {
-                      mediaHTML = `<img class="post-media-preview" src="${post.mediaUrl}" alt="media">`;
+                      mediaHTML = `<img class="post-media-preview" src="${mu}" alt="media">`;
                   }
               }
 

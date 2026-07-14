@@ -3491,6 +3491,7 @@ body::after {
         <button id="btnBroadcast" style="margin-top:10px; width:100%; border-radius:10px; padding:11px; background:linear-gradient(135deg,#003d99,#0077dd); border-color:rgba(0,174,239,0.65); color:#fff; font-size:14px; box-shadow:0 0 20px rgba(0,174,239,0.40);">⚡ Post to the Eclipse</button>
     </div>
 
+    <div id="snx-debug-bar" style="display:none;margin-bottom:10px;padding:10px 14px;background:rgba(255,0,60,0.15);border:1px solid rgba(255,60,60,0.4);border-radius:10px;font-size:12px;color:#ff8899;word-break:break-all;"></div>
     <div id="feedPosts"></div>
     <div id="infiniteLoadTrigger" style="text-align:center;padding:20px;color:#334;font-size:12px;"></div>
 </div>
@@ -5050,13 +5051,23 @@ body::after {
   /* TIMELINE DYNAMIC TIMELINE STREAM ENGINE WITH MEDIA INTERPRETATION */
   const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
+  function _snxDebug(msg) {
+      const bar = document.getElementById('snx-debug-bar');
+      if (!bar) return;
+      bar.style.display = 'block';
+      bar.innerHTML = '🔴 DEBUG: ' + msg;
+  }
+
   function initTimelineStream() {
       // Tear down any existing listener before (re)subscribing with a new limit
       if (feedUnsubscribe) { feedUnsubscribe(); feedUnsubscribe = null; }
 
+      _snxDebug('Connecting to Firestore posts…');
       const qElements = collection(db, "posts");
       feedUnsubscribe = onSnapshot(qElements, (snapshot) => {
           try {
+          const bar = document.getElementById('snx-debug-bar');
+          if (bar) bar.style.display = 'none'; // hide debug bar on success
           const container = document.getElementById("feedPosts");
           const now = Date.now();
 
@@ -5087,13 +5098,17 @@ body::after {
           // Build an ordered list of post IDs to maintain correct DOM order
           const finalOrderedIds = limitedDocs.map(v => v.pDoc.id);
 
-          // Empty feed state — show only when Firestore confirms zero posts
+          // Empty feed state
           if (incomingIds.size === 0) {
+              // Show how many total docs came from Firestore vs how many passed TTL
+              const totalRaw = snapshot.size;
+              const totalValid = validDocs.length;
               container.innerHTML = `
                 <div style="text-align:center;padding:48px 20px;color:#3a5a7a;">
                     <div style="font-size:40px;margin-bottom:14px;">🌑</div>
                     <div style="font-size:15px;font-weight:700;color:#4a7aaa;margin-bottom:8px;">The Eclipse is empty</div>
                     <div style="font-size:13px;color:#334;line-height:1.6;">No posts yet. Be the first to share something with the Nexus!</div>
+                    <div style="font-size:11px;color:#2a4a6a;margin-top:10px;">Firestore returned ${totalRaw} doc(s), ${totalValid} passed TTL filter.</div>
                 </div>`;
               return;
           }
@@ -5284,9 +5299,17 @@ body::after {
           }
       }, (err) => {
           console.error('[Feed] onSnapshot error:', err);
+          _snxDebug('Firestore error: ' + (err.code || err.message) + ' — go to Firebase Console → Firestore → Rules and allow read/write for authenticated users.');
           const container = document.getElementById("feedPosts");
           if (container) {
-              container.innerHTML = `<div style="text-align:center;padding:48px 20px;"><div style="font-size:13px;color:#ff6680;padding:14px;background:rgba(255,0,0,0.1);border-radius:10px;">⚠️ Feed error: ${err.code || err.message}<br><small style="color:#aaa;">Check Firebase Console → Firestore → Rules</small></div></div>`;
+              container.innerHTML = `<div style="text-align:center;padding:32px 20px;"><div style="font-size:13px;color:#ff8899;padding:14px;background:rgba(255,0,0,0.1);border-radius:10px;text-align:left;">⚠️ <b>Firestore error: ${err.code || err.message}</b><br><br>Fix: Go to <b>Firebase Console → Firestore Database → Rules</b> and set:<br><pre style="background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;font-size:11px;margin-top:8px;overflow-x:auto;">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}</pre></div></div>`;
           }
       });
   }

@@ -545,6 +545,16 @@ input:focus, textarea:focus, select:focus {
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 8px; flex-wrap: wrap; gap: 4px;
 }
+.post-author-avatar {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    background: #071428; background-size: cover; background-position: center;
+    border: 2px solid rgba(0,174,239,0.45); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: bold; color: #00AEEF;
+    transition: border-color 0.15s;
+    overflow: hidden;
+}
+.post-author-avatar:hover { border-color: rgba(0,174,239,0.9); }
 .pinned-tag { display: none; }
 .post-media-preview { width: 100%; max-height: 260px; object-fit: cover; border-radius: 10px; margin: 10px 0; border: 1px solid rgba(0,100,200,0.25); transition: opacity 0.2s, box-shadow 0.2s; }
 .post-media-preview:hover { opacity: 0.92; box-shadow: 0 0 16px rgba(0,120,255,0.3); }
@@ -604,7 +614,9 @@ input:focus, textarea:focus, select:focus {
 .wall-btn.wall-del:hover { color: #ff3366; }
 
 .profile-header { position: relative; background: var(--bg-card); border-bottom: 2px solid rgba(0,100,220,0.2); border-radius: 14px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 4px 30px rgba(0,60,160,0.15); }
-.cover-banner { height: 180px; background: linear-gradient(135deg,#071428,#0B1F3A); background-size: cover; background-position: center; transition: background-image 0.3s ease; position: relative; }
+.cover-banner { height: 180px; background: linear-gradient(135deg,#071428,#0B1F3A); background-size: cover; background-position: center; background-repeat: no-repeat; transition: background-image 0.3s ease; position: relative; }
+@media (min-width: 600px) { .cover-banner { height: 220px; } }
+@media (min-width: 900px) { .cover-banner { height: 260px; } }
 .cover-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(7,20,40,0.75) 100%); pointer-events: none; }
 .cover-edit-btn {
     position: absolute; bottom: 10px; right: 10px; z-index: 2;
@@ -614,7 +626,7 @@ input:focus, textarea:focus, select:focus {
 }
 .cover-edit-btn:hover { background: rgba(0,80,200,0.3); box-shadow: 0 0 12px rgba(0,160,255,0.4); }
 .profile-avatar-row { display: flex; align-items: flex-end; gap: 16px; padding: 0 18px 16px; margin-top: -52px; position: relative; z-index: 10; }
-.p-avatar { width: 96px; height: 96px; border-radius: 50%; background: #071428; border: 3px solid rgba(0,174,239,0.68); background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; font-size: 36px; flex-shrink: 0; position: relative; box-shadow: 0 0 26px rgba(0,174,239,0.52), 0 0 0 1px rgba(57,255,20,0.12); animation: blueFlame 3s infinite; }
+.p-avatar { width: 96px; height: 96px; border-radius: 50%; background: #071428; border: 3px solid rgba(0,174,239,0.68); background-size: cover; background-position: center; background-repeat: no-repeat; display: flex; align-items: center; justify-content: center; font-size: 36px; flex-shrink: 0; position: relative; box-shadow: 0 0 26px rgba(0,174,239,0.52), 0 0 0 1px rgba(57,255,20,0.12); animation: blueFlame 3s infinite; overflow: hidden; }
 .avatar-edit-btn {
     position: absolute; bottom: 2px; right: 2px;
     width: 26px; height: 26px;
@@ -690,6 +702,7 @@ input:focus, textarea:focus, select:focus {
 .badge-founder   { background:linear-gradient(135deg,#5a3800,#b87200); border-color:rgba(255,200,50,0.8); color:#ffe566; box-shadow:0 0 12px rgba(255,185,0,0.55); font-size:11px; letter-spacing:1px; }
 .badge-moderator { background:linear-gradient(135deg,#1a0033,#550099); border-color:rgba(170,80,255,0.65); color:#cc88ff; box-shadow:0 0 8px rgba(150,60,255,0.4); }
 .badge-artist    { background:linear-gradient(135deg,#003322,#006644); border-color:rgba(0,255,180,0.55); color:#66ffcc; box-shadow:0 0 8px rgba(0,220,150,0.35); }
+.badge-og        { background:linear-gradient(135deg,#1a0a00,#7a3a00); border-color:rgba(255,160,30,0.75); color:#ffcc66; box-shadow:0 0 12px rgba(255,140,0,0.55); font-size:11px; letter-spacing:1px; }
 .badge-early     { background:linear-gradient(135deg,#002244,#005588); border-color:rgba(80,200,255,0.6); color:#aaddff; box-shadow:0 0 8px rgba(60,180,255,0.35); }
 .badge-supporter { background:linear-gradient(135deg,#330033,#770055); border-color:rgba(255,100,200,0.6); color:#ffaadd; box-shadow:0 0 8px rgba(255,80,180,0.35); }
 .badge-top       { background:linear-gradient(135deg,#332200,#886600); border-color:rgba(255,200,80,0.6); color:#ffd966; box-shadow:0 0 8px rgba(220,170,0,0.35); }
@@ -707,11 +720,240 @@ input:focus, textarea:focus, select:focus {
 .badge-inline.badge-founder   { background:linear-gradient(135deg,#5a3800,#b87200); border:1px solid rgba(255,200,50,0.8); color:#ffe566; box-shadow:0 0 8px rgba(255,185,0,0.5); }
 .badge-inline.badge-moderator { background:linear-gradient(135deg,#1a0033,#550099); border:1px solid rgba(170,80,255,0.65); color:#cc88ff; box-shadow:0 0 6px rgba(150,60,255,0.3); }
 .badge-inline.badge-artist    { background:linear-gradient(135deg,#003322,#006644); border:1px solid rgba(0,255,180,0.55); color:#66ffcc; box-shadow:0 0 6px rgba(0,220,150,0.3); }
+.badge-inline.badge-og        { background:linear-gradient(135deg,#1a0a00,#7a3a00); border:1px solid rgba(255,160,30,0.75); color:#ffcc66; box-shadow:0 0 10px rgba(255,140,0,0.5); font-size:11px; letter-spacing:0.5px; }
 .badge-inline.badge-early     { background:linear-gradient(135deg,#002244,#005588); border:1px solid rgba(80,200,255,0.6); color:#aaddff; box-shadow:0 0 6px rgba(60,180,255,0.3); }
 .badge-inline.badge-supporter { background:linear-gradient(135deg,#330033,#770055); border:1px solid rgba(255,100,200,0.6); color:#ffaadd; box-shadow:0 0 6px rgba(255,80,180,0.3); }
 .badge-inline.badge-top       { background:linear-gradient(135deg,#332200,#886600); border:1px solid rgba(255,200,80,0.6); color:#ffd966; box-shadow:0 0 6px rgba(220,170,0,0.3); }
 .badge-inline.badge-legend    { background:linear-gradient(135deg,#1a0000,#660000); border:1px solid rgba(255,60,60,0.65); color:#ff9999; box-shadow:0 0 6px rgba(255,40,40,0.35); }
 
+/* ── New badge types ── */
+.badge-admin        { background:linear-gradient(135deg,#001a33,#003366); border-color:rgba(0,180,255,0.8); color:#66ccff; box-shadow:0 0 10px rgba(0,160,255,0.5); }
+.badge-beta         { background:linear-gradient(135deg,#0a0033,#220066); border-color:rgba(140,80,255,0.7); color:#cc99ff; box-shadow:0 0 8px rgba(120,60,255,0.4); }
+.badge-helper       { background:linear-gradient(135deg,#002211,#005533); border-color:rgba(0,220,130,0.65); color:#66ffbb; box-shadow:0 0 8px rgba(0,200,120,0.35); }
+.badge-event        { background:linear-gradient(135deg,#1a0033,#440066); border-color:rgba(200,80,255,0.7); color:#ee88ff; box-shadow:0 0 10px rgba(180,60,255,0.45); }
+.badge-holiday      { background:linear-gradient(135deg,#330011,#880033); border-color:rgba(255,80,120,0.7); color:#ffaabb; box-shadow:0 0 8px rgba(255,60,100,0.4); }
+.badge-achievement  { background:linear-gradient(135deg,#1a1100,#554400); border-color:rgba(255,210,60,0.75); color:#ffe066; box-shadow:0 0 10px rgba(240,190,0,0.5); }
+.badge-inline.badge-admin       { background:linear-gradient(135deg,#001a33,#003366); border:1px solid rgba(0,180,255,0.8); color:#66ccff; box-shadow:0 0 8px rgba(0,160,255,0.45); }
+.badge-inline.badge-beta        { background:linear-gradient(135deg,#0a0033,#220066); border:1px solid rgba(140,80,255,0.7); color:#cc99ff; box-shadow:0 0 6px rgba(120,60,255,0.35); }
+.badge-inline.badge-helper      { background:linear-gradient(135deg,#002211,#005533); border:1px solid rgba(0,220,130,0.65); color:#66ffbb; box-shadow:0 0 6px rgba(0,200,120,0.3); }
+.badge-inline.badge-event       { background:linear-gradient(135deg,#1a0033,#440066); border:1px solid rgba(200,80,255,0.7); color:#ee88ff; box-shadow:0 0 8px rgba(180,60,255,0.4); }
+.badge-inline.badge-holiday     { background:linear-gradient(135deg,#330011,#880033); border:1px solid rgba(255,80,120,0.7); color:#ffaabb; box-shadow:0 0 6px rgba(255,60,100,0.35); }
+.badge-inline.badge-achievement { background:linear-gradient(135deg,#1a1100,#554400); border:1px solid rgba(255,210,60,0.75); color:#ffe066; box-shadow:0 0 8px rgba(240,190,0,0.45); }
+
+/* ── Badge rarity glow tiers ── */
+.badge-rarity-common    { /* default */ }
+.badge-rarity-rare      { box-shadow:0 0 14px rgba(80,160,255,0.6) !important; }
+.badge-rarity-epic      { box-shadow:0 0 18px rgba(160,80,255,0.7) !important; animation:epicBadgePulse 2.5s ease-in-out infinite; }
+.badge-rarity-legendary { box-shadow:0 0 24px rgba(255,200,0,0.8) !important;  animation:legendaryBadgePulse 2s ease-in-out infinite; }
+@keyframes epicBadgePulse      { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.3)} }
+@keyframes legendaryBadgePulse { 0%,100%{filter:brightness(1) drop-shadow(0 0 4px gold)} 50%{filter:brightness(1.4) drop-shadow(0 0 12px gold)} }
+
+/* ── Badge info tooltip (tap to see description) ── */
+.badge[data-desc], .badge-inline[data-desc] { cursor:pointer; }
+.badge-tooltip-modal {
+    display:none; position:fixed; inset:0; z-index:8000;
+    background:rgba(0,3,15,0.82); align-items:center; justify-content:center;
+    padding:20px; box-sizing:border-box; backdrop-filter:blur(6px);
+}
+.badge-tooltip-modal.open { display:flex; }
+.badge-tooltip-inner {
+    background:#060d1e; border:1px solid rgba(0,174,239,0.4);
+    border-radius:16px; padding:24px 22px; max-width:320px; width:100%;
+    text-align:center; box-shadow:0 0 50px rgba(0,100,255,0.2);
+    animation:deleteModalIn 0.2s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.badge-tooltip-icon  { font-size:40px; margin-bottom:10px; }
+.badge-tooltip-name  { font-size:16px; font-weight:800; color:#fff; margin-bottom:4px; }
+.badge-tooltip-rarity{ font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:10px; }
+.badge-tooltip-desc  { font-size:13px; color:#9bbdd8; line-height:1.6; margin-bottom:16px; }
+.badge-tooltip-close { padding:8px 24px; border-radius:10px; font-size:13px; }
+
+/* ── Social list modal (friends / followers / following) ── */
+.social-list-modal {
+    display:none; position:fixed; inset:0; z-index:7500;
+    background:rgba(0,3,15,0.85); align-items:center; justify-content:center;
+    padding:16px; box-sizing:border-box; backdrop-filter:blur(6px);
+}
+.social-list-modal.open { display:flex; }
+.social-list-inner {
+    background:#060d1e; border:1px solid rgba(0,174,239,0.35);
+    border-radius:16px; width:100%; max-width:400px; max-height:80vh;
+    display:flex; flex-direction:column;
+    box-shadow:0 0 60px rgba(0,100,255,0.2);
+    animation:deleteModalIn 0.22s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.social-list-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 18px 12px; border-bottom:1px solid rgba(0,174,239,0.15); flex-shrink:0;
+}
+.social-list-title { font-size:15px; font-weight:700; color:#fff; }
+.social-list-close { background:none; border:none; color:#556; font-size:22px; cursor:pointer; padding:2px 8px; border-radius:6px; }
+.social-list-close:hover { color:#fff; }
+.social-list-body  { overflow-y:auto; padding:8px 0; flex:1; -webkit-overflow-scrolling:touch; }
+.social-list-item  {
+    display:flex; align-items:center; gap:12px; padding:10px 18px;
+    cursor:pointer; transition:background 0.15s;
+}
+.social-list-item:hover { background:rgba(0,174,239,0.08); }
+.social-list-avatar {
+    width:42px; height:42px; border-radius:50%; flex-shrink:0;
+    background:#0B1F3A; background-size:cover; background-position:center;
+    border:2px solid rgba(0,174,239,0.4);
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; font-weight:bold; color:#00AEEF;
+}
+.social-list-name  { font-size:14px; font-weight:600; color:#fff; }
+.social-list-handle{ font-size:12px; color:#6a90b8; }
+.social-list-empty { padding:30px; text-align:center; color:#334; font-size:13px; }
+
+/* ── Profile stat boxes — make them look tappable ── */
+.profile-stat { cursor:pointer; transition:background 0.15s, transform 0.12s; border-radius:8px; padding:4px 8px; }
+.profile-stat:hover { background:rgba(0,174,239,0.1); transform:scale(1.04); }
+
+/* ── Clickable DM header ── */
+.ipc-modal-avatar, .ipc-modal-name { cursor:pointer; }
+.ipc-modal-name:hover { color:#00AEEF; text-decoration:underline; }
+
+/* ── R2 Upload UI ── */
+.snx-upload-btn {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:7px 14px; border-radius:10px; cursor:pointer; font-size:13px;
+    font-weight:600; border:1px solid rgba(0,174,239,0.5); color:#00AEEF;
+    background:rgba(0,174,239,0.08); transition:all 0.15s;
+    font-family:inherit;
+}
+.snx-upload-btn:hover { background:rgba(0,174,239,0.18); border-color:rgba(0,174,239,0.8); }
+.snx-upload-btn:disabled { opacity:0.5; cursor:not-allowed; }
+.snx-upload-row {
+    display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;
+}
+.snx-upload-progress {
+    width:100%; height:4px; background:rgba(0,174,239,0.15);
+    border-radius:4px; overflow:hidden; margin-top:6px; display:none;
+}
+.snx-upload-progress-bar {
+    height:100%; background:linear-gradient(90deg,#00AEEF,#39FF14);
+    border-radius:4px; width:0%; transition:width 0.3s ease;
+}
+.snx-upload-preview {
+    max-width:100%; max-height:200px; border-radius:10px;
+    border:1px solid rgba(0,174,239,0.3); margin-top:8px;
+    display:none; object-fit:contain;
+}
+.snx-upload-preview.audio-preview {
+    display:none; width:100%; max-height:none;
+}
+.snx-upload-preview.audio-preview.visible {
+    display:block;
+}
+.snx-upload-preview.visible { display:block; }
+.snx-upload-filename {
+    font-size:11px; color:#6a90b8; margin-top:4px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;
+}
+.snx-upload-clear {
+    background:none; border:none; color:#ff5577; cursor:pointer;
+    font-size:16px; padding:2px 6px; border-radius:6px; line-height:1;
+}
+.snx-upload-clear:hover { background:rgba(255,51,102,0.1); }
+
+/* ── Message context menu ── */.msg-ctx-menu {
+    position:fixed; z-index:9000;
+    background:#060d1e; border:1px solid rgba(0,174,239,0.35);
+    border-radius:12px; padding:6px 0; min-width:180px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.7);
+    animation:msgCtxIn 0.15s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes msgCtxIn {
+    from { opacity:0; transform:scale(0.92); }
+    to   { opacity:1; transform:scale(1); }
+}
+.msg-ctx-item {
+    display:flex; align-items:center; gap:10px;
+    padding:10px 16px; cursor:pointer; font-size:13px; color:#d8eeff;
+    transition:background 0.12s;
+}
+.msg-ctx-item:hover { background:rgba(0,174,239,0.1); }
+.msg-ctx-item.danger { color:#ff5577; }
+.msg-ctx-item.danger:hover { background:rgba(255,51,102,0.1); }
+.msg-ctx-divider { height:1px; background:rgba(0,174,239,0.12); margin:4px 0; }
+
+/* ── Deleted message style ── */
+.msg-bubble.deleted, .ipc-modal-bubble.deleted {    opacity:0.5; font-style:italic; color:#556 !important;
+    background:rgba(0,0,0,0.2) !important; border-color:rgba(80,80,80,0.2) !important;
+}
+
+/* ── Fullscreen media viewer ── */
+#snxMediaViewer {
+    display:none; position:fixed; inset:0; z-index:99998;
+    background:rgba(0,0,0,0.96); align-items:center; justify-content:center;
+    flex-direction:column;
+}
+#snxMediaViewer.open { display:flex; }
+#snxMediaViewer img  { max-width:96vw; max-height:90vh; object-fit:contain; border-radius:8px; }
+#snxMediaViewer video { max-width:96vw; max-height:90vh; border-radius:8px; outline:none; }
+#snxMediaViewer audio { width:min(480px,90vw); margin-top:20px; }
+.snx-viewer-close {
+    position:fixed; top:16px; right:16px; z-index:99999;
+    background:rgba(255,255,255,0.12); border:none; color:#fff;
+    font-size:28px; cursor:pointer; border-radius:50%;
+    width:44px; height:44px; display:flex; align-items:center; justify-content:center;
+    transition:background 0.15s;
+}
+.snx-viewer-close:hover { background:rgba(255,255,255,0.25); }
+/* ── Post media ── */
+.post-media-preview { max-width:100%; border-radius:10px; margin-top:8px; cursor:pointer; display:block; }
+.post-media-audio   { width:100%; margin-top:8px; border-radius:8px; }
+.post-media-video   { max-width:100%; width:100%; border-radius:10px; margin-top:8px; background:#000; }
+.post-media-carousel { display:flex; gap:6px; overflow-x:auto; margin-top:8px; scroll-snap-type:x mandatory; scrollbar-width:none; }
+.post-media-carousel::-webkit-scrollbar { display:none; }
+.post-media-carousel img, .post-media-carousel video { flex-shrink:0; scroll-snap-align:start; border-radius:10px; max-height:260px; object-fit:cover; cursor:pointer; }
+
+/* ── Music card in posts ── */
+.post-music-card {
+    display:flex; align-items:center; gap:12px; padding:12px 14px;
+    background:rgba(0,30,70,0.7); border:1px solid rgba(0,174,239,0.3);
+    border-radius:12px; margin-top:8px;
+}
+.post-music-icon { font-size:28px; flex-shrink:0; }
+.post-music-info { flex:1; min-width:0; }
+.post-music-title { font-size:13px; font-weight:600; color:#d8eeff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px; }
+.post-music-audio { width:100%; margin-top:4px; }
+
+/* ── Video card in posts ── */
+.post-video-card { position:relative; border-radius:12px; overflow:hidden; margin-top:8px; background:#000; }
+.post-video-card video { width:100%; max-height:320px; display:block; }
+.post-video-card .video-placeholder {
+    width:100%; height:180px; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,#071428,#0d2040); font-size:48px;
+}
+
+/* ── Broken image fallback ── */
+img.post-media-preview { min-height:40px; min-width:40px; }
+img.post-media-preview::before {
+    content:'🖼 Image unavailable';
+    display:block; padding:20px; background:rgba(0,30,70,0.5);
+    border-radius:10px; color:#6a90b8; font-size:13px;
+}
+
+/* ── Upload loading state ── */
+.snx-upload-btn.uploading { opacity:0.7; pointer-events:none; }
+.snx-upload-btn.uploading::after { content:' ⏳'; }
+/* ── Drag-and-drop ── */
+.snx-dropzone { border:2px dashed rgba(0,174,239,0.35); border-radius:12px; padding:10px; transition:all 0.2s; }
+.snx-dropzone.drag-over { border-color:rgba(0,174,239,0.9); background:rgba(0,174,239,0.08); }
+/* ── DM media bubbles ── */
+.msg-media-img { max-width:220px; max-height:180px; border-radius:10px; cursor:pointer; object-fit:cover; display:block; margin-bottom:4px; border:1px solid rgba(0,100,200,0.3); }
+.msg-media-vid { max-width:220px; border-radius:10px; display:block; margin-bottom:4px; }
+.msg-media-aud { width:200px; margin-bottom:4px; }
+
+/* ── Delete conversation button ── */
+.chat-del-conv-btn {
+    background:none; border:none; color:#55667a; font-size:16px;
+    cursor:pointer; padding:6px 8px; border-radius:8px; line-height:1;
+    transition:color 0.15s, background 0.15s; flex-shrink:0;
+}
+.chat-del-conv-btn:hover { color:#ff5577; background:rgba(255,51,102,0.1); }
 /* ── Admin panel styles ── */
 .admin-user-row {
     display:flex; align-items:flex-start; gap:12px;
@@ -1366,7 +1608,11 @@ input:focus, textarea:focus, select:focus {
 .chat-header-avatar {
     width: 38px; height: 38px; border-radius: 50%;
     background: #0B1F3A; background-size: cover; background-position: center;
-    border: 2px solid rgba(0,174,239,0.38);
+    cursor: pointer; transition: opacity 0.15s;
+}
+.chat-header-avatar:hover { opacity: 0.8; }
+.chat-header-name { font-size: 14px; font-weight: bold; color: #eee; }
+.chat-header-name:hover { color: #00AEEF; text-decoration: underline; }    border: 2px solid rgba(0,174,239,0.38);
     position: relative; flex-shrink: 0;
 }
 .chat-header-online {
@@ -1534,6 +1780,9 @@ input:focus, textarea:focus, select:focus {
     display: flex; align-items: center; justify-content: center;
     touch-action: manipulation;
     box-shadow: 0 0 12px rgba(0,130,255,0.45);
+    position: relative; z-index: 10;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
 }
 .chat-send-btn:hover {
     background: linear-gradient(135deg, #005522, #00aa55);
@@ -2307,6 +2556,7 @@ img, video { max-width: 100%; height: auto; }
 }
 </style>
 
+<style>
 /* ════ ADMIN PANEL TABS ════ */
 .admin-tab-bar {
     display:flex; gap:4px; overflow-x:auto; margin-bottom:16px;
@@ -3056,8 +3306,8 @@ body::after {
         <h2 class="eclipse-title" style="font-size:24px; margin-bottom:6px; letter-spacing:2px;">SHADOW NEXUS SOCIAL</h2>
         <p style="color:#7aaac8; font-size:12px; margin:0 0 22px; line-height:1.5;">Where we can come and connect in the safe space,<br>no judgment. Stay legendary. 🌑🔥</p>
 
-        <input id="userEmail" placeholder="✉ Your email address" style="margin-bottom:10px;">
-        <input id="userPass" type="password" placeholder="🔒 Password">
+        <input id="userEmail" placeholder="✉ Your email address" style="margin-bottom:10px;" autocomplete="username">
+        <input id="userPass" type="password" placeholder="🔒 Password" autocomplete="current-password">
 
         <div style="margin-top:18px; display:flex; gap:10px; justify-content:center;">
             <button id="btnRegister" style="flex:1; border-radius:10px; padding:10px;">Join the Nexus</button>
@@ -3102,7 +3352,28 @@ body::after {
         <h3 style="margin:0 0 12px; font-size:14px; color:#00AEEF; text-shadow:0 0 8px rgba(0,174,239,0.35);">What's on your mind?</h3>
         <textarea id="postText" placeholder="Share something with the Nexus… No judgment here 🌑" maxlength="500"></textarea>
         <div class="post-char-counter" id="postCharCounter">500 characters left</div>
-        <input id="postMediaUrl" placeholder="📷 Add a photo or video URL (optional)">
+
+        <!-- Media upload row -->
+        <div class="snx-upload-row snx-dropzone" id="postMediaRow"
+             ondragover="event.preventDefault();this.classList.add('drag-over')"
+             ondragleave="this.classList.remove('drag-over')"
+             ondrop="handlePostMediaDrop(event)">
+            <input type="file" id="postMediaFile" accept="image/*,video/*,audio/*" multiple capture="environment" style="display:none;" onchange="handlePostMediaPick(this)">
+            <button class="snx-upload-btn" id="postMediaUploadBtn" onclick="document.getElementById('postMediaFile').click()" type="button">
+                📎 Photo / Video / Music
+            </button>
+            <span class="snx-upload-filename" id="postMediaFilename"></span>
+            <button class="snx-upload-clear" id="postMediaClear" style="display:none;" onclick="clearPostMedia()" title="Remove">✕</button>
+        </div>
+        <div class="snx-upload-progress" id="postMediaProgress">
+            <div class="snx-upload-progress-bar" id="postMediaProgressBar"></div>
+        </div>
+        <img    id="postMediaPreviewImg"   class="snx-upload-preview" alt="preview">
+        <video  id="postMediaPreviewVid"   class="snx-upload-preview" controls style="display:none;max-width:100%;border-radius:10px;margin-top:8px;"></video>
+        <audio  id="postMediaPreviewAud"   class="snx-upload-preview audio-preview" controls></audio>
+        <!-- Hidden: stores the final uploaded URL -->
+        <input type="hidden" id="postMediaUrl" value="">
+
         <button id="btnBroadcast" style="margin-top:10px; width:100%; border-radius:10px; padding:11px; background:linear-gradient(135deg,#003d99,#0077dd); border-color:rgba(0,174,239,0.65); color:#fff; font-size:14px; box-shadow:0 0 20px rgba(0,174,239,0.40);">⚡ Post to the Eclipse</button>
     </div>
 
@@ -3142,15 +3413,15 @@ body::after {
                         <div class="stat-num" id="cntPosts">0</div>
                         <div class="stat-label">Posts</div>
                     </div>
-                    <div class="profile-stat">
+                    <div class="profile-stat" onclick="openSocialList('followers')" title="View followers">
                         <div class="stat-num" id="cntFollowers">0</div>
                         <div class="stat-label">Followers</div>
                     </div>
-                    <div class="profile-stat">
+                    <div class="profile-stat" onclick="openSocialList('following')" title="View following">
                         <div class="stat-num" id="cntFollowing">0</div>
                         <div class="stat-label">Following</div>
                     </div>
-                    <div class="profile-stat">
+                    <div class="profile-stat" onclick="openSocialList('friends')" title="View friends">
                         <div class="stat-num" id="cntFriends">0</div>
                         <div class="stat-label">Friends</div>
                     </div>
@@ -3181,10 +3452,28 @@ body::after {
             <textarea id="editBio" rows="2" placeholder="Tell people about yourself…" style="resize:vertical;"></textarea>
 
             <label>Profile Picture URL</label>
-            <input id="editAvatar" placeholder="https://…">
+            <input type="file" id="editAvatarFile" accept="image/*" style="display:none;" onchange="handleAvatarPick(this)">
+            <div class="snx-upload-row">
+                <button class="snx-upload-btn" onclick="document.getElementById('editAvatarFile').click()" type="button">📷 Upload Photo</button>
+                <span class="snx-upload-filename" id="editAvatarFilename"></span>
+                <button class="snx-upload-clear" id="editAvatarClear" style="display:none;" onclick="clearAvatarUpload()" title="Remove">✕</button>
+            </div>
+            <div class="snx-upload-progress" id="editAvatarProgress">
+                <div class="snx-upload-progress-bar" id="editAvatarProgressBar"></div>
+            </div>
+            <input id="editAvatar" placeholder="Or paste image URL…" style="margin-top:6px;">
 
             <label>Cover Photo URL</label>
-            <input id="editBanner" placeholder="https://…">
+            <input type="file" id="editBannerFile" accept="image/*" style="display:none;" onchange="handleBannerPick(this)">
+            <div class="snx-upload-row">
+                <button class="snx-upload-btn" onclick="document.getElementById('editBannerFile').click()" type="button">🖼 Upload Cover</button>
+                <span class="snx-upload-filename" id="editBannerFilename"></span>
+                <button class="snx-upload-clear" id="editBannerClear" style="display:none;" onclick="clearBannerUpload()" title="Remove">✕</button>
+            </div>
+            <div class="snx-upload-progress" id="editBannerProgress">
+                <div class="snx-upload-progress-bar" id="editBannerProgressBar"></div>
+            </div>
+            <input id="editBanner" placeholder="Or paste cover image URL…" style="margin-top:6px;">
 
             <label>Status / Mood</label>
             <select id="editMood">
@@ -3254,7 +3543,55 @@ body::after {
 
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
+<!-- ═══════════════════════════════════════════
+     MESSAGE CONTEXT MENU
+     ═══════════════════════════════════════════ -->
+<div id="msgCtxMenu" class="msg-ctx-menu" style="display:none;">
+    <div class="msg-ctx-item" id="msgCtxCopy" onclick="msgCtxCopy()">📋 Copy</div>
+    <div class="msg-ctx-divider"></div>
+    <div class="msg-ctx-item danger" id="msgCtxDeleteMe" onclick="msgCtxDeleteMe()">🗑 Delete for Me</div>
+    <div class="msg-ctx-item danger" id="msgCtxDeleteAll" onclick="msgCtxDeleteAll()">🚫 Delete for Everyone</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     FULLSCREEN MEDIA VIEWER
+     ═══════════════════════════════════════════ -->
+<div id="snxMediaViewer" role="dialog" aria-modal="true" onclick="if(event.target===this)closeMediaViewer()">
+    <button class="snx-viewer-close" onclick="closeMediaViewer()" aria-label="Close">✕</button>
+    <img    id="snxViewerImg"   style="display:none;" alt="media">
+    <video  id="snxViewerVid"  style="display:none;" controls playsinline></video>
+    <audio  id="snxViewerAud"  style="display:none;" controls></audio>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SOCIAL LIST MODAL — friends / followers / following
+     ═══════════════════════════════════════════ -->
+<div id="socialListModal" class="social-list-modal" role="dialog" aria-modal="true">
+    <div class="social-list-inner">
+        <div class="social-list-header">
+            <span class="social-list-title" id="socialListTitle">Friends</span>
+            <button class="social-list-close" onclick="closeSocialList()" aria-label="Close">✕</button>
+        </div>
+        <div class="social-list-body" id="socialListBody">
+            <div class="social-list-empty">Loading…</div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     BADGE TOOLTIP MODAL — tap badge to see info
+     ═══════════════════════════════════════════ -->
+<div id="badgeTooltipModal" class="badge-tooltip-modal" role="dialog" aria-modal="true">
+    <div class="badge-tooltip-inner">
+        <div class="badge-tooltip-icon" id="badgeTooltipIcon">🏅</div>
+        <div class="badge-tooltip-name"   id="badgeTooltipName">Badge</div>
+        <div class="badge-tooltip-rarity" id="badgeTooltipRarity"></div>
+        <div class="badge-tooltip-desc"   id="badgeTooltipDesc"></div>
+        <button class="badge-tooltip-close" onclick="document.getElementById('badgeTooltipModal').classList.remove('open')">Close</button>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
      PROFILE CHAT MODAL
      Full-screen overlay chat window — appears when "Message"
      is clicked on any user's profile. Uses the same Firestore
@@ -3269,7 +3606,7 @@ body::after {
 
         <!-- ── Header: avatar, name, status, close ── -->
         <div class="ipc-modal-header">
-            <div class="ipc-modal-avatar" id="ipcModalAvatar">
+            <div class="ipc-modal-avatar" id="ipcModalAvatar" onclick="if(window._ipcModalUid){window.ipcModalClose&&window.ipcModalClose();viewProfile(window._ipcModalUid);}" title="View profile">
                 <div class="ipc-modal-status-dot" id="ipcModalStatusDot"></div>
             </div>
             <div class="ipc-modal-info">
@@ -3364,6 +3701,7 @@ body::after {
                     <div class="chat-header-name" id="chatHeaderName">—</div>
                     <div class="chat-header-status" id="chatHeaderStatus">Select a conversation</div>
                 </div>
+                <button class="chat-del-conv-btn" onclick="deleteConversation()" title="Delete conversation">🗑</button>
             </div>
 
             <!-- Messages area -->
@@ -3411,12 +3749,27 @@ body::after {
 <div class="img-send-modal" id="imgSendModal">
     <div class="img-send-inner">
         <button class="img-modal-close" onclick="closeImgSendModal()">✕</button>
-        <h3>🖼 Send Image</h3>
-        <input id="imgSendUrl" placeholder="Paste image URL (https://…)" oninput="previewImgSend(this.value)">
-        <img id="imgSendPreview" class="img-send-preview" alt="preview">
+        <h3>� Send Photo / Video / Music</h3>
+        <input type="file" id="imgSendFile" accept="image/*,video/*,audio/*" capture="environment" style="display:none;" onchange="handleDmFilePick(this)">
+        <div class="snx-upload-row snx-dropzone" id="imgSendDropZone"
+             ondragover="event.preventDefault();this.classList.add('drag-over')"
+             ondragleave="this.classList.remove('drag-over')"
+             ondrop="handleDmFileDrop(event)">
+            <button class="snx-upload-btn" onclick="document.getElementById('imgSendFile').click()" type="button">📂 Choose File</button>
+            <span class="snx-upload-filename" id="imgSendFilename">No file chosen</span>
+            <button class="snx-upload-clear" id="imgSendClear" style="display:none;" onclick="clearDmFile()" title="Remove">✕</button>
+        </div>
+        <div class="snx-upload-progress" id="imgSendProgress">
+            <div class="snx-upload-progress-bar" id="imgSendProgressBar"></div>
+        </div>
+        <img   id="imgSendPreview"    class="img-send-preview" alt="preview">
+        <video id="imgSendPreviewVid" style="display:none;max-width:100%;border-radius:10px;margin-top:8px;" controls></video>
+        <audio id="imgSendPreviewAud" style="display:none;width:100%;margin-top:8px;" controls></audio>
+        <!-- Hidden: stores uploaded URL -->
+        <input type="hidden" id="imgSendUrl" value="">
         <div class="img-send-actions">
             <button onclick="closeImgSendModal()" style="border-color:rgba(255,255,255,0.2);color:#888;">Cancel</button>
-            <button id="btnConfirmSendImg" onclick="confirmSendImage()">Send Image</button>
+            <button id="btnConfirmSendImg" onclick="confirmSendImage()" disabled>Send</button>
         </div>
     </div>
 </div>
@@ -3616,14 +3969,14 @@ body::after {
             </div>
         </div>
 
-        <div class="settings-section" id="adminPanelSettingsSection" style="display:none;">
+        <div class="settings-section" id="adminPanelSettingsSection">
             <h4>🛡️ Founder Controls</h4>
             <div class="settings-row" style="border-bottom:none;">
                 <div class="settings-label">
                     Admin Panel
                     <small>Manage users, content, reports & announcements</small>
                 </div>
-                <button onclick="navTo('adminPage')" style="padding:7px 16px;font-size:12px;border-radius:10px;background:linear-gradient(135deg,#1a0a00,#664400);border-color:rgba(255,200,50,0.6);color:#ffe566;box-shadow:0 0 12px rgba(255,185,0,0.3);">🛡️ Open Panel</button>
+                <button onclick="if(window._snxRole==='founder'){navTo('adminPage')}else{toastNotification('⛔ Founder access only.')}" style="padding:7px 16px;font-size:12px;border-radius:10px;background:linear-gradient(135deg,#1a0a00,#664400);border-color:rgba(255,200,50,0.6);color:#ffe566;box-shadow:0 0 12px rgba(255,185,0,0.3);">🛡️ Open Panel</button>
             </div>
         </div>
 
@@ -3814,7 +4167,7 @@ body::after {
             <div class="admin-legend-item"><span class="badge badge-founder">👑 Founder</span></div>
             <div class="admin-legend-item"><span class="badge badge-verified">✓ Verified</span></div>
             <div class="admin-legend-item"><span class="badge badge-moderator">🛡 Moderator</span></div>
-            <div class="admin-legend-item"><span class="badge badge-artist">🎨 Artist</span></div>
+            <div class="admin-legend-item"><span class="badge badge-og">🔥 OG</span></div>
             <div class="admin-legend-item"><span class="badge badge-early">🌟 Early</span></div>
             <div class="admin-legend-item"><span class="badge badge-supporter">💎 Supporter</span></div>
             <div class="admin-legend-item"><span class="badge badge-top">🏆 Top</span></div>
@@ -4116,6 +4469,7 @@ body::after {
           const handle = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
           const isFounder = email.toLowerCase() === FOUNDER_EMAIL.toLowerCase();
           await setDoc(doc(db, "users", credential.user.uid), {
+              email:       email.toLowerCase(),
               username:    handle,
               displayName: isFounder ? 'Christi Jerina' : handle,
               bio:         "",
@@ -4230,26 +4584,27 @@ body::after {
           // If this is the founder email, make sure the Firestore doc always has
           // role:"founder" and the Founder badge, regardless of how the account
           // was created. No other account can ever receive this role.
-          if (user.email && user.email.toLowerCase() === FOUNDER_EMAIL.toLowerCase()) {
+          // ── Founder role — set immediately from email, never overridden ──
+          const _isFounder = user.email && user.email.toLowerCase() === FOUNDER_EMAIL.toLowerCase();
+          if (_isFounder) {
+              window._snxRole = 'founder';
+              // Best-effort: keep Firestore doc in sync
               try {
                   const founderSnap = await getDoc(doc(db, 'users', user.uid));
-                  if (founderSnap.exists()) {
-                      const fd = founderSnap.data();
-                      const needsUpdate =
-                          fd.role !== 'founder' ||
-                          !(fd.badges || []).includes('Founder');
-                      if (needsUpdate) {
-                          const updatedBadges = Array.from(new Set(['Founder', ...(fd.badges || [])]));
-                          await updateDoc(doc(db, 'users', user.uid), {
-                              role:   'founder',
-                              badges: updatedBadges
-                          });
-                      }
-                  }
-              } catch(_) { /* best-effort */ }
+                  const currentBadges = founderSnap.exists() ? (founderSnap.data().badges || []) : [];
+                  await updateDoc(doc(db, 'users', user.uid), {
+                      role: 'founder',
+                      badges: Array.from(new Set(['Founder', ...currentBadges]))
+                  });
+              } catch(_) {}
           }
 
           try { await updateDoc(doc(db, "users", user.uid), { status: "online" }); } catch(_) {}
+
+          // Save email to Firestore so username login works for existing accounts
+          try {
+              if (user.email) await updateDoc(doc(db, "users", user.uid), { email: user.email.toLowerCase() });
+          } catch(_) {}
 
           // Expose current user for non-module scripts (notification settings)
           window._snxCurrentUser = user;
@@ -4258,13 +4613,15 @@ body::after {
           userDataUnsubscribe = onSnapshot(doc(db, "users", user.uid), (docSnap) => {
               if (!docSnap.exists()) return;
               userData = docSnap.data();
-              window._snxRole = userData.role || 'member';
+              // Founder email always takes priority — never let Firestore override it
+              const isFounderEmail = user.email && user.email.toLowerCase() === FOUNDER_EMAIL.toLowerCase();
+              if (!isFounderEmail) {
+                  window._snxRole = userData.role || 'member';
+              }
               applyAestheticMatrix(userData.aesthetic || 'cyber');
-              // Keep admin button and settings section in sync as userData loads
+              // Sync nav admin button visibility
               const _ab = document.getElementById("navAdmin");
-              if (_ab) _ab.style.display = userData.role === 'founder' ? 'flex' : 'none';
-              const _as = document.getElementById("adminPanelSettingsSection");
-              if (_as) _as.style.display = userData.role === 'founder' ? '' : 'none';
+              if (_ab) _ab.style.display = window._snxRole === 'founder' ? 'flex' : 'none';
               const ps  = userData.privacySettings || {};
               const sel = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
               sel('privSeeProfile',   ps.seeProfile);
@@ -4275,22 +4632,22 @@ body::after {
           });
 
           document.getElementById("menuButton").style.display = "flex";
-          // Show Admin Panel nav item — check role from Firestore directly
+          // Sync nav admin button after login
           try {
-              const founderSnap2 = await getDoc(doc(db, 'users', user.uid));
-              const founderRole  = founderSnap2.exists() ? founderSnap2.data().role : 'member';
-              window._snxRole = founderRole;
-              const adminNavBtn  = document.getElementById("navAdmin");
-              if (adminNavBtn) adminNavBtn.style.display = founderRole === 'founder' ? 'flex' : 'none';
-              const adminSettings = document.getElementById("adminPanelSettingsSection");
-              if (adminSettings) adminSettings.style.display = founderRole === 'founder' ? '' : 'none';
+              if (!_isFounder) {
+                  const snap2 = await getDoc(doc(db, 'users', user.uid));
+                  window._snxRole = (snap2.exists() && snap2.data().role === 'founder') ? 'founder' : 'member';
+              }
+              const adminNavBtn = document.getElementById("navAdmin");
+              if (adminNavBtn) adminNavBtn.style.display = window._snxRole === 'founder' ? 'flex' : 'none';
           } catch(_) {}
-          navTo('feed');
-          initTimelineStream();
+          navTo('feed');          initTimelineStream();
           presenceUnsubscribe = initPresenceStrip();
           inboxUnsubscribe    = initInboxMonitor();
           notifUnsubscribe    = initNotificationsMonitor();
           scheduleExpiredPostCleanup();
+          // Check if user has earned the OG badge (first 100 users, 50+ days old account)
+          checkOGBadgeEligibility(user.uid);
           // Start push notifications (requests permission if not yet granted)
           window._snxInitPush = initPushNotifications;
           setTimeout(initPushNotifications, 2500);
@@ -4312,6 +4669,157 @@ body::after {
           show('login');
       }
   });
+
+  /* ── Social List Modal — friends / followers / following ──────────────
+     Called by clicking the stat boxes on any profile page.
+     type: 'friends' | 'followers' | 'following'
+     Uses activeProfileUid to know whose data to load.
+  ─────────────────────────────────────────────────────────────────── */
+  window.openSocialList = async function(type) {
+      const uid = activeProfileUid || (currentUser && currentUser.uid);
+      if (!uid) return;
+
+      const modal = document.getElementById('socialListModal');
+      const title = document.getElementById('socialListTitle');
+      const body  = document.getElementById('socialListBody');
+      if (!modal) return;
+
+      const labels = { friends: 'Friends', followers: 'Followers', following: 'Following' };
+      title.textContent = labels[type] || type;
+      body.innerHTML = '<div class="social-list-empty">Loading…</div>';
+      modal.classList.add('open');
+
+      try {
+          const snap = await getDoc(doc(db, 'users', uid));
+          if (!snap.exists()) { body.innerHTML = '<div class="social-list-empty">No data found.</div>'; return; }
+
+          const data = snap.data();
+          const uids = data[type] || [];
+
+          if (!uids.length) {
+              body.innerHTML = `<div class="social-list-empty">No ${labels[type] || type} yet.</div>`;
+              return;
+          }
+
+          // Fetch all user docs in batches of 10 (Firestore 'in' limit)
+          const chunks = [];
+          for (let i = 0; i < uids.length; i += 10) chunks.push(uids.slice(i, i + 10));
+
+          const users = [];
+          for (const chunk of chunks) {
+              const q = query(collection(db, 'users'), where('uid', 'in', chunk));
+              const qs = await getDocs(q);
+              qs.forEach(d => users.push(d.data()));
+          }
+
+          if (!users.length) {
+              body.innerHTML = `<div class="social-list-empty">No ${labels[type] || type} yet.</div>`;
+              return;
+          }
+
+          body.innerHTML = '';
+          users.forEach(u => {
+              const item = document.createElement('div');
+              item.className = 'social-list-item';
+              item.onclick = () => { closeSocialList(); viewProfile(u.uid); };
+
+              const avatarDiv = document.createElement('div');
+              avatarDiv.className = 'social-list-avatar';
+              if (u.avatar) {
+                  avatarDiv.style.backgroundImage = `url('${u.avatar}')`;
+              } else {
+                  avatarDiv.textContent = (u.displayName || '?')[0].toUpperCase();
+              }
+
+              const infoDiv = document.createElement('div');
+              infoDiv.style.flex = '1';
+              infoDiv.style.minWidth = '0';
+              infoDiv.innerHTML = `
+                  <div class="social-list-name">${escFeed(u.displayName || u.username || 'Unknown')}${buildBadgeHtml(u.badges||[], u.role||'member')}</div>
+                  <div class="social-list-handle">@${escFeed(u.username || '')}</div>
+              `;
+
+              item.appendChild(avatarDiv);
+              item.appendChild(infoDiv);
+              body.appendChild(item);
+          });
+      } catch(e) {
+          body.innerHTML = `<div class="social-list-empty">Failed to load. Try again.</div>`;
+      }
+  };
+
+  window.closeSocialList = function() {
+      const modal = document.getElementById('socialListModal');
+      if (modal) modal.classList.remove('open');
+  };
+
+  // Close social list on backdrop click
+  document.getElementById('socialListModal')?.addEventListener('click', function(e) {
+      if (e.target === this) closeSocialList();
+  });
+
+  /* ── Badge tooltip modal ──────────────────────────────────────────────
+     Called by clicking any badge pill (profile page or inline in posts).
+  ─────────────────────────────────────────────────────────────────── */
+  window.showBadgeTooltip = function(el) {
+      const name   = el.dataset.badge  || el.textContent.trim();
+      const desc   = el.dataset.desc   || 'A special Shadow Nexus badge.';
+      const rarity = el.dataset.rarity || 'Common';
+
+      const icon = BADGE_ICON_MAP[el.dataset.badge] || '🏅';
+
+      const rarityColors = {
+          'Legendary': '#ffd700',
+          'Epic':      '#cc88ff',
+          'Rare':      '#66aaff',
+          'Common':    '#88aa88',
+      };
+      const rarityColor = rarityColors[rarity] || '#88aa88';
+
+      document.getElementById('badgeTooltipIcon').textContent   = icon;
+      document.getElementById('badgeTooltipName').textContent   = name.replace(/_/g, ' ');
+      document.getElementById('badgeTooltipDesc').textContent   = desc;
+      const rarityEl = document.getElementById('badgeTooltipRarity');
+      rarityEl.textContent   = rarity;
+      rarityEl.style.color   = rarityColor;
+
+      document.getElementById('badgeTooltipModal').classList.add('open');
+  };
+
+  // Close badge tooltip on backdrop click
+  document.getElementById('badgeTooltipModal')?.addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('open');
+  });
+
+  /* ── OG Badge eligibility check ──     Rules: account must be 50+ days old AND user must be among first 100 to join.
+     Runs once per login, best-effort — won't crash if Firestore is unavailable. */
+  async function checkOGBadgeEligibility(uid) {
+      try {
+          const userSnap = await getDoc(doc(db, 'users', uid));
+          if (!userSnap.exists()) return;
+          const u = userSnap.data();
+
+          // Already has OG badge — nothing to do
+          if ((u.badges || []).includes('OG')) return;
+
+          // Must have joined 50+ days ago
+          const fiftyDaysMs = 50 * 24 * 60 * 60 * 1000;
+          if (!u.joinedAt || (Date.now() - u.joinedAt) < fiftyDaysMs) return;
+
+          // Count how many users joined before this user (must be < 100)
+          const { query: fsQuery, collection: fsCollection, where, orderBy, limit, getDocs } =
+              await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+          const earlier = await getDocs(
+              fsQuery(fsCollection(db, 'users'), where('joinedAt', '<', u.joinedAt), orderBy('joinedAt'), limit(100))
+          );
+          // If fewer than 100 people joined before this user → they're in the first 100
+          if (earlier.size < 100) {
+              const newBadges = Array.from(new Set(['OG', ...(u.badges || [])]));
+              await updateDoc(doc(db, 'users', uid), { badges: newBadges });
+              toastNotification('🔥 You earned the OG badge! One of the first 100 members.');
+          }
+      } catch(_) { /* best-effort */ }
+  }
 
   /* ACTIVE DIRECTORY COMPONENT PRESENCE STRIP */
   function initPresenceStrip() {
@@ -4457,11 +4965,50 @@ body::after {
 
               let mediaHTML = '';
               if (post.mediaUrl) {
-                  if (post.mediaUrl.match(/\.(mp4|webm|ogg)/i) || post.mediaUrl.includes('video')) {
-                      mediaHTML = `<video class="post-media-preview" src="${post.mediaUrl}" controls></video>`;
+                  // Rewrite old R2 public URLs to go through the Worker (which serves files correctly)
+                  let mu = post.mediaUrl;
+                  mu = mu.replace('https://pub-e5efe8c515324a8ab89ca15c5fa731dd.r2.dev/', 'https://yellow-term-11e6.nthntjrn.workers.dev/');
+                  mu = mu.replace('https://pub-1cb8318faddb49f0b2c91fbd098c271f.r2.dev/', 'https://yellow-term-11e6.nthntjrn.workers.dev/');
+                  const ext = mu.split('?')[0].split('.').pop().toLowerCase();
+                  const audioExts = ['mp3','ogg','wav','aac','flac','m4a','opus'];
+                  const videoExts = ['mp4','webm','mov','avi','mkv','m4v'];
+                  const isAudio = audioExts.includes(ext) || mu.includes('/audio/');
+                  const isVideo = videoExts.includes(ext) || mu.includes('/video/');
+                  const filename = decodeURIComponent(mu.split('/').pop().split('?')[0]);
+                  if (isAudio) {
+                      mediaHTML = `
+                        <div class="post-music-card">
+                            <div class="post-music-icon">🎵</div>
+                            <div class="post-music-info">
+                                <div class="post-music-title">${escFeed(filename)}</div>
+                                <audio class="post-music-audio" src="${mu}" controls preload="metadata"></audio>
+                            </div>
+                        </div>`;
+                  } else if (isVideo) {
+                      mediaHTML = `
+                        <div class="post-video-card">
+                            <video class="post-media-video" src="${mu}" controls playsinline preload="metadata"
+                                onclick="openMediaViewer('video','${mu}')"
+                                onerror="this.parentElement.innerHTML='<div class=\\'video-placeholder\\'>🎬</div>'">
+                            </video>
+                        </div>`;
                   } else {
-                      mediaHTML = `<img class="post-media-preview" src="${post.mediaUrl}" alt="media">`;
+                      mediaHTML = `<img class="post-media-preview" src="${mu}" alt="photo"
+                          onclick="openMediaViewer('image','${mu}')"
+                          onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div style=\\'padding:14px;background:rgba(0,30,70,0.5);border-radius:10px;color:#6a90b8;font-size:13px;margin-top:8px;\\'>🖼 Image unavailable</div>')">`;
                   }
+              }
+              // Multi-media carousel (mediaUrls array)
+              if (post.mediaUrls && post.mediaUrls.length) {
+                  const items = post.mediaUrls.map(mu => {
+                      const ext = mu.split('?')[0].split('.').pop().toLowerCase();
+                      const videoExts = ['mp4','webm','mov','avi','mkv'];
+                      if (videoExts.some(e => ext === e)) {
+                          return `<video src="${mu}" controls playsinline onclick="openMediaViewer('video','${mu}')" style="max-height:240px;"></video>`;
+                      }
+                      return `<img src="${mu}" alt="media" onclick="openMediaViewer('image','${mu}')" style="max-height:240px;">`;
+                  }).join('');
+                  mediaHTML = `<div class="post-media-carousel">${items}</div>`;
               }
 
               const existingEl = document.getElementById(`post-${pDoc.id}`);
@@ -4525,12 +5072,24 @@ body::after {
                       ? buildBadgeHtml(post.originalAuthorBadges || [], post.originalAuthorRole || 'member')
                       : buildBadgeHtml(post.authorBadges || [], post.authorRole || 'member');
 
+                  const authorUid    = post.isRepost ? post.originalAuthorUid    : post.uid;
+                  const authorName   = post.isRepost ? post.originalAuthorName   : post.authorName;
+                  const authorHandle = post.isRepost ? post.originalAuthorHandle : post.authorHandle;
+                  const authorAvatar = post.isRepost ? (post.originalAuthorAvatar || '') : (post.authorAvatar || '');
+                  const avatarStyle  = authorAvatar
+                      ? `background-image:url('${escFeed(authorAvatar)}');`
+                      : '';
+                  const avatarInitial = (authorName || '?')[0].toUpperCase();
+
                   div.innerHTML = `
                     ${repostHeaderHTML}
                     <div class="post-header-row">
-                        <span style="display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;max-width:75%;">
-                            <b class="post-author-link" onclick="viewProfile('${post.isRepost ? post.originalAuthorUid : post.uid}')">${escFeed(post.isRepost ? post.originalAuthorName : post.authorName)} (@${escFeed(post.isRepost ? post.originalAuthorHandle : post.authorHandle)})</b>${primaryBadges}
-                        </span>
+                        <div style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:80%;">
+                            <div class="post-author-avatar" style="${avatarStyle}" onclick="viewProfile('${authorUid}')" title="View profile">${authorAvatar ? '' : escFeed(avatarInitial)}</div>
+                            <span style="display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;">
+                                <b class="post-author-link" onclick="viewProfile('${authorUid}')">${escFeed(authorName)} (@${escFeed(authorHandle)})</b>${primaryBadges}
+                            </span>
+                        </div>
                         <div style="display:flex;align-items:center;gap:6px;">
                             ${ageLabel}
                         </div>
@@ -4576,35 +5135,68 @@ body::after {
        default green styling
      ─────────────────────────────────────────────────────────────────────── */
   const BADGE_CLASS_MAP = {
-      'Founder':   'badge-founder',
-      'Verified':  'badge-verified',
-      'Moderator': 'badge-moderator',
-      'Artist':    'badge-artist',
-      'Early':     'badge-early',
-      'Supporter': 'badge-supporter',
-      'Top':       'badge-top',
-      'Legend':    'badge-legend',
+      'Founder':     'badge-founder',
+      'Verified':    'badge-verified',
+      'Moderator':   'badge-moderator',
+      'OG':          'badge-og',
+      'Early':       'badge-early',
+      'Supporter':   'badge-supporter',
+      'Top':         'badge-top',
+      'Legend':      'badge-legend',
+      'Admin':       'badge-admin',
+      'Beta':        'badge-beta',
+      'Helper':      'badge-helper',
+      'Event':       'badge-event',
+      'Holiday':     'badge-holiday',
+      'Achievement': 'badge-achievement',
   };
   const BADGE_ICON_MAP = {
-      'Founder':   '👑',
-      'Verified':  '✓',
-      'Moderator': '🛡',
-      'Artist':    '🎨',
-      'Early':     '🌟',
-      'Supporter': '💎',
-      'Top':       '🏆',
-      'Legend':    '⚔️',
+      'Founder':     '👑',
+      'Verified':    '✓',
+      'Moderator':   '🛡',
+      'OG':          '🔥',
+      'Early':       '🌟',
+      'Supporter':   '💎',
+      'Top':         '🏆',
+      'Legend':      '⚔️',
+      'Admin':       '🔧',
+      'Beta':        '🧪',
+      'Helper':      '🤝',
+      'Event':       '🎉',
+      'Holiday':     '🎄',
+      'Achievement': '🎖',
   };
+
+  // Badge metadata: description, rarity, how it's earned
+  const BADGE_META = {
+      'Founder':     { rarity:'Legendary', rarityClass:'badge-rarity-legendary', desc:'The creator of Shadow Nexus Social. One of a kind.' },
+      'Admin':       { rarity:'Legendary', rarityClass:'badge-rarity-legendary', desc:'Platform administrator with elevated trust and responsibilities.' },
+      'Verified':    { rarity:'Epic',      rarityClass:'badge-rarity-epic',      desc:'Identity verified by the Shadow Nexus team.' },
+      'Moderator':   { rarity:'Epic',      rarityClass:'badge-rarity-epic',      desc:'Trusted community moderator helping keep the Nexus safe.' },
+      'OG':          { rarity:'Legendary', rarityClass:'badge-rarity-legendary', desc:'One of the first 100 members. Account must be 50+ days old.' },
+      'Legend':      { rarity:'Legendary', rarityClass:'badge-rarity-legendary', desc:'A true Shadow Nexus legend. Awarded for exceptional contribution.' },
+      'Beta':        { rarity:'Epic',      rarityClass:'badge-rarity-epic',      desc:'Beta tester who helped shape Shadow Nexus before launch.' },
+      'Top':         { rarity:'Rare',      rarityClass:'badge-rarity-rare',      desc:'Top contributor — consistently active and helpful.' },
+      'Supporter':   { rarity:'Rare',      rarityClass:'badge-rarity-rare',      desc:'Early supporter who believed in Shadow Nexus from the start.' },
+      'Helper':      { rarity:'Rare',      rarityClass:'badge-rarity-rare',      desc:'Community helper — always lending a hand to others.' },
+      'Achievement': { rarity:'Rare',      rarityClass:'badge-rarity-rare',      desc:'Earned by completing a special in-app achievement.' },
+      'Event':       { rarity:'Rare',      rarityClass:'badge-rarity-rare',      desc:'Special event badge — limited time only.' },
+      'Holiday':     { rarity:'Rare',      rarityClass:'badge-rarity-rare',      desc:'Holiday event badge — available during seasonal events.' },
+      'Early':       { rarity:'Common',    rarityClass:'badge-rarity-common',    desc:'Early member of Shadow Nexus Social.' },
+      'Artist':      { rarity:'Common',    rarityClass:'badge-rarity-common',    desc:'Creative contributor to the community.' },  };
 
   function buildBadgeHtml(badges, role) {
       if (!badges || !badges.length) return '';
       return badges.map(bName => {
-          // Founder badge only renders when the user actually has the founder role
           if (bName === 'Founder' && role !== 'founder') return '';
-          const cls  = BADGE_CLASS_MAP[bName] || '';
-          const icon = BADGE_ICON_MAP[bName]  || '🏅';
-          const label = bName.replace(/_/g, ' ');
-          return `<span class="badge-inline ${cls}" title="${escFeed(label)}">${icon} ${escFeed(label)}</span>`;
+          const cls      = BADGE_CLASS_MAP[bName] || '';
+          const icon     = BADGE_ICON_MAP[bName]  || '🏅';
+          const meta     = BADGE_META[bName] || {};
+          const rarCls   = meta.rarityClass || '';
+          const label    = bName.replace(/_/g, ' ');
+          const desc     = meta.desc    ? escFeed(meta.desc)    : '';
+          const rarity   = meta.rarity  ? escFeed(meta.rarity)  : '';
+          return `<span class="badge-inline ${cls} ${rarCls}" data-badge="${escFeed(bName)}" data-desc="${desc}" data-rarity="${rarity}" onclick="showBadgeTooltip(this)" title="${escFeed(label)}">${icon} ${escFeed(label)}</span>`;
       }).join('');
   }
 
@@ -4658,14 +5250,18 @@ body::after {
       btn.disabled = true; btn.textContent = "Posting…";
       try {
           const now = Date.now();
+          // Support multiple uploaded URLs (stored as comma-separated in postMediaUrl for multi-upload)
+          const mediaUrlsRaw = mediaUrl.split(',').map(u => u.trim()).filter(Boolean);
           const postRef = await addDoc(collection(db, "posts"), {
               uid: currentUser.uid,
               authorName: userData.displayName,
               authorHandle: userData.username,
+              authorAvatar: userData.avatar || '',
               authorBadges: userData.badges || [],
               authorRole:   userData.role   || 'member',
               text,
-              mediaUrl,
+              mediaUrl: mediaUrlsRaw[0] || '',
+              mediaUrls: mediaUrlsRaw,
               timestamp: now,
               createdAt: now,
               likes: 0,
@@ -5517,8 +6113,10 @@ body::after {
           // Preserve child elements (edit button) by only touching text nodes and background
           const avatarEl = document.getElementById("profileAvatar");
           if (p.avatar && p.avatar.trim()) {
-              avatarEl.style.backgroundImage = `url('${p.avatar}')`;
-              // Remove any text initial that was previously shown
+              avatarEl.style.backgroundImage    = `url('${p.avatar}')`;
+              avatarEl.style.backgroundSize     = 'cover';
+              avatarEl.style.backgroundPosition = 'center';
+              avatarEl.style.backgroundRepeat   = 'no-repeat';
               avatarEl.childNodes.forEach(n => { if (n.nodeType === Node.TEXT_NODE) n.remove(); });
           } else {
               avatarEl.style.backgroundImage = 'none';
@@ -5530,7 +6128,10 @@ body::after {
           // Banner — use image if set, otherwise keep the default CSS gradient
           const bannerEl = document.getElementById("profileBanner");
           if (p.banner && p.banner.trim()) {
-              bannerEl.style.backgroundImage = `url('${p.banner}')`;
+              bannerEl.style.backgroundImage    = `url('${p.banner}')`;
+              bannerEl.style.backgroundSize     = 'cover';
+              bannerEl.style.backgroundPosition = 'center';
+              bannerEl.style.backgroundRepeat   = 'no-repeat';
           } else {
               bannerEl.style.backgroundImage = 'none';
           }
@@ -5543,16 +6144,18 @@ body::after {
           const badgeContainer = document.getElementById("profileBadges");
           badgeContainer.innerHTML = "";
           (p.badges || []).forEach(bName => {
-              // Guard: only render Founder badge if the doc also carries role:"founder"
               if (bName === 'Founder' && p.role !== 'founder') return;
-              const bSpan = document.createElement("span");
-              if (bName === 'Founder') {
-                  bSpan.className = "badge badge-founder";
-                  bSpan.textContent = `👑 Founder`;
-              } else {
-                  bSpan.className = "badge";
-                  bSpan.textContent = `🏅 ${bName.replace(/_/g, " ")}`;
-              }
+              const cls    = BADGE_CLASS_MAP[bName] || '';
+              const icon   = BADGE_ICON_MAP[bName]  || '🏅';
+              const meta   = BADGE_META[bName] || {};
+              const rarCls = meta.rarityClass || '';
+              const bSpan  = document.createElement('span');
+              bSpan.className = `badge ${cls} ${rarCls}`;
+              bSpan.textContent = `${icon} ${bName.replace(/_/g,' ')}`;
+              bSpan.dataset.badge  = bName;
+              bSpan.dataset.desc   = meta.desc   || '';
+              bSpan.dataset.rarity = meta.rarity || '';
+              bSpan.onclick = () => showBadgeTooltip(bSpan);
               badgeContainer.appendChild(bSpan);
           });
 
@@ -5853,7 +6456,14 @@ body::after {
       // Populate chat header
       const hAvatar = document.getElementById("chatHeaderAvatar");
       hAvatar.style.backgroundImage = tData.avatar ? `url('${tData.avatar}')` : '';
-      document.getElementById("chatHeaderName").innerHTML = escapeHtml(tData.displayName) + buildBadgeHtml(tData.badges||[], tData.role||'member');
+      hAvatar.style.cursor = 'pointer';
+      hAvatar.title = 'View profile';
+      hAvatar.onclick = () => viewProfile(targetUid);
+      const hName = document.getElementById("chatHeaderName");
+      hName.innerHTML = escapeHtml(tData.displayName) + buildBadgeHtml(tData.badges||[], tData.role||'member');
+      hName.style.cursor = '';
+      hName.title = '';
+      hName.onclick = null;
       // Header status updated live below ↓
 
       // Show footer + panel — use classes, never inline style, so CSS media queries stay in control
@@ -5921,22 +6531,53 @@ body::after {
                   wrap.style.alignItems = isMine ? "flex-end" : "flex-start";
 
                   const bubble = document.createElement("div");
-                  bubble.className = `msg-bubble ${isMine ? 'me' : 'them'}`;
+                  bubble.className = `msg-bubble ${isMine ? 'me' : 'them'}${m.deleted ? ' deleted' : ''}`;
+                  bubble.dataset.msgIdx = idx;
+                  bubble.dataset.mine = isMine ? '1' : '0';
 
-                  // Content: image or text
-                  if(m.type === 'image' && m.imageUrl) {
+                  // Long-press / context menu
+                  let pressTimer = null;
+                  const openCtx = (e) => {
+                      e.preventDefault();
+                      const x = e.touches ? e.touches[0].clientX : e.clientX;
+                      const y = e.touches ? e.touches[0].clientY : e.clientY;
+                      openMsgCtxMenu(idx, isMine, m, x, y, channelId);
+                  };
+                  bubble.addEventListener('contextmenu', openCtx);
+                  bubble.addEventListener('touchstart', (e) => { pressTimer = setTimeout(() => openCtx(e), 500); }, { passive: true });
+                  bubble.addEventListener('touchend',   () => clearTimeout(pressTimer));
+                  bubble.addEventListener('touchmove',  () => clearTimeout(pressTimer));
+
+                  // Content: deleted / image / text
+                  if (m.deleted) {
+                      const t = document.createElement("div");
+                      t.className = "msg-text";
+                      t.textContent = 'This message was deleted.';
+                      bubble.appendChild(t);
+                  } else if (m.type === 'image' && m.imageUrl) {
                       const img = document.createElement("img");
-                      img.className = "msg-img";
+                      img.className = "msg-media-img";
                       img.src = m.imageUrl;
                       img.alt = "image";
-                      img.onclick = () => window.open(m.imageUrl, '_blank');
+                      img.onclick = () => openMediaViewer('image', m.imageUrl);
                       bubble.appendChild(img);
-                      if(m.text) {
-                          const t = document.createElement("div");
-                          t.className = "msg-text";
-                          t.textContent = m.text;
-                          bubble.appendChild(t);
-                      }
+                      if (m.text) { const t = document.createElement("div"); t.className = "msg-text"; t.textContent = m.text; bubble.appendChild(t); }
+                  } else if (m.type === 'video' && m.imageUrl) {
+                      const vid = document.createElement("video");
+                      vid.className = "msg-media-vid";
+                      vid.src = m.imageUrl;
+                      vid.controls = true;
+                      vid.setAttribute('playsinline', '');
+                      vid.onclick = (e) => { e.stopPropagation(); };
+                      bubble.appendChild(vid);
+                      if (m.text) { const t = document.createElement("div"); t.className = "msg-text"; t.textContent = m.text; bubble.appendChild(t); }
+                  } else if (m.type === 'audio' && m.imageUrl) {
+                      const filename = decodeURIComponent(m.imageUrl.split('/').pop().split('?')[0]);
+                      const card = document.createElement('div');
+                      card.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(0,30,70,0.7);border:1px solid rgba(0,174,239,0.3);border-radius:10px;min-width:200px;';
+                      card.innerHTML = `<span style="font-size:24px;flex-shrink:0;">🎵</span><div style="flex:1;min-width:0;"><div style="font-size:12px;color:#d8eeff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">${filename}</div><audio class="msg-media-aud" src="${m.imageUrl}" controls style="width:100%;"></audio></div>`;
+                      bubble.appendChild(card);
+                      if (m.text) { const t = document.createElement("div"); t.className = "msg-text"; t.textContent = m.text; bubble.appendChild(t); }
                   } else {
                       const t = document.createElement("div");
                       t.className = "msg-text";
@@ -6010,7 +6651,8 @@ body::after {
   async function sendMessage(overridePayload) {
       const input = document.getElementById("msgInputBox");
       const payload = overridePayload || { type: 'text', text: input.value.trim() };
-      if ((!payload.text && !payload.imageUrl) || !activeChatChannelId) return;
+      if (!payload.text && !payload.imageUrl) { toastNotification('Type something first!'); return; }
+      if (!activeChatChannelId) { toastNotification('Select a conversation first.'); return; }
       if (!overridePayload) { input.value = ''; autoGrowTextarea(input); }
 
       const newMsg = {
@@ -6051,9 +6693,119 @@ body::after {
   window.confirmSendImage = async function() {
       const url = document.getElementById("imgSendUrl").value.trim();
       if(!url) return;
-      const caption = '';
-      await sendMessage({ type: 'image', imageUrl: url, text: caption });
+      // Detect type from URL extension
+      const ext = url.split('?')[0].split('.').pop().toLowerCase();
+      const audioExts = ['mp3','ogg','wav','aac','flac','m4a','webm'];
+      const videoExts = ['mp4','webm','mov','avi','mkv'];
+      let msgType = 'image';
+      if (audioExts.includes(ext)) msgType = 'audio';
+      if (videoExts.includes(ext)) msgType = 'video';
+      await sendMessage({ type: msgType, imageUrl: url, text: '' });
       closeImgSendModal();
+      if (typeof window.clearDmFile === 'function') window.clearDmFile();
+  };
+
+  /* ── Message context menu ─────────────────────────────────────────────
+     Long-press or right-click a bubble to open the menu.
+     Stores the current message index + channel in module-level vars.
+  ─────────────────────────────────────────────────────────────────── */
+  let _ctxMsgIdx = null;
+  let _ctxIsMine = false;
+  let _ctxMsg    = null;
+  let _ctxChId   = null;
+
+  window.openMsgCtxMenu = function(idx, isMine, msg, x, y, chId) {
+      _ctxMsgIdx = idx;
+      _ctxIsMine = isMine;
+      _ctxMsg    = msg;
+      _ctxChId   = chId;
+
+      const menu = document.getElementById('msgCtxMenu');
+      if (!menu) return;
+
+      // Hide "Delete for Everyone" if message is already deleted or not mine
+      document.getElementById('msgCtxDeleteAll').style.display = (isMine && !msg.deleted) ? '' : 'none';
+      document.getElementById('msgCtxDeleteMe').style.display  = !msg.deleted ? '' : 'none';
+      document.getElementById('msgCtxCopy').style.display      = !msg.deleted ? '' : 'none';
+
+      // Position menu near tap/click, keeping it on screen
+      menu.style.display = 'block';
+      const mw = menu.offsetWidth  || 180;
+      const mh = menu.offsetHeight || 120;
+      const px = Math.min(x, window.innerWidth  - mw - 10);
+      const py = Math.min(y, window.innerHeight - mh - 10);
+      menu.style.left = px + 'px';
+      menu.style.top  = py + 'px';
+
+      // Close when clicking outside
+      setTimeout(() => document.addEventListener('click', closeMsgCtxMenu, { once: true }), 10);
+  };
+
+  function closeMsgCtxMenu() {
+      const menu = document.getElementById('msgCtxMenu');
+      if (menu) menu.style.display = 'none';
+  }
+
+  window.msgCtxCopy = function() {
+      closeMsgCtxMenu();
+      if (_ctxMsg && _ctxMsg.text) {
+          navigator.clipboard.writeText(_ctxMsg.text).then(() => toastNotification('📋 Copied!'));
+      }
+  };
+
+  window.msgCtxDeleteMe = async function() {
+      closeMsgCtxMenu();
+      if (_ctxMsgIdx === null || !_ctxChId) return;
+      if (!confirm('Delete this message for you? It will still show for the other person.')) return;
+      try {
+          const snap = await getDoc(doc(db, 'chats', _ctxChId));
+          if (!snap.exists()) return;
+          const msgs = [...(snap.data().messages || [])];
+          msgs.splice(_ctxMsgIdx, 1);
+          await updateDoc(doc(db, 'chats', _ctxChId), { messages: msgs });
+          toastNotification('Message deleted.');
+      } catch(e) { toastNotification('Could not delete: ' + e.message); }
+  };
+
+  window.msgCtxDeleteAll = async function() {
+      closeMsgCtxMenu();
+      if (_ctxMsgIdx === null || !_ctxChId || !_ctxIsMine) return;
+      if (!confirm('Delete this message for everyone? This cannot be undone.')) return;
+      try {
+          const snap = await getDoc(doc(db, 'chats', _ctxChId));
+          if (!snap.exists()) return;
+          const msgs = [...(snap.data().messages || [])];
+          // Replace content with deleted tombstone — keep timestamp so order is preserved
+          msgs[_ctxMsgIdx] = {
+              sender:    msgs[_ctxMsgIdx].sender,
+              timestamp: msgs[_ctxMsgIdx].timestamp,
+              type:      'text',
+              text:      '',
+              deleted:   true
+          };
+          await updateDoc(doc(db, 'chats', _ctxChId), { messages: msgs });
+          toastNotification('Message deleted for everyone.');
+      } catch(e) { toastNotification('Could not delete: ' + e.message); }
+  };
+
+  window.deleteConversation = async function() {
+      if (!activeChatChannelId) return;
+      if (!confirm('Delete this entire conversation? It will be removed from your inbox.')) return;
+      try {
+          // Remove current user from participants — the other person still sees it
+          await updateDoc(doc(db, 'chats', activeChatChannelId), {
+              participants: (await getDoc(doc(db, 'chats', activeChatChannelId)))
+                  .data().participants.filter(uid => uid !== currentUser.uid)
+          });
+          // Reset local state and close chat
+          activeChatChannelId = null;
+          activeChatTargetUid = null;
+          if (activeChatUnsubscribe) { activeChatUnsubscribe(); activeChatUnsubscribe = null; }
+          document.getElementById('chatFooter').classList.add('footer-hidden');
+          document.getElementById('msgLayout').classList.remove('chat-open');
+          document.getElementById('chatBoxContainer').innerHTML = '';
+          toastNotification('Conversation deleted.');
+      } catch(e) { toastNotification('Could not delete: ' + e.message); }
   };
 
   // Inbox monitor — scoped to this user's channels only via a where() query,
@@ -6108,7 +6860,7 @@ body::after {
 
                   const convInitial = (c.user.displayName||'?')[0].toUpperCase();
                   el.innerHTML = `
-                    <div class="conv-avatar" style="${c.user.avatar ? `background-image:url('${c.user.avatar}')` : 'display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:bold;color:#00AEEF;background:#0B1F3A'}">
+                    <div class="conv-avatar" style="${c.user.avatar ? `background-image:url('${c.user.avatar}')` : 'display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:bold;color:#00AEEF;background:#0B1F3A'}" onclick="event.stopPropagation();viewProfile('${c.partnerUid}')" title="View profile" role="button">
                         ${!c.user.avatar ? escapeHtml(convInitial) : ''}
                         <div class="conv-online-dot ${isOn ? 'online' : ''}"></div>
                     </div>
@@ -6308,21 +7060,51 @@ body::after {
 
               // ── Bubble ──
               const bub = document.createElement('div');
-              bub.className = 'ipc-modal-bubble';
+              bub.className = 'ipc-modal-bubble' + (m.deleted ? ' deleted' : '');
+              bub.dataset.msgIdx = idx;
+              bub.dataset.mine = isMine ? '1' : '0';
 
-              if (m.type === 'image' && m.imageUrl) {
+              // Long-press / context menu for ipcModal
+              let _ipressTimer = null;
+              const _iOpenCtx = (e) => {
+                  e.preventDefault();
+                  const x = e.touches ? e.touches[0].clientX : e.clientX;
+                  const y = e.touches ? e.touches[0].clientY : e.clientY;
+                  openMsgCtxMenu(idx, isMine, m, x, y, _m_chId);
+              };
+              bub.addEventListener('contextmenu', _iOpenCtx);
+              bub.addEventListener('touchstart', (e) => { _ipressTimer = setTimeout(() => _iOpenCtx(e), 500); }, { passive: true });
+              bub.addEventListener('touchend',  () => clearTimeout(_ipressTimer));
+              bub.addEventListener('touchmove', () => clearTimeout(_ipressTimer));
+
+              if (m.deleted) {
+                  const t = document.createElement('div');
+                  t.style.fontSize = '13px'; t.style.fontStyle = 'italic';
+                  t.textContent = 'This message was deleted.';
+                  bub.appendChild(t);
+              } else if (m.type === 'image' && m.imageUrl) {
                   const img = document.createElement('img');
-                  img.style.cssText = 'max-width:200px;max-height:160px;border-radius:10px;display:block;margin-bottom:4px;cursor:pointer;object-fit:cover;border:1px solid rgba(0,100,200,0.3);';
+                  img.className = 'msg-media-img';
                   img.src = m.imageUrl;
                   img.alt = 'Image';
-                  img.onclick = () => window.open(m.imageUrl, '_blank');
+                  img.onclick = () => openMediaViewer('image', m.imageUrl);
                   bub.appendChild(img);
-                  if (m.text) {
-                      const t = document.createElement('div');
-                      t.style.fontSize = '13px';
-                      t.textContent = m.text;
-                      bub.appendChild(t);
-                  }
+                  if (m.text) { const t = document.createElement('div'); t.style.fontSize = '13px'; t.textContent = m.text; bub.appendChild(t); }
+              } else if (m.type === 'video' && m.imageUrl) {
+                  const vid = document.createElement('video');
+                  vid.className = 'msg-media-vid';
+                  vid.src = m.imageUrl;
+                  vid.controls = true;
+                  vid.setAttribute('playsinline', '');
+                  bub.appendChild(vid);
+                  if (m.text) { const t = document.createElement('div'); t.style.fontSize = '13px'; t.textContent = m.text; bub.appendChild(t); }
+              } else if (m.type === 'audio' && m.imageUrl) {
+                  const filename = decodeURIComponent(m.imageUrl.split('/').pop().split('?')[0]);
+                  const card = document.createElement('div');
+                  card.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(0,30,70,0.7);border:1px solid rgba(0,174,239,0.3);border-radius:10px;min-width:200px;';
+                  card.innerHTML = `<span style="font-size:24px;flex-shrink:0;">🎵</span><div style="flex:1;min-width:0;"><div style="font-size:12px;color:#d8eeff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">${_mEsc(filename)}</div><audio src="${m.imageUrl}" controls style="width:100%;"></audio></div>`;
+                  bub.appendChild(card);
+                  if (m.text) { const t = document.createElement('div'); t.style.fontSize = '13px'; t.textContent = m.text; bub.appendChild(t); }
               } else {
                   bub.textContent = m.text || '';
               }
@@ -6514,6 +7296,9 @@ body::after {
       const subEl    = document.getElementById('ipcModalSub');
       const avatarEl = document.getElementById('ipcModalAvatar');
 
+      // Store UID so clicking avatar/name opens that person's profile
+      window._ipcModalUid = targetUid;
+
       if (nameEl)  nameEl.innerHTML = escapeHtml(_m_tgtData.displayName || 'User') + buildBadgeHtml(_m_tgtData.badges||[], _m_tgtData.role||'member');
       if (subEl)   subEl.textContent  = _m_tgtData.status === 'online' ? '🟢 Online now' : (_m_tgtData.mood || '⚫ Offline');
 
@@ -6616,13 +7401,19 @@ body::after {
 
   // All awardable badges (Founder is protected and cannot be toggled here)
   const ADMIN_BADGES = [
-      { key: 'Verified',  label: 'Verified',        icon: '✓',  cls: 'badge-verified'  },
-      { key: 'Moderator', label: 'Moderator',        icon: '🛡', cls: 'badge-moderator' },
-      { key: 'Artist',    label: 'Artist',           icon: '🎨', cls: 'badge-artist'    },
-      { key: 'Early',     label: 'Early Member',     icon: '🌟', cls: 'badge-early'     },
-      { key: 'Supporter', label: 'Supporter',        icon: '💎', cls: 'badge-supporter' },
-      { key: 'Top',       label: 'Top Contributor',  icon: '🏆', cls: 'badge-top'       },
-      { key: 'Legend',    label: 'Legend',           icon: '⚔️', cls: 'badge-legend'    },
+      { key: 'Verified',    label: 'Verified',          icon: '✓',  cls: 'badge-verified',    rarity: 'Epic'      },
+      { key: 'Admin',       label: 'Administrator',      icon: '🔧', cls: 'badge-admin',        rarity: 'Legendary' },
+      { key: 'Moderator',   label: 'Moderator',          icon: '🛡', cls: 'badge-moderator',    rarity: 'Epic'      },
+      { key: 'OG',          label: 'OG',                 icon: '🔥', cls: 'badge-og',           rarity: 'Legendary' },
+      { key: 'Beta',        label: 'Beta Tester',        icon: '🧪', cls: 'badge-beta',         rarity: 'Epic'      },
+      { key: 'Supporter',   label: 'Early Supporter',    icon: '💎', cls: 'badge-supporter',    rarity: 'Rare'      },
+      { key: 'Helper',      label: 'Community Helper',   icon: '🤝', cls: 'badge-helper',       rarity: 'Rare'      },
+      { key: 'Top',         label: 'Top Contributor',    icon: '🏆', cls: 'badge-top',          rarity: 'Rare'      },
+      { key: 'Achievement', label: 'Achievement',        icon: '🎖', cls: 'badge-achievement',  rarity: 'Rare'      },
+      { key: 'Event',       label: 'Special Event',      icon: '🎉', cls: 'badge-event',        rarity: 'Rare'      },
+      { key: 'Holiday',     label: 'Holiday Event',      icon: '🎄', cls: 'badge-holiday',      rarity: 'Rare'      },
+      { key: 'Legend',      label: 'Legend',             icon: '⚔️', cls: 'badge-legend',       rarity: 'Legendary' },
+      { key: 'Early',       label: 'Early Member',       icon: '🌟', cls: 'badge-early',        rarity: 'Common'    },
   ];
 
   // Toggle a badge on/off for a target user — founder-only guard enforced server-side by Firestore rules
@@ -6984,11 +7775,8 @@ function navTo(pageId) {
     // Load notification prefs when settings page opens
     if (pageId === 'settingsPage') {
         if (typeof window._loadNotifPrefs === 'function') window._loadNotifPrefs();
-        // Show admin section if founder
-        const _as = document.getElementById('adminPanelSettingsSection');
-        if (_as) _as.style.display = (window._snxRole === 'founder') ? '' : 'none';
-    }
-    // Auto-close sidebar on mobile after navigation
+        if (typeof window._showFounderUI === 'function') window._showFounderUI();
+    }    // Auto-close sidebar on mobile after navigation
     closeSidebar();
 }
 
@@ -7724,6 +8512,319 @@ window._loadNotifPrefs = async function() {
         _updatePushStatusLabel();
     } catch(e) {}
 };
+
+/* ── Founder UI visibility — called from module script after login ── */
+window._showFounderUI = function() {
+    const isFounder = window._snxRole === 'founder';
+    const adminNav = document.getElementById('navAdmin');
+    if (adminNav) adminNav.style.display = isFounder ? 'flex' : 'none';
+    // adminPanelSettingsSection has no display:none — always visible, button is gated
+};
+
+/* ══════════════════════════════════════════════════════════════
+   R2 UPLOAD SYSTEM
+   ══════════════════════════════════════════════════════════════
+   IMPORTANT: After deploying upload-worker.js to Cloudflare,
+   replace the URL below with your actual Worker URL.
+   ══════════════════════════════════════════════════════════════ */
+const R2_UPLOAD_URL = 'https://yellow-term-11e6.nthntjrn.workers.dev';
+
+/**
+ * Upload a File to R2 via the Cloudflare Worker.
+ * @param {File}     file        - The file to upload
+ * @param {string}   progressBarId - Element ID of the progress bar fill div
+ * @param {string}   progressWrapId - Element ID of the progress wrapper div
+ * @returns {Promise<string>}  The public URL of the uploaded file
+ */
+async function uploadToR2(file, progressBarId, progressWrapId) {
+    const uid = window._snxCurrentUser ? window._snxCurrentUser.uid : 'guest';
+
+    // Show progress bar
+    const wrap = document.getElementById(progressWrapId);
+    const bar  = document.getElementById(progressBarId);
+    if (wrap) wrap.style.display = 'block';
+    if (bar)  bar.style.width = '0%';
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('uid',  uid);
+
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', R2_UPLOAD_URL);
+
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable && bar) {
+                bar.style.width = Math.round((e.loaded / e.total) * 90) + '%';
+            }
+        };
+
+        xhr.onload = () => {
+            if (bar) bar.style.width = '100%';
+            setTimeout(() => { if (wrap) wrap.style.display = 'none'; }, 800);
+            if (xhr.status === 200) {
+                try {
+                    const res = JSON.parse(xhr.responseText);
+                    if (res.url) resolve(res.url);
+                    else reject(new Error(res.error || 'Upload failed'));
+                } catch(e) { reject(new Error('Invalid server response')); }
+            } else {
+                try {
+                    const err = JSON.parse(xhr.responseText);
+                    reject(new Error(err.error || 'Upload failed'));
+                } catch(_) { reject(new Error('Upload failed: ' + xhr.status)); }
+            }
+        };
+
+        xhr.onerror = () => {
+            if (wrap) wrap.style.display = 'none';
+            reject(new Error('Network error — check your connection'));
+        };
+
+        xhr.send(formData);
+    });
+}
+
+/* ── Detect media type from MIME ── */
+function mediaTypeFromMime(mime) {
+    if (mime.startsWith('image/')) return 'image';
+    if (mime.startsWith('video/')) return 'video';
+    if (mime.startsWith('audio/')) return 'audio';
+    return 'file';
+}
+
+/* ── Show local preview before upload ── */
+function showLocalPreview(file, imgEl, vidEl, audEl) {
+    const url  = URL.createObjectURL(file);
+    const type = mediaTypeFromMime(file.type);
+    if (imgEl) imgEl.style.display = 'none';
+    if (vidEl) vidEl.style.display = 'none';
+    if (audEl) audEl.style.display = 'none';
+    if (type === 'image' && imgEl) { imgEl.src = url; imgEl.style.display = 'block'; }
+    if (type === 'video' && vidEl) { vidEl.src = url; vidEl.style.display = 'block'; }
+    if (type === 'audio' && audEl) { audEl.src = url; audEl.style.display = 'block'; }
+}
+
+/* ══ POST COMPOSER upload handlers ══ */
+let _postMediaUploadedUrl = '';
+let _postMediaUploadedUrls = [];
+
+async function handlePostMediaPick(input) {
+    const files = Array.from(input.files || []);
+    if (!files.length) return;
+
+    _postMediaUploadedUrl = '';
+    _postMediaUploadedUrls = [];
+    document.getElementById('postMediaUrl').value = '';
+    document.getElementById('postMediaUploadBtn').disabled = true;
+    document.getElementById('postMediaClear').style.display = '';
+    document.getElementById('postMediaRow').classList.remove('drag-over');
+
+    // Show previews for all files
+    const previewImg = document.getElementById('postMediaPreviewImg');
+    const previewVid = document.getElementById('postMediaPreviewVid');
+    const previewAud = document.getElementById('postMediaPreviewAud');
+    if (files.length === 1) {
+        showLocalPreview(files[0], previewImg, previewVid, previewAud);
+        document.getElementById('postMediaFilename').textContent = files[0].name;
+        // Make sure audio preview is visible
+        if (mediaTypeFromMime(files[0].type) === 'audio' && previewAud) {
+            previewAud.style.display = 'block';
+        }
+    } else {
+        if (previewImg) previewImg.style.display = 'none';
+        if (previewVid) previewVid.style.display = 'none';
+        if (previewAud) previewAud.style.display = 'none';
+        document.getElementById('postMediaFilename').textContent = `${files.length} files selected`;
+    }
+
+    // Show uploading state on button
+    const uploadBtn = document.getElementById('postMediaUploadBtn');
+    if (uploadBtn) uploadBtn.classList.add('uploading');
+
+    try {
+        const urls = [];
+        for (let i = 0; i < files.length; i++) {
+            document.getElementById('postMediaFilename').textContent = `Uploading ${i+1}/${files.length}…`;
+            const url = await uploadToR2(files[i], 'postMediaProgressBar', 'postMediaProgress');
+            urls.push(url);
+        }
+        _postMediaUploadedUrls = urls;
+        _postMediaUploadedUrl  = urls[0];
+        // Store all URLs comma-separated for the post broadcaster
+        document.getElementById('postMediaUrl').value = urls.join(',');
+        document.getElementById('postMediaFilename').textContent = files.length === 1 ? files[0].name : `${files.length} files ready`;
+        toastNotification(`✅ ${files.length === 1 ? 'File' : files.length + ' files'} uploaded!`);
+    } catch(e) {
+        toastNotification('❌ Upload failed: ' + e.message);
+        clearPostMedia();
+    } finally {
+        document.getElementById('postMediaUploadBtn').disabled = false;
+        const uploadBtn2 = document.getElementById('postMediaUploadBtn');
+        if (uploadBtn2) uploadBtn2.classList.remove('uploading');
+    }
+}
+
+function handlePostMediaDrop(event) {
+    event.preventDefault();
+    document.getElementById('postMediaRow').classList.remove('drag-over');
+    const input = document.getElementById('postMediaFile');
+    // Simulate file input change with dropped files
+    const dt = event.dataTransfer;
+    if (!dt || !dt.files.length) return;
+    // Create a fake input-like object
+    handlePostMediaPick({ files: dt.files });
+}
+
+function clearPostMedia() {
+    _postMediaUploadedUrl = '';
+    document.getElementById('postMediaUrl').value = '';
+    document.getElementById('postMediaFile').value = '';
+    document.getElementById('postMediaFilename').textContent = '';
+    document.getElementById('postMediaClear').style.display = 'none';
+    document.getElementById('postMediaPreviewImg').style.display = 'none';
+    document.getElementById('postMediaPreviewVid').style.display = 'none';
+    document.getElementById('postMediaPreviewAud').style.display = 'none';
+}
+
+/* ══ DM file upload handlers ══ */
+let _dmUploadedUrl = '';
+
+async function handleDmFilePick(input) {
+    const file = input.files[0];
+    if (!file) return;
+    _dmUploadedUrl = '';
+    document.getElementById('imgSendUrl').value = '';
+    document.getElementById('imgSendFilename').textContent = file.name;
+    document.getElementById('imgSendClear').style.display = '';
+    document.getElementById('btnConfirmSendImg').disabled = true;
+
+    showLocalPreview(
+        file,
+        document.getElementById('imgSendPreview'),
+        document.getElementById('imgSendPreviewVid'),
+        document.getElementById('imgSendPreviewAud')
+    );
+
+    try {
+        const url = await uploadToR2(file, 'imgSendProgressBar', 'imgSendProgress');
+        _dmUploadedUrl = url;
+        document.getElementById('imgSendUrl').value = url;
+        document.getElementById('btnConfirmSendImg').disabled = false;
+        toastNotification('✅ File ready to send!');
+    } catch(e) {
+        toastNotification('❌ Upload failed: ' + e.message);
+        clearDmFile();
+    }
+}
+
+function clearDmFile() {
+    _dmUploadedUrl = '';
+    document.getElementById('imgSendUrl').value = '';
+    document.getElementById('imgSendFile').value = '';
+    document.getElementById('imgSendFilename').textContent = 'No file chosen';
+    document.getElementById('imgSendClear').style.display = 'none';
+    document.getElementById('imgSendPreview').style.display = 'none';
+    document.getElementById('imgSendPreviewVid').style.display = 'none';
+    document.getElementById('imgSendPreviewAud').style.display = 'none';
+    document.getElementById('btnConfirmSendImg').disabled = true;
+}
+
+function handleDmFileDrop(event) {
+    event.preventDefault();
+    document.getElementById('imgSendDropZone').classList.remove('drag-over');
+    const dt = event.dataTransfer;
+    if (!dt || !dt.files.length) return;
+    handleDmFilePick({ files: dt.files });
+}
+
+/* ══ Profile picture upload handlers ══ */
+async function handleAvatarPick(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('editAvatarFilename').textContent = file.name;
+    document.getElementById('editAvatarClear').style.display = '';
+    try {
+        const url = await uploadToR2(file, 'editAvatarProgressBar', 'editAvatarProgress');
+        document.getElementById('editAvatar').value = url;
+        toastNotification('✅ Profile picture uploaded!');
+    } catch(e) {
+        toastNotification('❌ Upload failed: ' + e.message);
+        clearAvatarUpload();
+    }
+}
+
+function clearAvatarUpload() {
+    document.getElementById('editAvatarFile').value = '';
+    document.getElementById('editAvatarFilename').textContent = '';
+    document.getElementById('editAvatarClear').style.display = 'none';
+    document.getElementById('editAvatar').value = '';
+}
+
+/* ══ Cover photo upload handlers ══ */
+async function handleBannerPick(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('editBannerFilename').textContent = file.name;
+    document.getElementById('editBannerClear').style.display = '';
+    try {
+        const url = await uploadToR2(file, 'editBannerProgressBar', 'editBannerProgress');
+        document.getElementById('editBanner').value = url;
+        toastNotification('✅ Cover photo uploaded!');
+    } catch(e) {
+        toastNotification('❌ Upload failed: ' + e.message);
+        clearBannerUpload();
+    }
+}
+
+function clearBannerUpload() {
+    document.getElementById('editBannerFile').value = '';
+    document.getElementById('editBannerFilename').textContent = '';
+    document.getElementById('editBannerClear').style.display = 'none';
+    document.getElementById('editBanner').value = '';
+}
+
+/* ══ Fullscreen media viewer ══ */
+window.openMediaViewer = function(type, url) {
+    const viewer = document.getElementById('snxMediaViewer');
+    const img    = document.getElementById('snxViewerImg');
+    const vid    = document.getElementById('snxViewerVid');
+    const aud    = document.getElementById('snxViewerAud');
+    if (!viewer) return;
+    img.style.display = 'none'; img.src = '';
+    vid.style.display = 'none'; vid.src = ''; vid.pause && vid.pause();
+    aud.style.display = 'none'; aud.src = ''; aud.pause && aud.pause();
+    if (type === 'image') { img.src = url; img.style.display = 'block'; }
+    else if (type === 'video') { vid.src = url; vid.style.display = 'block'; }
+    else if (type === 'audio') { aud.src = url; aud.style.display = 'block'; }
+    viewer.classList.add('open');
+    document.body.style.overflow = 'hidden';
+};
+
+window.closeMediaViewer = function() {
+    const viewer = document.getElementById('snxMediaViewer');
+    const vid    = document.getElementById('snxViewerVid');
+    const aud    = document.getElementById('snxViewerAud');
+    if (vid) { vid.pause(); vid.src = ''; }
+    if (aud) { aud.pause(); aud.src = ''; }
+    if (viewer) viewer.classList.remove('open');
+    document.body.style.overflow = '';
+};
+
+// Close viewer on Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape') window.closeMediaViewer(); });
+
+/* Make handlers globally accessible */
+window.handlePostMediaPick = handlePostMediaPick;
+window.handlePostMediaDrop = handlePostMediaDrop;
+window.clearPostMedia      = clearPostMedia;
+window.handleDmFilePick    = handleDmFilePick;
+window.handleDmFileDrop    = handleDmFileDrop;
+window.clearDmFile         = clearDmFile;
+window.handleAvatarPick    = handleAvatarPick;
+window.clearAvatarUpload   = clearAvatarUpload;
+window.handleBannerPick    = handleBannerPick;
+window.clearBannerUpload   = clearBannerUpload;
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════

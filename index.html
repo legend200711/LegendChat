@@ -662,6 +662,56 @@ input:focus, textarea:focus, select:focus {
 .profile-handle-text { font-size: 13px; color: #3a6a9a; }
 .profile-bio-text { font-size: 13px; color: #8ab0cc; margin: 5px 0 6px; line-height: 1.5; }
 .profile-mood-text { font-size: 12px; color: #00ff88; margin-bottom: 4px; text-shadow: 0 0 8px rgba(0,255,136,0.4); }
+@keyframes moodBounce { 0%,100%{transform:translateY(0) scale(1);} 50%{transform:translateY(-4px) scale(1.12);} }
+/* Mood chip on posts/comments */
+.post-mood-chip { font-size:12px; background:rgba(0,255,136,0.1); border:1px solid rgba(0,255,136,0.3); color:#00ff88; border-radius:20px; padding:1px 7px; margin-left:2px; white-space:nowrap; display:inline-block; }
+/* Sticker mood animates in any context */
+.mood-sticker-display { animation: moodBounce 1.4s ease-in-out infinite; display: inline-block; }
+/* Profile mood text — larger sticker on profile page */
+.profile-mood-text.mood-sticker-display { font-size: 22px; }
+/* ── Edit Profile Modal tabs ── */
+.ep-tabs { display:flex; gap:4px; margin-bottom:14px; border-bottom:1px solid rgba(0,120,255,0.18); padding-bottom:8px; flex-wrap:wrap; }
+.ep-tab { background:transparent; border:1px solid rgba(0,120,255,0.2); color:#4a7aaa; border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer; transition:all 0.15s; }
+.ep-tab:hover { background:rgba(0,120,255,0.1); color:#00AEEF; }
+.ep-tab.active { background:rgba(0,120,255,0.18); border-color:rgba(0,174,239,0.5); color:#00AEEF; font-weight:600; }
+.ep-tab-pane { display:none; }
+.ep-tab-pane.active { display:block; }
+/* Mood picker */
+.mood-format-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+.mood-fmt-btn { background:rgba(0,30,80,0.5); border:1px solid rgba(0,120,255,0.25); color:#4a7aaa; border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer; transition:all 0.15s; }
+.mood-fmt-btn.active { background:rgba(0,174,239,0.18); border-color:rgba(0,174,239,0.55); color:#00AEEF; font-weight:600; }
+.mood-pane { display:none; }
+.mood-pane.active { display:block; }
+.mood-emoji-grid { display:flex; flex-wrap:wrap; gap:6px; max-height:160px; overflow-y:auto; padding:4px 0; }
+.mood-emoji-item { font-size:22px; cursor:pointer; padding:5px 7px; border-radius:8px; border:2px solid transparent; transition:all 0.12s; }
+.mood-emoji-item:hover { background:rgba(0,174,239,0.12); }
+.mood-emoji-item.selected { border-color:rgba(0,255,136,0.6); background:rgba(0,255,136,0.1); }
+.mood-sticker-grid { display:flex; flex-wrap:wrap; gap:6px; max-height:160px; overflow-y:auto; padding:4px 0; }
+.mood-sticker-item { font-size:26px; cursor:pointer; padding:5px 7px; border-radius:8px; border:2px solid transparent; transition:all 0.12s; animation:moodBounce 1.4s ease-in-out infinite; }
+.mood-sticker-item:hover { background:rgba(0,174,239,0.12); }
+.mood-sticker-item.selected { border-color:rgba(0,255,136,0.6); background:rgba(0,255,136,0.1); }
+.mood-preview-chip { display:inline-block; background:rgba(0,255,136,0.1); border:1px solid rgba(0,255,136,0.28); color:#00ff88; border-radius:20px; padding:2px 10px; font-size:13px; margin-left:4px; }
+/* Style editor */
+.style-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.style-preset { background:rgba(0,30,80,0.5); border:1px solid rgba(0,120,255,0.22); color:#6a90b8; border-radius:8px; padding:5px 10px; font-size:11px; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+.style-preset:hover { background:rgba(0,100,220,0.18); color:#00AEEF; }
+.profile-style-preview { background:#0d2444; border:1px solid rgba(0,174,239,0.3); border-radius:12px; padding:16px; margin-top:6px; display:flex; align-items:center; gap:12px; transition:all 0.25s; }
+.psp-avatar { font-size:36px; width:52px; height:52px; border-radius:50%; background:rgba(0,60,140,0.4); display:flex; align-items:center; justify-content:center; border:2px solid rgba(0,174,239,0.4); flex-shrink:0; }
+.psp-name { font-size:16px; font-weight:700; color:#e0f0ff; }
+.psp-handle { font-size:12px; color:#3a6a9a; }
+.psp-bio { font-size:12px; color:#5a8ab8; margin-top:2px; }
+/* CSS Sandbox */
+.css-sandbox-allowed { font-size:11px; color:#3a6a9a; background:rgba(0,50,120,0.15); border:1px solid rgba(0,80,160,0.2); border-radius:6px; padding:6px 10px; margin-bottom:8px; line-height:1.5; }
+.ep-css-preview-btn { background:rgba(0,80,180,0.2); border:1px solid rgba(0,174,239,0.3); color:#00AEEF; border-radius:8px; padding:6px 14px; font-size:12px; cursor:pointer; }
+.ep-css-preview-btn:hover { background:rgba(0,100,220,0.3); }
+.css-sandbox-frame { width:100%; height:180px; border:1px solid rgba(0,80,160,0.3); border-radius:10px; background:#0a1830; margin-top:4px; }
+/* Rainbow border animation */
+@keyframes rainbowBorder { 0%{border-color:#ff0066;} 16%{border-color:#ff9900;} 33%{border-color:#ffff00;} 50%{border-color:#00ff88;} 66%{border-color:#00AEEF;} 83%{border-color:#9900ff;} 100%{border-color:#ff0066;} }
+.profile-border-rainbow { border:2px solid #ff0066 !important; animation:rainbowBorder 3s linear infinite !important; }
+.profile-border-neon-green { border:2px solid #39FF14 !important; box-shadow:0 0 18px rgba(57,255,20,0.5) !important; }
+.profile-border-neon-pink { border:2px solid #ff00aa !important; box-shadow:0 0 18px rgba(255,0,170,0.5) !important; }
+.profile-border-gold { border:2px solid #ffcc44 !important; box-shadow:0 0 18px rgba(255,200,50,0.4) !important; }
+.profile-border-none { border:none !important; box-shadow:none !important; }
 /* Online status badge on profile */
 .profile-online-badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; color:#00ff88; margin-bottom:6px; }
 .profile-online-dot { width:8px; height:8px; border-radius:50%; background:#00ff88; box-shadow:0 0 6px rgba(0,255,136,0.8); animation:greenPulse 2s infinite; flex-shrink:0; }
@@ -3486,6 +3536,9 @@ body::after {
 
 <div class="page" id="profile">
 
+    <!-- Sandboxed profile custom CSS injected here at runtime -->
+    <style id="profileCustomCSSTag"></style>
+
     <!-- ── Profile header ── -->
     <div class="profile-header">
         <!-- Cover photo -->
@@ -3548,58 +3601,185 @@ body::after {
             <button class="edit-modal-close" onclick="closeEditProfileModal()">✕</button>
             <h3>✏️ Edit Profile</h3>
 
-            <label>Display Name</label>
-            <input id="editUsername" placeholder="Your name">
-
-            <label>Bio</label>
-            <textarea id="editBio" rows="2" placeholder="Tell people about yourself…" style="resize:vertical;"></textarea>
-
-            <label>Profile Picture URL</label>
-            <input type="file" id="editAvatarFile" accept="image/*" style="display:none;" onchange="handleAvatarPick(this)">
-            <div class="snx-upload-row">
-                <button class="snx-upload-btn" onclick="document.getElementById('editAvatarFile').click()" type="button">📷 Upload Photo</button>
-                <span class="snx-upload-filename" id="editAvatarFilename"></span>
-                <button class="snx-upload-clear" id="editAvatarClear" style="display:none;" onclick="clearAvatarUpload()" title="Remove">✕</button>
+            <!-- Modal tabs -->
+            <div class="ep-tabs">
+                <button class="ep-tab active" onclick="switchEpTab('info',this)">👤 Info</button>
+                <button class="ep-tab" onclick="switchEpTab('mood',this)">✨ Mood</button>
+                <button class="ep-tab" onclick="switchEpTab('style',this)">🎨 Style</button>
+                <button class="ep-tab" onclick="switchEpTab('css',this)">⚙️ CSS</button>
             </div>
-            <div class="snx-upload-progress" id="editAvatarProgress">
-                <div class="snx-upload-progress-bar" id="editAvatarProgressBar"></div>
+
+            <!-- ── Tab: Info ── -->
+            <div class="ep-tab-pane active" id="ep-pane-info">
+                <label>Display Name</label>
+                <input id="editUsername" placeholder="Your name">
+
+                <label>Bio</label>
+                <textarea id="editBio" rows="2" placeholder="Tell people about yourself…" style="resize:vertical;"></textarea>
+
+                <label>Profile Picture</label>
+                <input type="file" id="editAvatarFile" accept="image/*" style="display:none;" onchange="handleAvatarPick(this)">
+                <div class="snx-upload-row">
+                    <button class="snx-upload-btn" onclick="document.getElementById('editAvatarFile').click()" type="button">📷 Upload Photo</button>
+                    <span class="snx-upload-filename" id="editAvatarFilename"></span>
+                    <button class="snx-upload-clear" id="editAvatarClear" style="display:none;" onclick="clearAvatarUpload()" title="Remove">✕</button>
+                </div>
+                <div class="snx-upload-progress" id="editAvatarProgress"><div class="snx-upload-progress-bar" id="editAvatarProgressBar"></div></div>
+                <input id="editAvatar" placeholder="Or paste image URL…" style="margin-top:6px;">
+
+                <label>Cover Photo</label>
+                <input type="file" id="editBannerFile" accept="image/*" style="display:none;" onchange="handleBannerPick(this)">
+                <div class="snx-upload-row">
+                    <button class="snx-upload-btn" onclick="document.getElementById('editBannerFile').click()" type="button">🖼 Upload Cover</button>
+                    <span class="snx-upload-filename" id="editBannerFilename"></span>
+                    <button class="snx-upload-clear" id="editBannerClear" style="display:none;" onclick="clearBannerUpload()" title="Remove">✕</button>
+                </div>
+                <div class="snx-upload-progress" id="editBannerProgress"><div class="snx-upload-progress-bar" id="editBannerProgressBar"></div></div>
+                <input id="editBanner" placeholder="Or paste cover image URL…" style="margin-top:6px;">
+
+                <label>Wall Privacy</label>
+                <select id="editPrivacy">
+                    <option value="open">Anyone can post on my wall</option>
+                    <option value="friends">Friends only</option>
+                    <option value="closed">Nobody (locked)</option>
+                </select>
+
+                <label>Background Theme</label>
+                <select id="editAesthetic" onchange="applyAestheticMatrix(this.value)">
+                    <option value="cyber">Cyber Particle Grid</option>
+                    <option value="matrix">Digital Matrix Rain</option>
+                </select>
             </div>
-            <input id="editAvatar" placeholder="Or paste image URL…" style="margin-top:6px;">
 
-            <label>Cover Photo URL</label>
-            <input type="file" id="editBannerFile" accept="image/*" style="display:none;" onchange="handleBannerPick(this)">
-            <div class="snx-upload-row">
-                <button class="snx-upload-btn" onclick="document.getElementById('editBannerFile').click()" type="button">🖼 Upload Cover</button>
-                <span class="snx-upload-filename" id="editBannerFilename"></span>
-                <button class="snx-upload-clear" id="editBannerClear" style="display:none;" onclick="clearBannerUpload()" title="Remove">✕</button>
+            <!-- ── Tab: Mood ── -->
+            <div class="ep-tab-pane" id="ep-pane-mood">
+                <p style="font-size:12px;color:#6a90b8;margin:0 0 12px;">Choose how your mood appears next to your name across the site.</p>
+
+                <label>Mood Format</label>
+                <div class="mood-format-row" id="moodFormatRow">
+                    <button class="mood-fmt-btn active" data-fmt="emoji" onclick="selectMoodFmt('emoji',this)">😊 Emoji</button>
+                    <button class="mood-fmt-btn" data-fmt="sticker" onclick="selectMoodFmt('sticker',this)">🎮 Sticker</button>
+                    <button class="mood-fmt-btn" data-fmt="status" onclick="selectMoodFmt('status',this)">💬 Status</button>
+                </div>
+
+                <!-- Emoji picker -->
+                <div id="moodPane-emoji" class="mood-pane active">
+                    <label style="margin-top:10px;">Pick an Emoji Mood</label>
+                    <div class="mood-emoji-grid" id="moodEmojiGrid"></div>
+                    <div style="margin-top:8px;font-size:11px;color:#3a5a7a;">Preview: <span id="moodEmojiPreview" class="mood-preview-chip"></span></div>
+                </div>
+
+                <!-- Pixel sticker picker -->
+                <div id="moodPane-sticker" class="mood-pane">
+                    <label style="margin-top:10px;">Pick a Pixel Sticker</label>
+                    <div class="mood-sticker-grid" id="moodStickerGrid"></div>
+                    <div style="margin-top:8px;font-size:11px;color:#3a5a7a;">Preview: <span id="moodStickerPreview" class="mood-preview-chip"></span></div>
+                </div>
+
+                <!-- Custom status -->
+                <div id="moodPane-status" class="mood-pane">
+                    <label style="margin-top:10px;">Custom Status Line</label>
+                    <input id="moodCustomStatus" maxlength="40" placeholder="e.g. 🔥 Building something epic…" oninput="updateStatusPreview()">
+                    <div style="margin-top:8px;font-size:11px;color:#3a5a7a;">Preview: <span id="moodStatusPreview" class="mood-preview-chip"></span></div>
+                </div>
+
+                <div style="margin-top:14px;display:flex;gap:8px;">
+                    <button class="mood-fmt-btn" onclick="clearMoodSelection()" style="flex:1;border-color:rgba(255,60,60,0.3);color:#ff7788;">✕ Remove Mood</button>
+                </div>
+                <input type="hidden" id="editMoodValue">
+                <input type="hidden" id="editMoodFmt">
             </div>
-            <div class="snx-upload-progress" id="editBannerProgress">
-                <div class="snx-upload-progress-bar" id="editBannerProgressBar"></div>
+
+            <!-- ── Tab: Style ── -->
+            <div class="ep-tab-pane" id="ep-pane-style">
+                <p style="font-size:12px;color:#6a90b8;margin:0 0 12px;">Style your profile card. Changes show in a live preview below.</p>
+
+                <label>Profile Background</label>
+                <div class="style-row">
+                    <button class="style-preset" onclick="applyStylePreset('dark')" title="Dark Blue">🌑 Dark</button>
+                    <button class="style-preset" onclick="applyStylePreset('midnight')" title="Midnight">🌌 Midnight</button>
+                    <button class="style-preset" onclick="applyStylePreset('forest')" title="Forest">🌿 Forest</button>
+                    <button class="style-preset" onclick="applyStylePreset('sunset')" title="Sunset">🌅 Sunset</button>
+                    <button class="style-preset" onclick="applyStylePreset('ocean')" title="Ocean">🌊 Ocean</button>
+                    <button class="style-preset" onclick="applyStylePreset('fire')" title="Fire">🔥 Fire</button>
+                    <button class="style-preset" onclick="applyStylePreset('neon')" title="Neon">⚡ Neon</button>
+                    <button class="style-preset" onclick="applyStylePreset('none')" title="Default">✕ Default</button>
+                </div>
+
+                <label>Background Color</label>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <input type="color" id="profileBgColor" value="#0d2444" oninput="updateStylePreview()" style="width:44px;height:36px;padding:2px;border-radius:6px;cursor:pointer;">
+                    <input id="profileBgColorHex" placeholder="#0d2444" maxlength="20" oninput="syncColorFromHex()" style="flex:1;">
+                </div>
+
+                <label>Background Gradient</label>
+                <select id="profileBgGradient" onchange="updateStylePreview()">
+                    <option value="none">None (solid color)</option>
+                    <option value="to bottom">↓ Top to Bottom</option>
+                    <option value="to bottom right">↘ Diagonal</option>
+                    <option value="135deg">⟋ 135°</option>
+                    <option value="radial">◉ Radial</option>
+                </select>
+
+                <label>Gradient Second Color</label>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <input type="color" id="profileBgColor2" value="#071428" oninput="updateStylePreview()" style="width:44px;height:36px;padding:2px;border-radius:6px;cursor:pointer;">
+                    <input id="profileBgColor2Hex" placeholder="#071428" maxlength="20" oninput="syncColor2FromHex()" style="flex:1;">
+                </div>
+
+                <label>Font Family</label>
+                <select id="profileFontFamily" onchange="updateStylePreview()">
+                    <option value="">Default</option>
+                    <option value="'Segoe UI',sans-serif">Segoe UI</option>
+                    <option value="'Courier New',monospace">Courier New</option>
+                    <option value="Georgia,serif">Georgia</option>
+                    <option value="'Arial Black',sans-serif">Arial Black</option>
+                    <option value="'Trebuchet MS',sans-serif">Trebuchet MS</option>
+                    <option value="Impact,sans-serif">Impact</option>
+                </select>
+
+                <label>Name Color</label>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <input type="color" id="profileNameColor" value="#e0f0ff" oninput="updateStylePreview()" style="width:44px;height:36px;padding:2px;border-radius:6px;cursor:pointer;">
+                    <input id="profileNameColorHex" placeholder="#e0f0ff" maxlength="20" oninput="syncNameColorFromHex()" style="flex:1;">
+                </div>
+
+                <label>Card Border Style</label>
+                <select id="profileBorderStyle" onchange="updateStylePreview()">
+                    <option value="default">Default (blue glow)</option>
+                    <option value="neon-green">Neon Green</option>
+                    <option value="neon-pink">Neon Pink</option>
+                    <option value="gold">Gold</option>
+                    <option value="rainbow">Rainbow</option>
+                    <option value="none">None</option>
+                </select>
+
+                <!-- Live preview -->
+                <label style="margin-top:14px;">Live Preview</label>
+                <div id="profileStylePreview" class="profile-style-preview">
+                    <div class="psp-avatar">👤</div>
+                    <div>
+                        <div class="psp-name" id="pspName">Your Name</div>
+                        <div class="psp-handle">@handle</div>
+                        <div class="psp-bio">Your bio goes here…</div>
+                    </div>
+                </div>
             </div>
-            <input id="editBanner" placeholder="Or paste cover image URL…" style="margin-top:6px;">
 
-            <label>Status / Mood</label>
-            <select id="editMood">
-                <option value="😊 Chilling">😊 Chilling</option>
-                <option value="🎮 In-Game">🎮 In-Game</option>
-                <option value="💻 Coding">💻 Coding</option>
-                <option value="🚀 Grinding">🚀 Grinding</option>
-                <option value="🌙 Lurking">🌙 Lurking</option>
-                <option value="🎵 Vibing">🎵 Vibing</option>
-            </select>
-
-            <label>Wall Privacy</label>
-            <select id="editPrivacy">
-                <option value="open">Anyone can post on my wall</option>
-                <option value="friends">Friends only</option>
-                <option value="closed">Nobody (locked)</option>
-            </select>
-
-            <label>Background Theme</label>
-            <select id="editAesthetic" onchange="applyAestheticMatrix(this.value)">
-                <option value="cyber">Cyber Particle Grid</option>
-                <option value="matrix">Digital Matrix Rain</option>
-            </select>
+            <!-- ── Tab: CSS Sandbox ── -->
+            <div class="ep-tab-pane" id="ep-pane-css">
+                <p style="font-size:12px;color:#6a90b8;margin:0 0 6px;">Write custom CSS for your profile card. Only safe properties are applied — scripts and external URLs are blocked.</p>
+                <div class="css-sandbox-allowed">
+                    ✅ Allowed: color, background, font, border, padding, margin, border-radius, text-shadow, box-shadow, opacity, transform (no scripts/URLs)
+                </div>
+                <textarea id="profileCustomCSS" rows="8" placeholder="/* Example */&#10;.profile-header { border: 2px solid #ff00ff; }&#10;.profile-display-name { color: #ff88ff; }" style="resize:vertical;font-family:monospace;font-size:12px;" oninput="updateCSSPreview()"></textarea>
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                    <button class="ep-css-preview-btn" onclick="updateCSSPreview()">👁 Preview</button>
+                    <button class="ep-css-preview-btn" onclick="clearCustomCSS()">✕ Clear</button>
+                </div>
+                <div style="margin-top:10px;font-size:11px;color:#3a5a7a;">Preview (sandboxed):</div>
+                <iframe id="cssPreviewFrame" class="css-sandbox-frame" sandbox="allow-same-origin" title="CSS Preview"></iframe>
+            </div>
 
             <button class="edit-modal-save" id="btnSaveProfile">Save Changes</button>
         </div>
@@ -5216,7 +5396,7 @@ body::after {
                         <div style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:80%;">
                             <div class="post-author-avatar" style="${avatarStyle}" onclick="viewProfile('${authorUid}')" title="View profile">${authorAvatar ? '' : escFeed(avatarInitial)}</div>
                             <span style="display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;">
-                                <b class="post-author-link" onclick="viewProfile('${authorUid}')">${escFeed(authorName)} (@${escFeed(authorHandle)})</b>${primaryBadges}
+                                <b class="post-author-link" onclick="viewProfile('${authorUid}')">${escFeed(authorName)} (@${escFeed(authorHandle)})</b>${primaryBadges}${post.authorMood ? `<span class="post-mood-chip${post.authorMoodFmt === 'sticker' ? ' mood-sticker-display' : ''}">${escFeed(post.authorMood)}</span>` : ''}
                             </span>
                         </div>
                         <div style="display:flex;align-items:center;gap:6px;">
@@ -5489,6 +5669,7 @@ body::after {
               uid: currentUser.uid, authorName: userData.displayName,
               authorHandle: userData.username, authorAvatar: userData.avatar || '',
               authorBadges: userData.badges || [], authorRole: userData.role || 'member',
+              authorMood: userData.mood || '', authorMoodFmt: userData.moodFmt || 'emoji',
               text, mediaUrl: mediaUrlsRaw[0] || '', mediaUrls: mediaUrlsRaw,
               taggedUsers: taggedUsers.map(t => ({ uid: t.uid, username: t.username, displayName: t.displayName })),
               timestamp: now, createdAt: now, likes: 0, likedBy: [], comments: [], repostCount: 0
@@ -5681,6 +5862,8 @@ body::after {
           authorHandle:   userData.username,
           authorBadges:   userData.badges || [],
           authorRole:     userData.role   || 'member',
+          authorMood:     userData.mood   || '',
+          authorMoodFmt:  userData.moodFmt|| 'emoji',
           text:           orig.text,
           mediaUrl:       orig.mediaUrl || '',
           timestamp:      now,
@@ -5767,6 +5950,8 @@ body::after {
               author:        userData.displayName,
               authorBadges:  userData.badges || [],
               authorRole:    userData.role   || 'member',
+              authorMood:    userData.mood   || '',
+              authorMoodFmt: userData.moodFmt|| 'emoji',
               text:          txt,
               ts:            Date.now()
           })
@@ -5830,7 +6015,7 @@ body::after {
           d.innerHTML = `
             <div class="comment-body">
                 <span style="display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap;">
-                    <b class="comment-author">${escFeed(c.author)}</b>${badgeHtml}
+                    <b class="comment-author">${escFeed(c.author)}</b>${badgeHtml}${c.authorMood ? `<span class="post-mood-chip${c.authorMoodFmt === 'sticker' ? ' mood-sticker-display' : ''}">${escFeed(c.authorMood)}</span>` : ''}
                 </span>
                 <span class="comment-text" style="margin-left:4px;">${escFeed(c.text)}</span>
                 ${tsLabel ? `<span class="comment-ts">${tsLabel}</span>` : ''}
@@ -6377,9 +6562,26 @@ body::after {
           document.getElementById("editBio").value      = userData.bio || '';
           document.getElementById("editAvatar").value   = userData.avatar || '';
           document.getElementById("editBanner").value   = userData.banner || '';
-          document.getElementById("editMood").value     = userData.mood || '😊 Chilling';
           document.getElementById("editPrivacy").value  = userData.privacy || "open";
           document.getElementById("editAesthetic").value = userData.aesthetic || "cyber";
+          // Pre-fill mood
+          const savedMood = userData.mood || '';
+          const savedFmt  = userData.moodFmt || 'emoji';
+          document.getElementById("editMoodValue").value = savedMood;
+          document.getElementById("editMoodFmt").value   = savedFmt;
+          initMoodPicker(savedMood, savedFmt);
+          // Pre-fill style fields
+          document.getElementById("profileBgColor").value     = userData.profileBgColor    || '#0d2444';
+          document.getElementById("profileBgColorHex").value  = userData.profileBgColor    || '#0d2444';
+          document.getElementById("profileBgColor2").value    = userData.profileBgColor2   || '#071428';
+          document.getElementById("profileBgColor2Hex").value = userData.profileBgColor2   || '#071428';
+          document.getElementById("profileBgGradient").value  = userData.profileBgGradient || 'none';
+          document.getElementById("profileFontFamily").value  = userData.profileFontFamily || '';
+          document.getElementById("profileNameColor").value   = userData.profileNameColor  || '#e0f0ff';
+          document.getElementById("profileNameColorHex").value= userData.profileNameColor  || '#e0f0ff';
+          document.getElementById("profileBorderStyle").value = userData.profileBorderStyle|| 'default';
+          document.getElementById("profileCustomCSS").value   = userData.profileCustomCSS  || '';
+          updateStylePreview();
       }
 
       // Tear down previous snapshot listener
@@ -6392,7 +6594,14 @@ body::after {
           document.getElementById("profileName").textContent    = p.displayName || p.username || 'Unknown';
           document.getElementById("profileHandle").textContent  = `@${p.username || ''}`;
           document.getElementById("profileBio").textContent     = p.bio || 'No bio yet.';
-          document.getElementById("profileMoodDisplay").textContent = p.mood || '';
+          // Mood display — show animated sticker, emoji, or status
+          const moodEl = document.getElementById("profileMoodDisplay");
+          if (p.mood) {
+              moodEl.textContent = p.mood;
+              moodEl.className = 'profile-mood-text' + (p.moodFmt === 'sticker' ? ' mood-sticker-display' : '');
+          } else { moodEl.textContent = ''; moodEl.className = 'profile-mood-text'; }
+          // Apply profile customization
+          applyProfileStyles(p);
 
           // Online badge
           const onlineBadge = document.getElementById("profileOnlineBadge");
@@ -6571,14 +6780,24 @@ body::after {
   };
 
   document.getElementById("btnSaveProfile").onclick = async () => {
+      const moodVal = document.getElementById("editMoodValue").value || '';
+      const moodFmt = document.getElementById("editMoodFmt").value || 'emoji';
       await updateDoc(doc(db, "users", currentUser.uid), {
-          displayName: document.getElementById("editUsername").value.trim(),
-          bio:         document.getElementById("editBio").value.trim(),
-          avatar:      document.getElementById("editAvatar").value.trim(),
-          banner:      document.getElementById("editBanner").value.trim(),
-          mood:        document.getElementById("editMood").value,
-          privacy:     document.getElementById("editPrivacy").value,
-          aesthetic:   document.getElementById("editAesthetic").value
+          displayName:       document.getElementById("editUsername").value.trim(),
+          bio:               document.getElementById("editBio").value.trim(),
+          avatar:            document.getElementById("editAvatar").value.trim(),
+          banner:            document.getElementById("editBanner").value.trim(),
+          mood:              moodVal,
+          moodFmt:           moodFmt,
+          privacy:           document.getElementById("editPrivacy").value,
+          aesthetic:         document.getElementById("editAesthetic").value,
+          profileBgColor:    document.getElementById("profileBgColor").value,
+          profileBgColor2:   document.getElementById("profileBgColor2").value,
+          profileBgGradient: document.getElementById("profileBgGradient").value,
+          profileFontFamily: document.getElementById("profileFontFamily").value,
+          profileNameColor:  document.getElementById("profileNameColor").value,
+          profileBorderStyle:document.getElementById("profileBorderStyle").value,
+          profileCustomCSS:  sanitizeProfileCSS(document.getElementById("profileCustomCSS").value)
       });
       closeEditProfileModal();
       toastNotification("Profile updated!");
@@ -8241,6 +8460,284 @@ function switchProfileTab(t) {
             if (inp && !inp.disabled) inp.focus();
         }, 150);
     }
+}
+
+/* ═══════════════════════════════════════════════════════
+   PROFILE CUSTOMIZATION — Mood Picker, Style Editor, CSS Sandbox
+   ═══════════════════════════════════════════════════════ */
+
+// ── Tab switcher for Edit Profile modal ──
+function switchEpTab(name, btn) {
+    document.querySelectorAll('.ep-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.ep-tab-pane').forEach(p => p.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const pane = document.getElementById('ep-pane-' + name);
+    if (pane) pane.classList.add('active');
+    if (name === 'css') updateCSSPreview();
+}
+
+// ── Mood Picker ──
+const MOOD_EMOJIS = [
+    '😊','😎','🔥','💀','🌙','⚡','🎮','🎵','💻','🚀',
+    '😴','🤔','😈','👑','🌑','💎','🦋','🌊','🎯','🏆',
+    '😂','😭','🥹','😤','😏','🥶','🥵','😇','🤩','😍',
+    '🫶','🤝','✌️','👾','🎃','🌸','🌺','🍀','⭐','🌈'
+];
+const MOOD_STICKERS = [
+    '🧸','🐱','🐉','🦊','🐺','🐼','🦁','🐸','🦄','🐧',
+    '🌵','🍄','🌀','☄️','🌋','🌊','🏔️','🌌','🎆','🌠',
+    '🎮','🕹️','🎲','🎸','🎺','🎻','🎹','🥁','🎤','🎬',
+    '⚔️','🛡️','🗡️','🔮','🧿','🪄','🔭','🧪','💊','🕯️'
+];
+
+function initMoodPicker(currentMood, currentFmt) {
+    // Emoji grid
+    const emojiGrid = document.getElementById('moodEmojiGrid');
+    if (emojiGrid) {
+        emojiGrid.innerHTML = '';
+        MOOD_EMOJIS.forEach(em => {
+            const btn = document.createElement('span');
+            btn.className = 'mood-emoji-item' + (currentFmt === 'emoji' && currentMood === em ? ' selected' : '');
+            btn.textContent = em;
+            btn.onclick = () => {
+                emojiGrid.querySelectorAll('.mood-emoji-item').forEach(x => x.classList.remove('selected'));
+                btn.classList.add('selected');
+                document.getElementById('editMoodValue').value = em;
+                document.getElementById('editMoodFmt').value = 'emoji';
+                const prev = document.getElementById('moodEmojiPreview');
+                if (prev) prev.textContent = em;
+            };
+            emojiGrid.appendChild(btn);
+        });
+        const prev = document.getElementById('moodEmojiPreview');
+        if (prev) prev.textContent = currentFmt === 'emoji' ? currentMood : '';
+    }
+    // Sticker grid
+    const stickerGrid = document.getElementById('moodStickerGrid');
+    if (stickerGrid) {
+        stickerGrid.innerHTML = '';
+        MOOD_STICKERS.forEach(st => {
+            const btn = document.createElement('span');
+            btn.className = 'mood-sticker-item' + (currentFmt === 'sticker' && currentMood === st ? ' selected' : '');
+            btn.textContent = st;
+            btn.onclick = () => {
+                stickerGrid.querySelectorAll('.mood-sticker-item').forEach(x => x.classList.remove('selected'));
+                btn.classList.add('selected');
+                document.getElementById('editMoodValue').value = st;
+                document.getElementById('editMoodFmt').value = 'sticker';
+                const prev = document.getElementById('moodStickerPreview');
+                if (prev) prev.textContent = st;
+            };
+            stickerGrid.appendChild(btn);
+        });
+        const prev = document.getElementById('moodStickerPreview');
+        if (prev) prev.textContent = currentFmt === 'sticker' ? currentMood : '';
+    }
+    // Custom status
+    const statusInput = document.getElementById('moodCustomStatus');
+    if (statusInput && currentFmt === 'status') statusInput.value = currentMood;
+    const statusPrev = document.getElementById('moodStatusPreview');
+    if (statusPrev) statusPrev.textContent = currentFmt === 'status' ? currentMood : '';
+    // Activate correct format pane
+    selectMoodFmt(currentFmt || 'emoji', document.querySelector(`.mood-fmt-btn[data-fmt="${currentFmt || 'emoji'}"]`));
+}
+
+function selectMoodFmt(fmt, btn) {
+    document.querySelectorAll('.mood-fmt-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.mood-pane').forEach(p => p.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    else {
+        const fb = document.querySelector(`.mood-fmt-btn[data-fmt="${fmt}"]`);
+        if (fb) fb.classList.add('active');
+    }
+    const pane = document.getElementById('moodPane-' + fmt);
+    if (pane) pane.classList.add('active');
+    document.getElementById('editMoodFmt').value = fmt;
+}
+
+function updateStatusPreview() {
+    const val = document.getElementById('moodCustomStatus').value;
+    document.getElementById('editMoodValue').value = val;
+    document.getElementById('editMoodFmt').value = 'status';
+    const prev = document.getElementById('moodStatusPreview');
+    if (prev) prev.textContent = val;
+}
+
+function clearMoodSelection() {
+    document.getElementById('editMoodValue').value = '';
+    document.getElementById('editMoodFmt').value = 'emoji';
+    document.querySelectorAll('.mood-emoji-item.selected,.mood-sticker-item.selected').forEach(el => el.classList.remove('selected'));
+    ['moodEmojiPreview','moodStickerPreview','moodStatusPreview'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.textContent = '';
+    });
+    const si = document.getElementById('moodCustomStatus');
+    if (si) si.value = '';
+    toastNotification('Mood removed. Save your profile to apply.');
+}
+
+// ── Style Editor ──
+const STYLE_PRESETS = {
+    dark:     { bg:'#0d2444', bg2:'#071428', grad:'to bottom',       font:'',                    nameColor:'#e0f0ff', border:'default' },
+    midnight: { bg:'#0a0020', bg2:'#1a0040', grad:'to bottom right', font:'',                    nameColor:'#c8a8ff', border:'neon-pink' },
+    forest:   { bg:'#0a1e0a', bg2:'#051005', grad:'to bottom',       font:'Georgia,serif',       nameColor:'#88ffaa', border:'neon-green' },
+    sunset:   { bg:'#2a0a00', bg2:'#4a1500', grad:'135deg',          font:"'Trebuchet MS',sans-serif", nameColor:'#ffaa66', border:'gold' },
+    ocean:    { bg:'#001a3a', bg2:'#003060', grad:'radial',          font:"'Segoe UI',sans-serif", nameColor:'#66ccff', border:'default' },
+    fire:     { bg:'#1a0000', bg2:'#3a0a00', grad:'to bottom',       font:"'Arial Black',sans-serif", nameColor:'#ff6622', border:'gold' },
+    neon:     { bg:'#000a1a', bg2:'#001a0a', grad:'135deg',          font:"'Courier New',monospace", nameColor:'#00ff88', border:'neon-green' },
+    none:     { bg:'#0d2444', bg2:'#071428', grad:'none',            font:'',                    nameColor:'#e0f0ff', border:'default' },
+};
+
+function applyStylePreset(name) {
+    const p = STYLE_PRESETS[name];
+    if (!p) return;
+    document.getElementById('profileBgColor').value     = p.bg;
+    document.getElementById('profileBgColorHex').value  = p.bg;
+    document.getElementById('profileBgColor2').value    = p.bg2;
+    document.getElementById('profileBgColor2Hex').value = p.bg2;
+    document.getElementById('profileBgGradient').value  = p.grad;
+    document.getElementById('profileFontFamily').value  = p.font;
+    document.getElementById('profileNameColor').value   = p.nameColor;
+    document.getElementById('profileNameColorHex').value= p.nameColor;
+    document.getElementById('profileBorderStyle').value = p.border;
+    updateStylePreview();
+}
+
+function syncColorFromHex() {
+    const v = document.getElementById('profileBgColorHex').value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) { document.getElementById('profileBgColor').value = v; updateStylePreview(); }
+}
+function syncColor2FromHex() {
+    const v = document.getElementById('profileBgColor2Hex').value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) { document.getElementById('profileBgColor2').value = v; updateStylePreview(); }
+}
+function syncNameColorFromHex() {
+    const v = document.getElementById('profileNameColorHex').value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(v)) { document.getElementById('profileNameColor').value = v; updateStylePreview(); }
+}
+
+function updateStylePreview() {
+    const bg    = document.getElementById('profileBgColor')?.value    || '#0d2444';
+    const bg2   = document.getElementById('profileBgColor2')?.value   || '#071428';
+    const grad  = document.getElementById('profileBgGradient')?.value || 'none';
+    const font  = document.getElementById('profileFontFamily')?.value || '';
+    const nameC = document.getElementById('profileNameColor')?.value  || '#e0f0ff';
+    const border= document.getElementById('profileBorderStyle')?.value|| 'default';
+
+    const preview = document.getElementById('profileStylePreview');
+    const pName   = document.getElementById('pspName');
+    if (!preview) return;
+
+    if (grad !== 'none') {
+        if (grad === 'radial') preview.style.background = `radial-gradient(ellipse at center, ${bg} 0%, ${bg2} 100%)`;
+        else preview.style.background = `linear-gradient(${grad}, ${bg} 0%, ${bg2} 100%)`;
+    } else {
+        preview.style.background = bg;
+    }
+    if (font) preview.style.fontFamily = font;
+    else preview.style.fontFamily = '';
+    if (pName) pName.style.color = nameC;
+
+    preview.className = 'profile-style-preview';
+    if (border === 'neon-green')  preview.classList.add('profile-border-neon-green');
+    else if (border === 'neon-pink') preview.classList.add('profile-border-neon-pink');
+    else if (border === 'gold')   preview.classList.add('profile-border-gold');
+    else if (border === 'rainbow')preview.classList.add('profile-border-rainbow');
+    else if (border === 'none')   preview.classList.add('profile-border-none');
+
+    const bgHex = document.getElementById('profileBgColorHex');
+    const bg2Hex= document.getElementById('profileBgColor2Hex');
+    const ncHex = document.getElementById('profileNameColorHex');
+    if (bgHex && bgHex.value !== bg)   bgHex.value  = bg;
+    if (bg2Hex&& bg2Hex.value !== bg2) bg2Hex.value = bg2;
+    if (ncHex && ncHex.value !== nameC)ncHex.value  = nameC;
+}
+
+// Apply saved profile styles to the live profile page
+function applyProfileStyles(p) {
+    const header = document.getElementById('profileBanner')?.closest('.profile-header') || document.querySelector('.profile-header');
+    if (!header) return;
+
+    const bg    = p.profileBgColor    || '';
+    const bg2   = p.profileBgColor2   || '';
+    const grad  = p.profileBgGradient || 'none';
+    if (bg) {
+        if (grad !== 'none' && bg2) {
+            if (grad === 'radial') header.style.background = `radial-gradient(ellipse at center, ${bg} 0%, ${bg2} 100%)`;
+            else header.style.background = `linear-gradient(${grad}, ${bg} 0%, ${bg2} 100%)`;
+        } else {
+            header.style.background = bg;
+        }
+    } else {
+        header.style.background = '';
+    }
+
+    const infoBlock = document.querySelector('.profile-info-block');
+    if (infoBlock) infoBlock.style.fontFamily = p.profileFontFamily || '';
+
+    const nameEl = document.getElementById('profileName');
+    if (nameEl) nameEl.style.color = p.profileNameColor || '';
+
+    header.classList.remove('profile-border-neon-green','profile-border-neon-pink','profile-border-gold','profile-border-rainbow','profile-border-none');
+    if (p.profileBorderStyle === 'neon-green')  header.classList.add('profile-border-neon-green');
+    else if (p.profileBorderStyle === 'neon-pink') header.classList.add('profile-border-neon-pink');
+    else if (p.profileBorderStyle === 'gold')   header.classList.add('profile-border-gold');
+    else if (p.profileBorderStyle === 'rainbow')header.classList.add('profile-border-rainbow');
+    else if (p.profileBorderStyle === 'none')   header.classList.add('profile-border-none');
+
+    // Custom CSS — scoped to #profile via rescopeCSS
+    const styleTag = document.getElementById('profileCustomCSSTag');
+    if (styleTag) {
+        if (p.profileCustomCSS) {
+            styleTag.textContent = rescopeCSS(p.profileCustomCSS, '#profile');
+        } else {
+            styleTag.textContent = '';
+        }
+    }
+}
+
+// ── CSS Sanitizer — strips dangerous properties and values ──
+function sanitizeProfileCSS(css) {
+    if (!css) return '';
+    const blocked = /expression\s*\(|javascript\s*:|url\s*\(|@import|behavior\s*:|moz-binding|<script|<\/script/gi;
+    return css.replace(blocked, '/* blocked */');
+}
+
+// Re-scope all CSS rules to a parent selector so nothing escapes the profile page
+function rescopeCSS(css, scope) {
+    if (!css) return '';
+    const safe = sanitizeProfileCSS(css);
+    return safe.replace(/([^{}]+)\{([^{}]*)\}/g, (_, selector, rules) => {
+        const scoped = selector.trim().split(',').map(s => `${scope} ${s.trim()}`).join(', ');
+        return `${scoped} { ${rules} }`;
+    });
+}
+
+// ── CSS Sandbox iframe preview ──
+function updateCSSPreview() {
+    const css = document.getElementById('profileCustomCSS')?.value || '';
+    const frame = document.getElementById('cssPreviewFrame');
+    if (!frame) return;
+    const safe = rescopeCSS(css, '.profile-header');
+    const html = `<!DOCTYPE html><html><head><style>
+        body{margin:0;background:#0a1830;font-family:'Segoe UI',sans-serif;color:#e0f0ff;}
+        .profile-header{background:#0d2444;border-radius:12px;padding:20px;margin:12px;border:1px solid rgba(0,120,255,0.3);}
+        .profile-display-name{font-size:18px;font-weight:800;color:#e0f0ff;margin:0 0 4px;}
+        .profile-handle-text{font-size:12px;color:#3a6a9a;}
+        .profile-bio-text{font-size:12px;color:#8ab0cc;margin:6px 0;}
+        ${safe}
+    </style></head><body>
+        <div class="profile-header">
+            <div class="profile-display-name">Your Name</div>
+            <div class="profile-handle-text">@yourhandle</div>
+            <div class="profile-bio-text">Your bio goes here. This is a preview of your custom CSS.</div>
+        </div>
+    </body></html>`;
+    frame.srcdoc = html;
+}
+
+function clearCustomCSS() {
+    const el = document.getElementById('profileCustomCSS');
+    if (el) { el.value = ''; updateCSSPreview(); }
 }
 
 function openEditProfileModal() {

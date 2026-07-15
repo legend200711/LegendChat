@@ -161,7 +161,7 @@ body::after {
     pointer-events: none;
     z-index: 9996;
     box-shadow: 0 0 4px rgba(0,160,255,0.45);
-    animation: ashFloat var(''--ash-dur, 12s) linear var(''--ash-delay, 0s) infinite;
+    animation: ashFloat var(--ash-dur, 12s) linear var(--ash-delay, 0s) infinite;
     will-change: transform, opacity;
 }
 .ash-particle.green {
@@ -2937,6 +2937,30 @@ input:focus, textarea:focus, select:focus {
 .delete-modal-inner ul { color: #8aaac8; }
 .delete-modal-inner label { color: #b8d4f0; }
 
+/* ── Mood chip + sandbox styles ── */
+.mood-chip{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:1px 7px;border-radius:20px;font-weight:600;white-space:nowrap;line-height:1.7;vertical-align:middle;margin-left:5px;flex-shrink:0;background:rgba(0,174,239,0.10);border:1px solid rgba(0,174,239,0.32);color:#7acfef;cursor:default;max-width:140px;overflow:hidden;text-overflow:ellipsis;}
+.mood-chip.mood-sticker{font-size:14px;padding:1px 5px;background:rgba(57,255,20,0.08);border-color:rgba(57,255,20,0.28);color:#b0ffb0;}
+.mood-chip.mood-emoji{font-size:13px;padding:1px 6px;background:rgba(255,185,0,0.08);border-color:rgba(255,185,0,0.30);color:#ffe08a;}
+.mood-chip.mood-text{font-size:11px;font-style:italic;background:rgba(0,174,239,0.08);border-color:rgba(0,174,239,0.28);color:#88ccee;}
+@keyframes moodStickerBounce{0%,100%{transform:translateY(0) scale(1);}30%{transform:translateY(-3px) scale(1.12);}60%{transform:translateY(1px) scale(0.96);}}
+@keyframes moodStickerShimmer{0%,100%{filter:brightness(1);}50%{filter:brightness(1.35) saturate(1.3);}}
+.mood-chip.mood-sticker .mood-sticker-inner{display:inline-block;animation:moodStickerBounce 2.2s ease-in-out infinite,moodStickerShimmer 3s ease-in-out infinite;}
+.profile-mood-enhanced{display:inline-flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;}
+.profile-mood-enhanced .mood-chip{font-size:13px;padding:3px 10px;}
+.profile-mood-enhanced .mood-chip.mood-sticker{font-size:18px;padding:3px 8px;}
+.snx-sandbox-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px;}
+.snx-sandbox-opt{padding:5px 12px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid rgba(0,174,239,0.30);color:#7aaac8;background:rgba(0,20,55,0.60);transition:border-color 0.15s,color 0.15s,background 0.15s;white-space:nowrap;flex-shrink:0;}
+.snx-sandbox-opt:hover{border-color:rgba(0,174,239,0.70);color:#fff;background:rgba(0,174,239,0.16);}
+.snx-sandbox-opt.selected{border-color:rgba(57,255,20,0.65);color:#39FF14;background:rgba(57,255,20,0.10);}
+.snx-sandbox-preview{margin-top:14px;border-radius:12px;overflow:hidden;border:1px solid rgba(0,174,239,0.28);background:#0B1F3A;}
+.snx-sandbox-preview-banner{height:60px;background:linear-gradient(135deg,#071428,#0B1F3A);transition:background 0.3s;}
+.snx-sandbox-preview-body{padding:12px 14px 14px;display:flex;align-items:center;gap:12px;}
+.snx-sandbox-preview-avatar{width:44px;height:44px;border-radius:50%;background:#071428;border:2px solid rgba(0,174,239,0.55);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;margin-top:-22px;}
+.snx-sandbox-preview-info{flex:1;min-width:0;}
+.snx-sandbox-preview-name{font-size:15px;font-weight:800;color:#e0f0ff;margin-bottom:2px;transition:color 0.3s,font-family 0.3s;}
+.snx-sandbox-preview-bio{font-size:12px;color:#8ab0cc;transition:font-family 0.3s;}
+.snx-sandbox-notice{font-size:11px;color:#4a7a9a;background:rgba(0,174,239,0.06);border:1px solid rgba(0,174,239,0.18);border-radius:8px;padding:8px 12px;margin-top:14px;line-height:1.6;}
+
 /* ── Forgot password modal ── */
 #forgotPasswordModal > div {
     background: #0B1F3A;
@@ -3445,60 +3469,209 @@ body::after {
             <button class="edit-modal-close" onclick="closeEditProfileModal()">✕</button>
             <h3>✏️ Edit Profile</h3>
 
-            <label>Display Name</label>
-            <input id="editUsername" placeholder="Your name">
-
-            <label>Bio</label>
-            <textarea id="editBio" rows="2" placeholder="Tell people about yourself…" style="resize:vertical;"></textarea>
-
-            <label>Profile Picture URL</label>
-            <input type="file" id="editAvatarFile" accept="image/*" style="display:none;" onchange="handleAvatarPick(this)">
-            <div class="snx-upload-row">
-                <button class="snx-upload-btn" onclick="document.getElementById('editAvatarFile').click()" type="button">📷 Upload Photo</button>
-                <span class="snx-upload-filename" id="editAvatarFilename"></span>
-                <button class="snx-upload-clear" id="editAvatarClear" style="display:none;" onclick="clearAvatarUpload()" title="Remove">✕</button>
+            <!-- Modal tabs -->
+            <div class="epm-tabs">
+                <button class="epm-tab active" onclick="switchEpmTab('basics',this)">👤 Basics</button>
+                <button class="epm-tab" onclick="switchEpmTab('mood',this)">🎭 Mood</button>
+                <button class="epm-tab" onclick="switchEpmTab('media',this)">🖼 Media</button>
+                <button class="epm-tab" onclick="switchEpmTab('sandbox',this)">🏗 Sandbox</button>
             </div>
-            <div class="snx-upload-progress" id="editAvatarProgress">
-                <div class="snx-upload-progress-bar" id="editAvatarProgressBar"></div>
+
+            <!-- ── Tab: Basics ── -->
+            <div class="epm-panel active" id="epmPanel-basics">
+                <label>Display Name</label>
+                <input id="editUsername" placeholder="Your name">
+
+                <label>Bio</label>
+                <textarea id="editBio" rows="2" placeholder="Tell people about yourself…" style="resize:vertical;"></textarea>
+
+                <label>Status / Mood</label>
+                <select id="editMood">
+                    <option value="😊 Chilling">😊 Chilling</option>
+                    <option value="🎮 In-Game">🎮 In-Game</option>
+                    <option value="💻 Coding">💻 Coding</option>
+                    <option value="🚀 Grinding">🚀 Grinding</option>
+                    <option value="🌙 Lurking">🌙 Lurking</option>
+                    <option value="🎵 Vibing">🎵 Vibing</option>
+                </select>
+
+                <label>Wall Privacy</label>
+                <select id="editPrivacy">
+                    <option value="open">Anyone can post on my wall</option>
+                    <option value="friends">Friends only</option>
+                    <option value="closed">Nobody (locked)</option>
+                </select>
+
+                <label>Background Theme</label>
+                <select id="editAesthetic" onchange="applyAestheticMatrix(this.value)">
+                    <option value="cyber">Cyber Particle Grid</option>
+                    <option value="matrix">Digital Matrix Rain</option>
+                </select>
             </div>
-            <input id="editAvatar" placeholder="Or paste image URL…" style="margin-top:6px;">
 
-            <label>Cover Photo URL</label>
-            <input type="file" id="editBannerFile" accept="image/*" style="display:none;" onchange="handleBannerPick(this)">
-            <div class="snx-upload-row">
-                <button class="snx-upload-btn" onclick="document.getElementById('editBannerFile').click()" type="button">🖼 Upload Cover</button>
-                <span class="snx-upload-filename" id="editBannerFilename"></span>
-                <button class="snx-upload-clear" id="editBannerClear" style="display:none;" onclick="clearBannerUpload()" title="Remove">✕</button>
+            <!-- ── Tab: Mood ── -->
+            <div class="epm-panel" id="epmPanel-mood">
+                <p style="font-size:12px;color:#6a90b8;margin:0 0 14px;line-height:1.6;">Your mood appears as a small chip next to your name on posts, comments, profiles, and messages.</p>
+
+                <label>Mood Format</label>
+                <div class="snx-sandbox-row" style="margin-bottom:14px;">
+                    <button class="snx-sandbox-opt selected" id="moodTypeBtn-sticker" onclick="epmSelectMoodType('sticker',this)">✨ Pixel Sticker</button>
+                    <button class="snx-sandbox-opt" id="moodTypeBtn-emoji" onclick="epmSelectMoodType('emoji',this)">🕹 Retro Emoji</button>
+                    <button class="snx-sandbox-opt" id="moodTypeBtn-text" onclick="epmSelectMoodType('text',this)">💬 Status Text</button>
+                </div>
+
+                <div id="epmMoodPanel-sticker">
+                    <label>Pick a Pixel Sticker</label>
+                    <div class="snx-sandbox-row" id="epmStickerGrid" style="gap:8px;margin-bottom:4px;">
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🐱',this)">🐱</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🐸',this)">🐸</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🦊',this)">🦊</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🐼',this)">🐼</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🦋',this)">🦋</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🌙',this)">🌙</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('⚡',this)">⚡</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🔥',this)">🔥</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('💀',this)">💀</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('👾',this)">👾</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🎮',this)">🎮</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🎵',this)">🎵</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🌊',this)">🌊</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('💫',this)">💫</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🚀',this)">🚀</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🌈',this)">🌈</button>
+                    </div>
+                </div>
+
+                <div id="epmMoodPanel-emoji" style="display:none;">
+                    <label>Pick a Retro Emoji</label>
+                    <div class="snx-sandbox-row" style="gap:8px;margin-bottom:4px;">
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('😎',this)">😎</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🥺',this)">🥺</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('😈',this)">😈</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🥶',this)">🥶</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🤡',this)">🤡</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('😴',this)">😴</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🤯',this)">🤯</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('😤',this)">😤</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🥳',this)">🥳</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('😭',this)">😭</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🤫',this)">🤫</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🫡',this)">🫡</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('😜',this)">😜</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🧊',this)">🧊</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('🫶',this)">🫶</button>
+                        <button class="snx-sandbox-opt" onclick="epmPickMoodValue('💅',this)">💅</button>
+                    </div>
+                </div>
+
+                <div id="epmMoodPanel-text" style="display:none;">
+                    <label>Custom Status <small style="color:#4a7a9a;font-size:10px;">(max 40 chars)</small></label>
+                    <div style="display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 8px;">
+                        <button class="snx-sandbox-opt" style="font-size:11px;" onclick="epmSetMoodText('Chilling')">Chilling</button>
+                        <button class="snx-sandbox-opt" style="font-size:11px;" onclick="epmSetMoodText('In the zone')">In the zone</button>
+                        <button class="snx-sandbox-opt" style="font-size:11px;" onclick="epmSetMoodText('Grinding 💪')">Grinding 💪</button>
+                        <button class="snx-sandbox-opt" style="font-size:11px;" onclick="epmSetMoodText('Lurking 🌙')">Lurking 🌙</button>
+                        <button class="snx-sandbox-opt" style="font-size:11px;" onclick="epmSetMoodText('Vibing 🎵')">Vibing 🎵</button>
+                    </div>
+                    <input id="editMoodTextInput" maxlength="40" placeholder="Type your own status…" oninput="epmMoodTextInput(this.value)">
+                </div>
+
+                <input type="hidden" id="editMoodType" value="sticker">
+                <input type="hidden" id="editMoodValue" value="">
+
+                <div style="margin-top:16px;padding:12px 14px;background:rgba(0,20,50,0.55);border:1px solid rgba(0,174,239,0.22);border-radius:10px;">
+                    <p style="font-size:11px;color:#4a7a9a;margin:0 0 8px;">Preview — how others see you</p>
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                        <b style="color:#00AEEF;font-size:13px;" id="epmMoodPreviewName">Your Name</b>
+                        <span id="epmMoodPreviewChip" class="mood-chip mood-sticker" style="display:none;"></span>
+                    </div>
+                </div>
+                <button style="margin-top:10px;width:100%;background:rgba(255,51,102,0.08);border-color:rgba(255,51,102,0.35);color:#ff6680;font-size:12px;" onclick="epmClearMood()">✕ Remove Mood</button>
             </div>
-            <div class="snx-upload-progress" id="editBannerProgress">
-                <div class="snx-upload-progress-bar" id="editBannerProgressBar"></div>
+
+            <!-- ── Tab: Media ── -->
+            <div class="epm-panel" id="epmPanel-media">
+                <label>Profile Picture</label>
+                <input type="file" id="editAvatarFile" accept="image/*" style="display:none;" onchange="handleAvatarPick(this)">
+                <div class="snx-upload-row">
+                    <button class="snx-upload-btn" onclick="document.getElementById('editAvatarFile').click()" type="button">📷 Upload Photo</button>
+                    <span class="snx-upload-filename" id="editAvatarFilename"></span>
+                    <button class="snx-upload-clear" id="editAvatarClear" style="display:none;" onclick="clearAvatarUpload()" title="Remove">✕</button>
+                </div>
+                <div class="snx-upload-progress" id="editAvatarProgress">
+                    <div class="snx-upload-progress-bar" id="editAvatarProgressBar"></div>
+                </div>
+                <input id="editAvatar" placeholder="Or paste image URL…" style="margin-top:6px;">
+
+                <label>Cover Photo</label>
+                <input type="file" id="editBannerFile" accept="image/*" style="display:none;" onchange="handleBannerPick(this)">
+                <div class="snx-upload-row">
+                    <button class="snx-upload-btn" onclick="document.getElementById('editBannerFile').click()" type="button">🖼 Upload Cover</button>
+                    <span class="snx-upload-filename" id="editBannerFilename"></span>
+                    <button class="snx-upload-clear" id="editBannerClear" style="display:none;" onclick="clearBannerUpload()" title="Remove">✕</button>
+                </div>
+                <div class="snx-upload-progress" id="editBannerProgress">
+                    <div class="snx-upload-progress-bar" id="editBannerProgressBar"></div>
+                </div>
+                <input id="editBanner" placeholder="Or paste cover image URL…" style="margin-top:6px;">
             </div>
-            <input id="editBanner" placeholder="Or paste cover image URL…" style="margin-top:6px;">
 
-            <label>Status / Mood</label>
-            <select id="editMood">
-                <option value="😊 Chilling">😊 Chilling</option>
-                <option value="🎮 In-Game">🎮 In-Game</option>
-                <option value="💻 Coding">💻 Coding</option>
-                <option value="🚀 Grinding">🚀 Grinding</option>
-                <option value="🌙 Lurking">🌙 Lurking</option>
-                <option value="🎵 Vibing">🎵 Vibing</option>
-            </select>
+            <!-- ── Tab: Sandbox CSS ── -->
+            <div class="epm-panel" id="epmPanel-sandbox">
+                <div class="snx-sandbox-notice">
+                    🔒 <strong>Safe Sandbox</strong> — Choices apply only to your profile card. Scripts and unsafe markup are blocked.
+                </div>
 
-            <label>Wall Privacy</label>
-            <select id="editPrivacy">
-                <option value="open">Anyone can post on my wall</option>
-                <option value="friends">Friends only</option>
-                <option value="closed">Nobody (locked)</option>
-            </select>
+                <label style="margin-top:14px;">Profile Card Background</label>
+                <div class="snx-sandbox-row" id="sbBgOpts">
+                    <button class="snx-sandbox-opt selected" data-bg="" onclick="epmSbPickBg(this,'')">Default</button>
+                    <button class="snx-sandbox-opt" data-bg="linear-gradient(135deg,#0d0030,#330066)" onclick="epmSbPickBg(this,'linear-gradient(135deg,#0d0030,#330066)')">🟣 Purple Haze</button>
+                    <button class="snx-sandbox-opt" data-bg="linear-gradient(135deg,#1a0000,#3a0000)" onclick="epmSbPickBg(this,'linear-gradient(135deg,#1a0000,#3a0000)')">🔴 Crimson</button>
+                    <button class="snx-sandbox-opt" data-bg="linear-gradient(135deg,#001a00,#003a00)" onclick="epmSbPickBg(this,'linear-gradient(135deg,#001a00,#003a00)')">🟢 Forest</button>
+                    <button class="snx-sandbox-opt" data-bg="linear-gradient(135deg,#000d1a,#00264d)" onclick="epmSbPickBg(this,'linear-gradient(135deg,#000d1a,#00264d)')">🌊 Ocean</button>
+                    <button class="snx-sandbox-opt" data-bg="linear-gradient(135deg,#1a0a00,#3a2200)" onclick="epmSbPickBg(this,'linear-gradient(135deg,#1a0a00,#3a2200)')">🟠 Ember</button>
+                    <button class="snx-sandbox-opt" data-bg="linear-gradient(135deg,#0a0a0a,#1a1a1a)" onclick="epmSbPickBg(this,'linear-gradient(135deg,#0a0a0a,#1a1a1a)')">⬛ Obsidian</button>
+                    <button class="snx-sandbox-opt" data-bg="linear-gradient(135deg,#100022,#220044)" onclick="epmSbPickBg(this,'linear-gradient(135deg,#100022,#220044)')">✨ Void</button>
+                </div>
 
-            <label>Background Theme</label>
-            <select id="editAesthetic" onchange="applyAestheticMatrix(this.value)">
-                <option value="cyber">Cyber Particle Grid</option>
-                <option value="matrix">Digital Matrix Rain</option>
-            </select>
+                <label style="margin-top:12px;">Profile Font</label>
+                <div class="snx-sandbox-row" id="sbFontOpts">
+                    <button class="snx-sandbox-opt selected" data-font="" onclick="epmSbPickFont(this,'')">Default</button>
+                    <button class="snx-sandbox-opt" data-font="'Courier New',monospace" onclick="epmSbPickFont(this,&quot;'Courier New',monospace&quot;)">Courier</button>
+                    <button class="snx-sandbox-opt" data-font="Georgia,serif" onclick="epmSbPickFont(this,'Georgia,serif')">Georgia</button>
+                    <button class="snx-sandbox-opt" data-font="Impact,sans-serif" onclick="epmSbPickFont(this,'Impact,sans-serif')">Impact</button>
+                    <button class="snx-sandbox-opt" data-font="'Trebuchet MS',sans-serif" onclick="epmSbPickFont(this,&quot;'Trebuchet MS',sans-serif&quot;)">Trebuchet</button>
+                </div>
 
-            <button class="edit-modal-save" id="btnSaveProfile">Save Changes</button>
+                <label style="margin-top:12px;">Profile Border</label>
+                <div class="snx-sandbox-row" id="sbBorderOpts">
+                    <button class="snx-sandbox-opt selected" data-border="" onclick="epmSbPickBorder(this,'')">Default</button>
+                    <button class="snx-sandbox-opt" data-border="2px solid #00AEEF" onclick="epmSbPickBorder(this,'2px solid #00AEEF')">🔵 Cyan</button>
+                    <button class="snx-sandbox-opt" data-border="2px solid #39FF14" onclick="epmSbPickBorder(this,'2px solid #39FF14')">🟢 Neon Green</button>
+                    <button class="snx-sandbox-opt" data-border="2px solid #ff3366" onclick="epmSbPickBorder(this,'2px solid #ff3366')">🔴 Hot Pink</button>
+                    <button class="snx-sandbox-opt" data-border="2px solid #cc44ff" onclick="epmSbPickBorder(this,'2px solid #cc44ff')">🟣 Purple</button>
+                    <button class="snx-sandbox-opt" data-border="2px solid #ffdd00" onclick="epmSbPickBorder(this,'2px solid #ffdd00')">🟡 Gold</button>
+                    <button class="snx-sandbox-opt" data-border="none" onclick="epmSbPickBorder(this,'none')">None</button>
+                </div>
+
+                <input type="hidden" id="sbCardBg" value="">
+                <input type="hidden" id="sbFont" value="">
+                <input type="hidden" id="sbBorder" value="">
+
+                <p style="font-size:11px;color:#4a7a9a;margin:16px 0 6px;">Live Preview</p>
+                <div class="snx-sandbox-preview" id="sbPreviewBox">
+                    <div class="snx-sandbox-preview-banner" id="sbPreviewBanner"></div>
+                    <div class="snx-sandbox-preview-body">
+                        <div class="snx-sandbox-preview-avatar" id="sbPreviewAvatar">🌑</div>
+                        <div class="snx-sandbox-preview-info">
+                            <div class="snx-sandbox-preview-name" id="sbPreviewName">Your Name</div>
+                            <div class="snx-sandbox-preview-bio" id="sbPreviewBio">Bio goes here…</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="edit-modal-save" id="btnSaveProfile">💾 Save Changes</button>
         </div>
     </div>
 
@@ -5083,6 +5256,7 @@ body::after {
                       ? `background-image:url('${escFeed(authorAvatar)}');`
                       : '';
                   const avatarInitial = (authorName || '?')[0].toUpperCase();
+                  const authorMoodHtml = (typeof buildMoodChipHtml === 'function') ? buildMoodChipHtml(post.authorMoodType || '', post.authorMoodValue || '') : '';
 
                   div.innerHTML = `
                     ${repostHeaderHTML}
@@ -5090,7 +5264,7 @@ body::after {
                         <div style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:80%;">
                             <div class="post-author-avatar" style="${avatarStyle}" onclick="viewProfile('${authorUid}')" title="View profile">${authorAvatar ? '' : escFeed(avatarInitial)}</div>
                             <span style="display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;">
-                                <b class="post-author-link" onclick="viewProfile('${authorUid}')">${escFeed(authorName)} (@${escFeed(authorHandle)})</b>${primaryBadges}
+                                <b class="post-author-link" onclick="viewProfile('${authorUid}')">${escFeed(authorName)} (@${escFeed(authorHandle)})</b>${primaryBadges}${authorMoodHtml}
                             </span>
                         </div>
                         <div style="display:flex;align-items:center;gap:6px;">
@@ -5188,9 +5362,13 @@ body::after {
       'Early':       { rarity:'Common',    rarityClass:'badge-rarity-common',    desc:'Early member of Shadow Nexus Social.' },
       'Artist':      { rarity:'Common',    rarityClass:'badge-rarity-common',    desc:'Creative contributor to the community.' },  };
 
+  // Badge keys that have been retired and should never render
+  const REMOVED_BADGES = new Set(['First Act of Kindness']);
+
   function buildBadgeHtml(badges, role) {
       if (!badges || !badges.length) return '';
       return badges.map(bName => {
+          if (REMOVED_BADGES.has(bName)) return '';
           if (bName === 'Founder' && role !== 'founder') return '';
           const cls      = BADGE_CLASS_MAP[bName] || '';
           const icon     = BADGE_ICON_MAP[bName]  || '🏅';
@@ -5262,6 +5440,8 @@ body::after {
               authorAvatar: userData.avatar || '',
               authorBadges: userData.badges || [],
               authorRole:   userData.role   || 'member',
+              authorMoodType:  (userData.profileCustom?.moodType  || userData.moodType  || ''),
+              authorMoodValue: (userData.profileCustom?.moodValue || userData.moodValue || ''),
               text,
               mediaUrl: mediaUrlsRaw[0] || '',
               mediaUrls: mediaUrlsRaw,
@@ -5493,12 +5673,14 @@ body::after {
       el.value = "";
       await updateDoc(doc(db, "posts", id), {
           comments: arrayUnion({
-              authorUid:     currentUser.uid,
-              author:        userData.displayName,
-              authorBadges:  userData.badges || [],
-              authorRole:    userData.role   || 'member',
-              text:          txt,
-              ts:            Date.now()
+              authorUid:       currentUser.uid,
+              author:          userData.displayName,
+              authorBadges:    userData.badges || [],
+              authorRole:      userData.role   || 'member',
+              authorMoodType:  (userData.profileCustom?.moodType  || userData.moodType  || ''),
+              authorMoodValue: (userData.profileCustom?.moodValue || userData.moodValue || ''),
+              text:            txt,
+              ts:              Date.now()
           })
       });
       // Send comment notification to post owner
@@ -5557,10 +5739,11 @@ body::after {
               // Legacy comments written before badge system — render Founder badge directly
               badgeHtml = `<span class="badge-inline badge-founder" title="Founder">👑 Founder</span>`;
           }
+          const commentMoodHtml = (typeof buildMoodChipHtml === 'function') ? buildMoodChipHtml(c.authorMoodType || '', c.authorMoodValue || '') : '';
           d.innerHTML = `
             <div class="comment-body">
                 <span style="display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap;">
-                    <b class="comment-author">${escFeed(c.author)}</b>${badgeHtml}
+                    <b class="comment-author">${escFeed(c.author)}</b>${badgeHtml}${commentMoodHtml}
                 </span>
                 <span class="comment-text" style="margin-left:4px;">${escFeed(c.text)}</span>
                 ${tsLabel ? `<span class="comment-ts">${tsLabel}</span>` : ''}
@@ -6087,6 +6270,11 @@ body::after {
           document.getElementById("editMood").value     = userData.mood || '😊 Chilling';
           document.getElementById("editPrivacy").value  = userData.privacy || "open";
           document.getElementById("editAesthetic").value = userData.aesthetic || "cyber";
+
+          // Pre-fill mood + sandbox tabs
+          const _pc = userData.profileCustom || {};
+          if (typeof _epmPopulateMood === 'function')    _epmPopulateMood(_pc);
+          if (typeof _epmPopulateSandbox === 'function') _epmPopulateSandbox(_pc);
       }
 
       // Tear down previous snapshot listener
@@ -6099,7 +6287,20 @@ body::after {
           document.getElementById("profileName").textContent    = p.displayName || p.username || 'Unknown';
           document.getElementById("profileHandle").textContent  = `@${p.username || ''}`;
           document.getElementById("profileBio").textContent     = p.bio || 'No bio yet.';
-          document.getElementById("profileMoodDisplay").textContent = p.mood || '';
+          // Mood display — use enhanced chip if moodValue is set, else fallback to text mood
+          const _moodEl = document.getElementById("profileMoodDisplay");
+          if (_moodEl) {
+              const _pc = p.profileCustom || {};
+              if (_pc.moodValue && typeof buildMoodChipHtml === 'function') {
+                  _moodEl.innerHTML = buildMoodChipHtml(_pc.moodType || 'sticker', _pc.moodValue);
+                  _moodEl.className = 'profile-mood-enhanced';
+              } else {
+                  _moodEl.textContent = p.mood || '';
+                  _moodEl.className = 'profile-mood-text';
+              }
+          }
+          // Also apply sandbox/accent styles
+          if (typeof applyProfileCustom === 'function') applyProfileCustom(p.profileCustom || {}, uid);
 
           // Online badge
           const onlineBadge = document.getElementById("profileOnlineBadge");
@@ -6147,6 +6348,7 @@ body::after {
           const badgeContainer = document.getElementById("profileBadges");
           badgeContainer.innerHTML = "";
           (p.badges || []).forEach(bName => {
+              if (REMOVED_BADGES.has(bName)) return;
               if (bName === 'Founder' && p.role !== 'founder') return;
               const cls    = BADGE_CLASS_MAP[bName] || '';
               const icon   = BADGE_ICON_MAP[bName]  || '🏅';
@@ -6278,17 +6480,41 @@ body::after {
   };
 
   document.getElementById("btnSaveProfile").onclick = async () => {
-      await updateDoc(doc(db, "users", currentUser.uid), {
-          displayName: document.getElementById("editUsername").value.trim(),
-          bio:         document.getElementById("editBio").value.trim(),
-          avatar:      document.getElementById("editAvatar").value.trim(),
-          banner:      document.getElementById("editBanner").value.trim(),
-          mood:        document.getElementById("editMood").value,
-          privacy:     document.getElementById("editPrivacy").value,
-          aesthetic:   document.getElementById("editAesthetic").value
-      });
-      closeEditProfileModal();
-      toastNotification("Profile updated!");
+      const btn = document.getElementById("btnSaveProfile");
+      btn.disabled = true; btn.textContent = 'Saving…';
+
+      const moodType  = document.getElementById('editMoodType')?.value  || 'sticker';
+      const moodValue = (document.getElementById('editMoodValue')?.value || '').substring(0, 40);
+      const sbCardBg  = document.getElementById('sbCardBg')?.value  || '';
+      const sbFont    = document.getElementById('sbFont')?.value    || '';
+      const sbBorder  = document.getElementById('sbBorder')?.value  || '';
+
+      const profileCustom = { moodType, moodValue, sbCardBg, sbFont, sbBorder };
+
+      try {
+          await updateDoc(doc(db, "users", currentUser.uid), {
+              displayName:   document.getElementById("editUsername").value.trim(),
+              bio:           document.getElementById("editBio").value.trim(),
+              avatar:        document.getElementById("editAvatar").value.trim(),
+              banner:        document.getElementById("editBanner").value.trim(),
+              mood:          document.getElementById("editMood").value,
+              privacy:       document.getElementById("editPrivacy").value,
+              aesthetic:     document.getElementById("editAesthetic").value,
+              profileCustom
+          });
+          if (typeof userData !== 'undefined') {
+              userData.moodType  = moodType;
+              userData.moodValue = moodValue;
+              userData.profileCustom = Object.assign(userData.profileCustom || {}, profileCustom);
+          }
+          applyProfileCustom(profileCustom, currentUser.uid);
+          closeEditProfileModal();
+          toastNotification("✅ Profile updated!");
+      } catch(e) {
+          toastNotification("Save failed: " + e.message);
+      } finally {
+          btn.disabled = false; btn.textContent = '💾 Save Changes';
+      }
   };
 
   async function submitWallPost() {
@@ -6463,7 +6689,7 @@ body::after {
       hAvatar.title = 'View profile';
       hAvatar.onclick = () => viewProfile(targetUid);
       const hName = document.getElementById("chatHeaderName");
-      hName.innerHTML = escapeHtml(tData.displayName) + buildBadgeHtml(tData.badges||[], tData.role||'member');
+      hName.innerHTML = escapeHtml(tData.displayName) + buildBadgeHtml(tData.badges||[], tData.role||'member') + buildMoodChipHtml(tData.profileCustom?.moodType || '', tData.profileCustom?.moodValue || '');
       hName.style.cursor = '';
       hName.title = '';
       hName.onclick = null;
@@ -7059,7 +7285,7 @@ body::after {
                   const lbl = document.createElement('div');
                   lbl.className = 'ipc-modal-sender';
                   lbl.style.cssText = 'display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;';
-                  lbl.innerHTML = _mEsc(_m_tgtData?.displayName || '?') + buildBadgeHtml(_m_tgtData?.badges||[], _m_tgtData?.role||'member');
+                  lbl.innerHTML = _mEsc(_m_tgtData?.displayName || '?') + buildBadgeHtml(_m_tgtData?.badges||[], _m_tgtData?.role||'member') + buildMoodChipHtml(_m_tgtData?.profileCustom?.moodType || '', _m_tgtData?.profileCustom?.moodValue || '');
                   wrap.appendChild(lbl);
               }
 
@@ -7316,7 +7542,7 @@ body::after {
       // Store UID so clicking avatar/name opens that person's profile
       window._ipcModalUid = targetUid;
 
-      if (nameEl)  nameEl.innerHTML = escapeHtml(_m_tgtData.displayName || 'User') + buildBadgeHtml(_m_tgtData.badges||[], _m_tgtData.role||'member');
+      if (nameEl)  nameEl.innerHTML = escapeHtml(_m_tgtData.displayName || 'User') + buildBadgeHtml(_m_tgtData.badges||[], _m_tgtData.role||'member') + buildMoodChipHtml(_m_tgtData.profileCustom?.moodType || '', _m_tgtData.profileCustom?.moodValue || '');
       if (subEl)   subEl.textContent  = _m_tgtData.status === 'online' ? '🟢 Online now' : (_m_tgtData.mood || '⚫ Offline');
 
       if (avatarEl) {
@@ -7922,6 +8148,216 @@ document.getElementById('editProfileModal').addEventListener('click', function(e
 
 function applyAestheticMatrix(type) {
     globalAestheticMode = type;
+}
+
+/* ── Edit Profile tab switcher ── */
+function switchEpmTab(name, btn) {
+    document.querySelectorAll('.epm-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.epm-panel').forEach(p => p.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const panel = document.getElementById('epmPanel-' + name);
+    if (panel) panel.classList.add('active');
+}
+
+/* ════════════════════════════════════════════
+   PROFILE CUSTOMIZATION HELPERS
+   ════════════════════════════════════════════ */
+
+function _pcSafe(v) {
+    if (!v) return '';
+    const s = String(v).trim();
+    if (/javascript:|expression\s*\(|<|>|url\s*\(/i.test(s)) return '';
+    return s.substring(0, 200);
+}
+function _pcSafeUrl(url) {
+    try { const u = new URL(url); if (u.protocol !== 'http:' && u.protocol !== 'https:') return ''; return u.href; } catch(_) { return ''; }
+}
+function _pcSafeText(t) { return String(t || '').replace(/[<>]/g,'').substring(0, 60); }
+
+/** Build a mood chip HTML string. */
+function buildMoodChipHtml(moodType, moodValue) {
+    if (!moodValue) return '';
+    const v = String(moodValue).replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0, 40);
+    if (!v) return '';
+    if (moodType === 'sticker') return `<span class="mood-chip mood-sticker" title="Mood"><span class="mood-sticker-inner">${v}</span></span>`;
+    if (moodType === 'emoji')   return `<span class="mood-chip mood-emoji" title="Mood">${v}</span>`;
+    return `<span class="mood-chip mood-text" title="Mood">💬 ${v}</span>`;
+}
+
+/** Validated sandbox CSS builder — whitelist only. */
+function _buildSandboxCss(sbCardBg, sbFont, sbBorder) {
+    const SAFE_BG_RE  = /^(|linear-gradient\(135deg,#[0-9a-f]{3,6},#[0-9a-f]{3,6}\))$/i;
+    const SAFE_FONTS  = ['', "'Courier New',monospace", "Georgia,serif", "Impact,sans-serif", "'Trebuchet MS',sans-serif", "'Palatino Linotype',serif"];
+    const SAFE_BRD_RE = /^(|none|2px (solid|dashed) #[0-9a-fA-F]{3,6})$/;
+    const bg     = SAFE_BG_RE.test(sbCardBg)    ? sbCardBg : '';
+    const font   = SAFE_FONTS.includes(sbFont)  ? sbFont   : '';
+    const border = SAFE_BRD_RE.test(sbBorder)   ? sbBorder : '';
+    let css = '';
+    if (bg)     css += `#profile .profile-header { background: ${bg} !important; }\n`;
+    if (font)   css += `#profile .profile-display-name, #profile .profile-bio-text, #profile .profile-handle-text { font-family: ${font}; }\n`;
+    if (border) css += `#profile .profile-header { border: ${border} !important; }\n`;
+    return css;
+}
+
+/** Apply profileCustom to the profile page DOM. */
+function applyProfileCustom(pc, profileUid) {
+    if (!pc) pc = {};
+    const accent     = _pcSafe(pc.accentColor) || '#00AEEF';
+    const nameCol    = _pcSafe(pc.nameColor)   || '#e0f0ff';
+    const cardBg     = _pcSafe(pc.cardBg)      || '';
+    const bannerGrad = _pcSafe(pc.bannerGrad)  || '';
+    let css = `
+        #profile { --pc-accent: ${accent}; }
+        #profile .profile-social-link { color: ${accent}; border-color: ${accent}33; }
+        #profile .profile-social-link:hover { background: ${accent}18; border-color: ${accent}99; }
+        #profile .profile-display-name { color: ${nameCol}; }
+        #profile .profile-spotlight { border-left-color: ${accent}; }
+        #profile .profile-spotlight-label { color: ${accent}; }
+    `;
+    if (cardBg)     css += `#profile .profile-header { background: ${cardBg}; }`;
+    if (bannerGrad) css += `#profile .cover-banner { background: ${bannerGrad} !important; }`;
+    css += _buildSandboxCss(pc.sbCardBg || '', pc.sbFont || '', pc.sbBorder || '');
+    const styleEl = document.getElementById('profileCustomStyle');
+    if (styleEl) styleEl.textContent = css;
+    // Mood chip on profile page
+    const moodEl = document.getElementById('profileMoodDisplay');
+    if (moodEl && pc.moodValue) {
+        moodEl.innerHTML = buildMoodChipHtml(pc.moodType || 'sticker', pc.moodValue);
+        moodEl.className = 'profile-mood-enhanced';
+    }
+    // Section visibility
+    const sec = pc.sections || {};
+    const gameSection   = document.querySelector('#profile .section-card:has(#game-container)');
+    const wallSection   = document.getElementById('tabContentWall');
+    const spotlightEl   = document.getElementById('profileSpotlight');
+    const socialLinksEl = document.getElementById('profileSocialLinks');
+    const statsRow      = document.querySelector('#profile .profile-stats-row');
+    if (gameSection)   gameSection.style.display   = sec.game  !== false ? '' : 'none';
+    if (wallSection)   wallSection.style.display    = sec.wall  !== false ? '' : 'none';
+    if (statsRow)      statsRow.style.display       = sec.stats !== false ? '' : 'none';
+    const showSpotlight = sec.spotlight === true && (pc.spotlight || '').trim();
+    if (spotlightEl) {
+        if (showSpotlight) { const st = document.getElementById('profileSpotlightText'); if (st) st.textContent = pc.spotlight.trim(); spotlightEl.style.display = ''; }
+        else { spotlightEl.style.display = 'none'; }
+    }
+    const showLinks = sec.links !== false;
+    if (socialLinksEl) {
+        socialLinksEl.innerHTML = '';
+        const links = pc.links || [];
+        if (showLinks && links.length) {
+            socialLinksEl.style.display = '';
+            links.forEach(l => {
+                if (!l.url) return;
+                const safeUrl = _pcSafeUrl(l.url); if (!safeUrl) return;
+                const a = document.createElement('a'); a.className = 'profile-social-link'; a.href = safeUrl; a.target = '_blank'; a.rel = 'noopener noreferrer';
+                a.textContent = _pcSafeText(l.label || l.url); socialLinksEl.appendChild(a);
+            });
+        } else { socialLinksEl.style.display = 'none'; }
+    }
+}
+
+/* ═══ MOOD TAB HELPERS ═══ */
+function epmSelectMoodType(type, btn) {
+    ['sticker','emoji','text'].forEach(t => {
+        const b = document.getElementById(`moodTypeBtn-${t}`);
+        const p = document.getElementById(`epmMoodPanel-${t}`);
+        if (b) b.classList.toggle('selected', t === type);
+        if (p) p.style.display = t === type ? '' : 'none';
+    });
+    const tf = document.getElementById('editMoodType'); if (tf) tf.value = type;
+    const vf = document.getElementById('editMoodValue'); if (vf) vf.value = '';
+    document.querySelectorAll('#epmStickerGrid .snx-sandbox-opt, #epmMoodPanel-emoji .snx-sandbox-opt').forEach(b => b.classList.remove('selected'));
+    _epmRefreshMoodPreview();
+}
+function epmPickMoodValue(val, btn) {
+    const grid = btn.closest('.snx-sandbox-row');
+    if (grid) grid.querySelectorAll('.snx-sandbox-opt').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    const vf = document.getElementById('editMoodValue'); if (vf) vf.value = val;
+    _epmRefreshMoodPreview();
+}
+function epmSetMoodText(text) {
+    const inp = document.getElementById('editMoodTextInput'); if (inp) inp.value = text;
+    const vf  = document.getElementById('editMoodValue');    if (vf)  vf.value  = text;
+    _epmRefreshMoodPreview();
+}
+function epmMoodTextInput(val) {
+    const vf = document.getElementById('editMoodValue'); if (vf) vf.value = val.substring(0, 40);
+    _epmRefreshMoodPreview();
+}
+function epmClearMood() {
+    const vf = document.getElementById('editMoodValue'); if (vf) vf.value = '';
+    const tf = document.getElementById('editMoodType');  if (tf) tf.value = 'sticker';
+    document.querySelectorAll('#epmMoodPanel-sticker .snx-sandbox-opt, #epmMoodPanel-emoji .snx-sandbox-row .snx-sandbox-opt').forEach(b => b.classList.remove('selected'));
+    const inp = document.getElementById('editMoodTextInput'); if (inp) inp.value = '';
+    _epmRefreshMoodPreview();
+}
+function _epmRefreshMoodPreview() {
+    const type  = document.getElementById('editMoodType')?.value  || 'sticker';
+    const value = document.getElementById('editMoodValue')?.value || '';
+    const chip  = document.getElementById('epmMoodPreviewChip');
+    const nameEl = document.getElementById('epmMoodPreviewName');
+    if (nameEl) nameEl.textContent = document.getElementById('editUsername')?.value || 'Your Name';
+    if (!chip) return;
+    if (!value) { chip.style.display = 'none'; chip.innerHTML = ''; return; }
+    chip.style.display = ''; chip.className = `mood-chip mood-${type}`;
+    chip.innerHTML = type === 'sticker' ? `<span class="mood-sticker-inner">${value.replace(/</g,'&lt;')}</span>` : value.replace(/</g,'&lt;');
+}
+function _epmPopulateMood(pc) {
+    const moodType  = pc.moodType  || 'sticker';
+    const moodValue = pc.moodValue || '';
+    epmSelectMoodType(moodType, null);
+    if (moodValue && (moodType === 'sticker' || moodType === 'emoji')) {
+        document.querySelectorAll('#epmMoodPanel-sticker .snx-sandbox-opt, #epmMoodPanel-emoji .snx-sandbox-row .snx-sandbox-opt').forEach(b => {
+            if (b.textContent.trim() === moodValue) b.classList.add('selected');
+        });
+    }
+    if (moodType === 'text') { const inp = document.getElementById('editMoodTextInput'); if (inp) inp.value = moodValue; }
+    const vf = document.getElementById('editMoodValue'); if (vf) vf.value = moodValue;
+    _epmRefreshMoodPreview();
+}
+
+/* ═══ SANDBOX TAB HELPERS ═══ */
+function epmSbPickBg(btn, val) {
+    document.querySelectorAll('#sbBgOpts .snx-sandbox-opt').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    const hf = document.getElementById('sbCardBg'); if (hf) hf.value = val;
+    _epmSbRefreshPreview();
+}
+function epmSbPickFont(btn, val) {
+    document.querySelectorAll('#sbFontOpts .snx-sandbox-opt').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    const hf = document.getElementById('sbFont'); if (hf) hf.value = val;
+    _epmSbRefreshPreview();
+}
+function epmSbPickBorder(btn, val) {
+    document.querySelectorAll('#sbBorderOpts .snx-sandbox-opt').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    const hf = document.getElementById('sbBorder'); if (hf) hf.value = val;
+    _epmSbRefreshPreview();
+}
+function _epmSbRefreshPreview() {
+    const bg     = document.getElementById('sbCardBg')?.value || '';
+    const font   = document.getElementById('sbFont')?.value   || '';
+    const border = document.getElementById('sbBorder')?.value || '';
+    const banner = document.getElementById('sbPreviewBanner');
+    const box    = document.getElementById('sbPreviewBox');
+    const nameEl = document.getElementById('sbPreviewName');
+    const bioEl  = document.getElementById('sbPreviewBio');
+    if (banner) banner.style.background = bg || 'linear-gradient(135deg,#071428,#0B1F3A)';
+    if (box)    box.style.border = border || '1px solid rgba(0,174,239,0.28)';
+    if (nameEl) { nameEl.style.fontFamily = font || ''; nameEl.textContent = document.getElementById('editUsername')?.value || 'Your Name'; }
+    if (bioEl)  { bioEl.style.fontFamily  = font || ''; bioEl.textContent  = document.getElementById('editBio')?.value?.substring(0, 60) || 'Bio goes here…'; }
+}
+function _epmPopulateSandbox(pc) {
+    const sbCardBg = pc.sbCardBg || ''; const sbFont = pc.sbFont || ''; const sbBorder = pc.sbBorder || '';
+    const bgHf = document.getElementById('sbCardBg'); if (bgHf) bgHf.value = sbCardBg;
+    const ftHf = document.getElementById('sbFont');   if (ftHf) ftHf.value = sbFont;
+    const bdHf = document.getElementById('sbBorder'); if (bdHf) bdHf.value = sbBorder;
+    document.querySelectorAll('#sbBgOpts .snx-sandbox-opt').forEach(b => b.classList.toggle('selected', (b.dataset.bg     || '') === sbCardBg));
+    document.querySelectorAll('#sbFontOpts .snx-sandbox-opt').forEach(b => b.classList.toggle('selected', (b.dataset.font   || '') === sbFont));
+    document.querySelectorAll('#sbBorderOpts .snx-sandbox-opt').forEach(b => b.classList.toggle('selected', (b.dataset.border || '') === sbBorder));
+    _epmSbRefreshPreview();
 }
 
 /* ── Friends tabs ── */

@@ -1403,6 +1403,10 @@ img.post-media-preview::before {
     gap: 10px;
     align-items: flex-end;
     flex-shrink: 0;
+    /* Stick to the bottom of the card so the mobile keyboard never covers it */
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
 }
 .ipc-modal-input-wrap {
     flex: 1;
@@ -1457,6 +1461,8 @@ img.post-media-preview::before {
     transition: background 0.18s, transform 0.12s, box-shadow 0.18s, border-color 0.18s;
     touch-action: manipulation;
     box-shadow: 0 0 14px rgba(0, 130, 255, 0.5);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
 }
 .ipc-modal-send:hover {
     background: linear-gradient(135deg, #005522 0%, #00aa55 100%);
@@ -1508,6 +1514,24 @@ img.post-media-preview::before {
 }
 @supports (padding: env(safe-area-inset-bottom)) {
     .ipc-modal-footer { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+}
+
+/* When the virtual keyboard is open (visualViewport shrinks), keep the
+   modal card from growing taller than the visible viewport so the footer
+   stays in view without scrolling. */
+@media (max-width: 768px) {
+    .ipc-modal-card {
+        /* Use dvh (dynamic viewport height) where supported so the card
+           automatically shrinks when the keyboard appears. */
+        max-height: calc(100dvh - 0px);
+        /* Fallback: 90vh is set by the existing rule; browsers without dvh
+           keep that value. */
+    }
+    .ipc-modal-messages {
+        /* Let the message list absorb the shrinkage so the footer is never pushed down */
+        min-height: 0;
+        flex-shrink: 1;
+    }
 }
 
 /* FLOATING REACTION CONTAINERS */
@@ -4482,58 +4506,69 @@ body::after {
 /* ── GAME MODAL (the actual game container) ── */
 #arcadeGameModal {
     display:none; position:fixed; inset:0; z-index:9500;
-    background:rgba(0,0,0,0.96); align-items:center; justify-content:center;
+    background:#000010; align-items:stretch; justify-content:center;
     flex-direction:column; padding:0; box-sizing:border-box;
+    /* iOS full-screen fix */
+    width:100%; height:100%;
+    -webkit-overflow-scrolling:touch;
 }
 #arcadeGameModal.open { display:flex; }
 .arcade-game-modal-header {
-    width:100%; max-width:640px; display:flex; align-items:center; justify-content:space-between;
+    width:100%; display:flex; align-items:center; justify-content:space-between;
     padding:10px 14px; background:rgba(7,20,40,0.99);
     border-bottom:1px solid rgba(0,174,239,0.25); flex-shrink:0;
+    /* safe area top for notched phones */
+    padding-top:max(10px, env(safe-area-inset-top));
 }
 .arcade-game-modal-title { font-size:15px; font-weight:800; color:#fff; }
 .arcade-game-modal-score { font-size:13px; color:#39FF14; font-weight:700; }
 .arcade-game-modal-close {
     background:none; border:none; color:#ff5566; font-size:24px;
-    cursor:pointer; padding:4px 8px; border-radius:8px; line-height:1;
+    cursor:pointer; padding:4px 10px; border-radius:8px; line-height:1;
+    min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center;
+    touch-action:manipulation;
 }
 .arcade-game-canvas-wrap {
-    width:100%; max-width:640px; flex:1;
+    width:100%; flex:1; min-height:0;
     display:flex; align-items:center; justify-content:center;
     background:#000010; overflow:hidden; position:relative;
-    touch-action:none;
+    touch-action:none; -webkit-user-select:none; user-select:none;
 }
 #arcadeGameCanvas {
-    display:block; max-width:100%; max-height:100%;
-    image-rendering:pixelated;
+    display:block;
+    /* Fill the wrap exactly — JS sizes it to pixel-perfect dimensions */
+    touch-action:none;
+    -webkit-tap-highlight-color:transparent;
 }
 .arcade-game-controls {
-    width:100%; max-width:640px; flex-shrink:0;
+    width:100%; flex-shrink:0;
     background:rgba(7,20,40,0.99); border-top:1px solid rgba(0,174,239,0.2);
     padding:8px 12px; display:flex; align-items:center; justify-content:space-between;
     flex-wrap:wrap; gap:8px;
+    /* safe area bottom */
+    padding-bottom:max(8px, env(safe-area-inset-bottom));
 }
 /* On-screen D-pad / action buttons for mobile */
 .arcade-dpad {
-    display:flex; flex-direction:column; align-items:center; gap:2px;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
 }
-.arcade-dpad-row { display:flex; gap:2px; }
+.arcade-dpad-row { display:flex; gap:3px; }
 .arcade-ctrl-btn {
-    width:46px; height:46px; border-radius:10px; font-size:18px; font-weight:bold;
-    background:rgba(0,40,100,0.7); border:1px solid rgba(0,174,239,0.4); color:#00AEEF;
+    width:50px; height:50px; border-radius:12px; font-size:20px; font-weight:bold;
+    background:rgba(0,40,100,0.8); border:1.5px solid rgba(0,174,239,0.5); color:#00AEEF;
     display:flex; align-items:center; justify-content:center; cursor:pointer;
-    user-select:none; transition:background 0.1s, transform 0.1s;
+    user-select:none; -webkit-user-select:none;
     touch-action:manipulation; -webkit-tap-highlight-color:transparent;
-    flex-shrink:0;
+    flex-shrink:0; /* no CSS transition — instant response on mobile */
 }
-.arcade-ctrl-btn:active { background:rgba(0,100,255,0.35); transform:scale(0.92); }
+.arcade-ctrl-btn:active { background:rgba(0,120,255,0.5); }
 .arcade-ctrl-btn.action-btn {
-    width:52px; height:52px; border-radius:50%;
-    background:rgba(0,80,200,0.5); border-color:rgba(0,174,239,0.7);
-    font-size:20px;
+    width:56px; height:56px; border-radius:50%;
+    background:rgba(0,80,200,0.6); border-color:rgba(0,174,239,0.8);
+    font-size:22px;
 }
 .arcade-ctrl-btn.action-btn-green {
-    background:rgba(0,100,30,0.5); border-color:rgba(57,255,20,0.7); color:#39FF14;
+    background:rgba(0,100,30,0.6); border-color:rgba(57,255,20,0.8); color:#39FF14;
 }
 /* Hide on-screen controls on desktop */
 @media (min-width:769px) {
@@ -4545,27 +4580,30 @@ body::after {
 }
 .arcade-mobile-controls {
     display:none; align-items:center; justify-content:space-between;
-    gap:12px; width:100%;
+    gap:8px; width:100%;
 }
-/* Landscape orientation adjustments */
-@media (orientation:landscape) and (max-width:900px) {
-    .arcade-game-canvas-wrap { max-height:55vw; }
-    .arcade-mobile-controls { padding:4px 8px; }
-    .arcade-ctrl-btn { width:40px; height:40px; font-size:16px; }
+/* Landscape: shrink controls so canvas gets more height */
+@media (orientation:landscape) and (max-height:500px) {
+    .arcade-game-modal-header { padding-top:6px; padding-bottom:6px; }
+    .arcade-ctrl-btn { width:38px; height:38px; font-size:16px; border-radius:8px; }
+    .arcade-ctrl-btn.action-btn { width:44px; height:44px; }
+    .arcade-game-controls { padding-top:4px; padding-bottom:4px; }
+    .arcade-dpad { gap:2px; }
+    .arcade-dpad-row { gap:2px; }
 }
 /* Game over overlay */
 .arcade-gameover-overlay {
-    position:absolute; inset:0; background:rgba(0,0,0,0.72);
+    position:absolute; inset:0; background:rgba(0,0,0,0.78);
     display:none; align-items:center; justify-content:center;
-    flex-direction:column; gap:10px; z-index:10;
-    backdrop-filter:blur(3px);
+    flex-direction:column; gap:12px; z-index:10;
+    backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
 }
 .arcade-gameover-overlay.show { display:flex; }
-.arcade-go-title { font-size:22px; font-weight:900; color:#ff3366; font-family:monospace; letter-spacing:2px; }
+.arcade-go-title { font-size:22px; font-weight:900; color:#ff3366; font-family:monospace; letter-spacing:2px; text-shadow:0 0 14px rgba(255,51,102,0.7); }
 .arcade-go-score { font-size:15px; color:#d8eeff; font-family:monospace; }
 .arcade-go-best  { font-size:13px; color:#39FF14; font-family:monospace; }
-.arcade-go-btns  { display:flex; gap:10px; margin-top:4px; }
-.arcade-go-btns button { padding:8px 22px; border-radius:10px; font-size:13px; font-weight:700; }
+.arcade-go-btns  { display:flex; gap:10px; margin-top:4px; flex-wrap:wrap; justify-content:center; }
+.arcade-go-btns button { padding:10px 24px; border-radius:10px; font-size:13px; font-weight:700; min-height:44px; touch-action:manipulation; }
 
 /* Multiplayer invite challenge button on profiles */
 .btn-challenge-game {
@@ -4581,15 +4619,13 @@ body::after {
 @media (max-width:768px) {
     .arcade-hub-card { max-width:100%; max-height:96vh; border-radius:18px 18px 0 0; }
     #arcadeHubModal { align-items:flex-end; padding:0; }
-    .arcade-game-grid { grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; }
+    .arcade-game-grid { grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:8px; }
     .arcade-hub-body  { padding:12px 14px; }
-    #arcadeGameModal { padding:0; }
-    .arcade-game-modal-header { max-width:100%; }
-    .arcade-game-canvas-wrap  { max-width:100%; }
-    .arcade-game-controls     { max-width:100%; }
+    .arcade-game-tile { padding:12px 8px; }
+    .arcade-game-icon { font-size:26px; }
 }
 @supports (padding:env(safe-area-inset-bottom)) {
-    .arcade-game-controls { padding-bottom:calc(8px + env(safe-area-inset-bottom)); }
+    .arcade-hub-card { padding-bottom:env(safe-area-inset-bottom); }
 }
 </style>
 
@@ -5370,7 +5406,8 @@ body::after {
                     aria-label="Type a message"
                 ></textarea>
             </div>
-            <button class="ipc-modal-send" id="ipcModalSendBtn" aria-label="Send message" title="Send (Enter)">➤</button>
+            <button class="ipc-modal-send" id="ipcModalSendBtn" aria-label="Send message" title="Send (Enter)"
+                    style="-webkit-tap-highlight-color:transparent;user-select:none;">➤</button>
         </div>
 
     </div>
@@ -5453,14 +5490,17 @@ body::after {
 
                 <!-- Text input wrapper -->
                 <div class="chat-footer-input-wrap">
-                    <textarea id="msgInputBox" placeholder="Type a message…" autocomplete="off" rows="1"></textarea>
+                    <textarea id="msgInputBox" placeholder="Type a message…" autocomplete="off"
+                              enterkeyhint="send" inputmode="text" spellcheck="true"
+                              rows="1"></textarea>
                 </div>
 
                 <!-- Image button -->
                 <button class="chat-icon-btn" id="btnSendImg" title="Send image" onclick="openImgSendModal()">🖼</button>
 
                 <!-- Send button -->
-                <button class="chat-send-btn" id="btnSendMsg" title="Send" aria-label="Send message">➤</button>
+                <button class="chat-send-btn" id="btnSendMsg" title="Send" aria-label="Send message"
+                        style="-webkit-tap-highlight-color:transparent;user-select:none;">➤</button>
             </div>
 
         </div>
@@ -9721,17 +9761,26 @@ body::after {
   }
 
   // Send message — supports type:'text' and type:'image'
-  document.getElementById("btnSendMsg").onclick = sendMessage;
+  // Wire up both click AND touchstart so it always fires on mobile
+  (function() {
+      const btn = document.getElementById("btnSendMsg");
+      btn.addEventListener("click", sendMessage);
+      btn.addEventListener("touchstart", function(e) {
+          e.preventDefault(); // prevent the 300ms delay & double-fire
+          sendMessage();
+      }, { passive: false });
+  })();
   document.getElementById("msgInputBox").addEventListener("keydown", (e) => {
       if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   });
 
   async function sendMessage(overridePayload) {
       const input = document.getElementById("msgInputBox");
-      const payload = overridePayload || { type: 'text', text: input.value.trim() };
+      // Read value fresh at call time (important on mobile where .value may lag)
+      const rawText = input ? input.value : '';
+      const payload = overridePayload || { type: 'text', text: rawText.trim() };
       if (!payload.text && !payload.imageUrl) { toastNotification('Type something first!'); return; }
       if (!activeChatChannelId) { toastNotification('Select a conversation first.'); return; }
-      if (!overridePayload) { input.value = ''; autoGrowTextarea(input); }
 
       const newMsg = {
           sender:    currentUser.uid,
@@ -9750,21 +9799,33 @@ body::after {
       };
       // Use Firestore increment — no extra read needed, atomic & race-safe
       upd[`unread_${activeChatTargetUid}`] = increment(1);
-      // setDoc+merge creates the document if it doesn't exist yet,
-      // fixing the "No document to update" crash on first-ever message
-      await setDoc(chatRef, upd, { merge: true });
 
-      // Push message notification to the recipient (best-effort)
       try {
-          await pushNotification(activeChatTargetUid, {
-              type: 'message',
-              fromUid: currentUser.uid,
-              fromName: userData.displayName,
-              fromAvatar: userData.avatar || ''
-          });
-      } catch(e) { /* best-effort */ }
+          // Save to Firestore BEFORE clearing the input so nothing is lost on failure
+          await setDoc(chatRef, upd, { merge: true });
 
-      closeEmojiPicker();
+          // Clear input only after successful save
+          if (!overridePayload && input) { input.value = ''; autoGrowTextarea(input); }
+
+          // Scroll to bottom immediately after send
+          const chatBox = document.getElementById('chatBoxContainer');
+          if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+
+          // Push message notification to the recipient (best-effort)
+          try {
+              await pushNotification(activeChatTargetUid, {
+                  type: 'message',
+                  fromUid: currentUser.uid,
+                  fromName: userData.displayName,
+                  fromAvatar: userData.avatar || ''
+              });
+          } catch(e) { /* best-effort */ }
+
+          closeEmojiPicker();
+      } catch(err) {
+          console.error('[DM] Send error:', err);
+          toastNotification('Message failed — please try again.');
+      }
   }
 
   // Send image message
@@ -10231,6 +10292,7 @@ body::after {
       if (!currentUser) return;
       const inp = document.getElementById('ipcModalInput');
       if (!inp) return;
+      // Read value fresh at call time — on mobile .value can lag if read before touchend settles
       const text = inp.value.trim();
       if (!text) return;
 
@@ -10241,12 +10303,9 @@ body::after {
       }
 
       // Capture channel ID before any await (guards against race if modal is closed mid-send)
-      const chIdSnapshot = _m_chId;
+      const chIdSnapshot  = _m_chId;
       const tgtUidSnapshot = _m_tgtUid;
 
-      // Clear input immediately (optimistic UX)
-      inp.value = '';
-      _mGrow(inp);
       clearTimeout(_m_typTimer);
 
       // Visual feedback: brief opacity on send button
@@ -10268,8 +10327,17 @@ body::after {
               [`typing_${currentUser.uid}`]: false
           };
           upd[`unread_${tgtUidSnapshot}`] = increment(1);
-          // setDoc+merge creates the doc if it doesn't exist yet (first message ever)
+
+          // Save to Firestore BEFORE clearing input — nothing is lost if it fails
           await setDoc(ref, upd, { merge: true });
+
+          // Clear input only after a successful save
+          inp.value = '';
+          _mGrow(inp);
+
+          // Scroll to bottom immediately so the new message is visible
+          const msgBox = document.getElementById('ipcModalMessages');
+          if (msgBox) msgBox.scrollTop = msgBox.scrollHeight;
 
           // Push notification to recipient (best-effort)
           try {
@@ -10284,12 +10352,11 @@ body::after {
       } catch (err) {
           toastNotification('Message failed to send — please try again.');
           console.error('[Chat Modal] Send error:', err);
-          // Restore text so user doesn't lose their message
-          inp.value = text;
-          _mGrow(inp);
+          // Input was NOT cleared — text is still there so user can retry
       } finally {
           if (sendBtn) { sendBtn.style.opacity = ''; sendBtn.style.transform = ''; }
-          inp.focus();
+          // Re-focus only if input is still in the DOM and not disabled
+          if (inp && !inp.disabled) inp.focus();
       }
   }
 
@@ -10459,8 +10526,15 @@ body::after {
       _m_ready = true;
   };
 
-  // ── Wire up send button and Enter key ──
-  document.getElementById('ipcModalSendBtn').addEventListener('click', _mSend);
+  // ── Wire up send button: click + touchstart (mobile keyboard tap fix) ──
+  (function() {
+      const btn = document.getElementById('ipcModalSendBtn');
+      btn.addEventListener('click', _mSend);
+      btn.addEventListener('touchstart', function(e) {
+          e.preventDefault(); // kill 300ms tap delay and prevent ghost click
+          _mSend();
+      }, { passive: false });
+  })();
   document.getElementById('ipcModalInput').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); _mSend(); }
   });
@@ -14762,6 +14836,23 @@ let _arcadeLbPeriod     = 'alltime';
 let _arcadeInviteUnsub  = null;
 let _arcadeOrientation  = null;
 
+/* ── roundRect polyfill for older Android / iOS ── */
+(function() {
+  const p = CanvasRenderingContext2D.prototype;
+  if (!p.roundRect) {
+    p.roundRect = function(x, y, w, h, r) {
+      const rr = Math.min(r || 0, w/2, h/2);
+      this.beginPath();
+      this.moveTo(x + rr, y);
+      this.arcTo(x+w, y,   x+w, y+h, rr);
+      this.arcTo(x+w, y+h, x,   y+h, rr);
+      this.arcTo(x,   y+h, x,   y,   rr);
+      this.arcTo(x,   y,   x+w, y,   rr);
+      this.closePath();
+    };
+  }
+})();
+
 /* ─────────────────────────────────────────────
    HELPERS
    ───────────────────────────────────────────── */
@@ -14871,36 +14962,35 @@ window.launchArcadeGame = function(gameId) {
   document.getElementById('agmDesktopHint').textContent = '⌨ ' + g.hint;
   document.getElementById('arcadeGameOver').classList.remove('show');
 
-  // Fit canvas to container
-  const wrap = modal.querySelector('.arcade-game-canvas-wrap');
-  const cv   = document.getElementById('arcadeGameCanvas');
-  const W = Math.min(wrap.clientWidth  || 640, 640);
-  const H = Math.min(wrap.clientHeight || 480, 480);
-  cv.width  = W || 480;
-  cv.height = H || 480;
-
-  // Build mobile controls
-  _buildMobileControls(g);
-
-  // Start the requested game
   if (_arcadeRAF) { cancelAnimationFrame(_arcadeRAF); _arcadeRAF = null; }
   _arcadeGameState = null;
 
-  switch (gameId) {
-    case 'snake':     _snakeInit();    break;
-    case 'tetris':    _tetrisInit();   break;
-    case 'pong':      _pongInit();     break;
-    case 'tictactoe': _tttInit();      break;
-    case 'connect4':  _c4Init();       break;
-    case 'memory':    _memoryInit();   break;
-    case 'checkers':  _checkersInit(); break;
-    case 'chess':     _chessInit();    break;
-    case 'pool':      _poolInit();     break;
-    case 'breakout':  _breakoutInit(); break;
-  }
+  // Build mobile controls before sizing so layout is stable
+  _buildMobileControls(g);
 
-  // Orientation change — keep game running
-  _arcadeOrientation = screen.orientation ? screen.orientation.type : null;
+  // Defer canvas sizing by one rAF — flex layout needs a paint cycle to resolve height
+  requestAnimationFrame(() => {
+    const wrap = modal.querySelector('.arcade-game-canvas-wrap');
+    const cv   = document.getElementById('arcadeGameCanvas');
+    const W = wrap.clientWidth  || window.innerWidth;
+    const H = wrap.clientHeight || Math.max(200, window.innerHeight - 160);
+    cv.width  = Math.max(W, 200);
+    cv.height = Math.max(H, 200);
+
+    switch (gameId) {
+      case 'snake':     _snakeInit();    break;
+      case 'tetris':    _tetrisInit();   break;
+      case 'pong':      _pongInit();     break;
+      case 'tictactoe': _tttInit();      break;
+      case 'connect4':  _c4Init();       break;
+      case 'memory':    _memoryInit();   break;
+      case 'checkers':  _checkersInit(); break;
+      case 'chess':     _chessInit();    break;
+      case 'pool':      _poolInit();     break;
+      case 'breakout':  _breakoutInit(); break;
+    }
+  });
+
   window.addEventListener('resize', _arcadeHandleResize);
 };
 
@@ -14923,16 +15013,29 @@ window.arcadeRestartGame = function() {
 };
 
 function _arcadeHandleResize() {
-  // Refit canvas without restarting game
   const wrap = document.querySelector('.arcade-game-canvas-wrap');
-  if (!wrap) return;
+  if (!wrap || !_arcadeCurrentGame) return;
   const cv = document.getElementById('arcadeGameCanvas');
-  const W = Math.min(wrap.clientWidth || 640, 640);
-  const H = Math.min(wrap.clientHeight || 480, 480);
-  if (cv.width !== W || cv.height !== H) {
-    // For board games, just redraw; for action games, resize keeps state
-    cv.width = W; cv.height = H;
-    if (_arcadeGameState && _arcadeGameState.redraw) _arcadeGameState.redraw();
+  const W = wrap.clientWidth  || window.innerWidth;
+  const H = wrap.clientHeight || Math.max(200, window.innerHeight - 160);
+  if (Math.abs(cv.width - W) > 8 || Math.abs(cv.height - H) > 8) {
+    cv.width = Math.max(W, 200);
+    cv.height = Math.max(H, 200);
+    if (_arcadeRAF) { cancelAnimationFrame(_arcadeRAF); _arcadeRAF = null; }
+    _removeGameListeners();
+    document.getElementById('arcadeGameOver').classList.remove('show');
+    switch (_arcadeCurrentGame) {
+      case 'snake':     _snakeInit();    break;
+      case 'tetris':    _tetrisInit();   break;
+      case 'pong':      _pongInit();     break;
+      case 'tictactoe': _tttInit();      break;
+      case 'connect4':  _c4Init();       break;
+      case 'memory':    _memoryInit();   break;
+      case 'checkers':  _checkersInit(); break;
+      case 'chess':     _chessInit();    break;
+      case 'pool':      _poolInit();     break;
+      case 'breakout':  _breakoutInit(); break;
+    }
   }
 }
 
@@ -15334,11 +15437,13 @@ function _arcadeClick(e)     { if (_arcadeGameState?.onClick)      _arcadeGameSt
 function _cvXY(e) {
   const cv   = document.getElementById('arcadeGameCanvas');
   const rect = cv.getBoundingClientRect();
-  const scaleX = cv.width  / rect.width;
-  const scaleY = cv.height / rect.height;
-  if (e.touches) {
-    return { x: (e.touches[0].clientX - rect.left) * scaleX,
-             y: (e.touches[0].clientY - rect.top)  * scaleY };
+  const scaleX = cv.width  / (rect.width  || 1);
+  const scaleY = cv.height / (rect.height || 1);
+  // touchend has changedTouches, touchstart/move has touches
+  const tList = e.changedTouches || e.touches;
+  if (tList && tList.length) {
+    return { x: (tList[0].clientX - rect.left) * scaleX,
+             y: (tList[0].clientY - rect.top)  * scaleY };
   }
   return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
 }
@@ -15352,6 +15457,7 @@ function _snakeInit() {
   const SZ  = 20;
   const COLS = Math.floor(cv.width  / SZ);
   const ROWS = Math.floor(cv.height / SZ);
+  let _swipeStart = null;
   const s = {
     snake: [{x:Math.floor(COLS/2), y:Math.floor(ROWS/2)}],
     dir: {x:1, y:0}, nextDir:{x:1, y:0},
@@ -15361,6 +15467,23 @@ function _snakeInit() {
       if (s.dead) { arcadeRestartGame(); return; }
       const nd = {up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}}[dir];
       if (nd && !(nd.x === -s.dir.x && nd.y === -s.dir.y)) s.nextDir = nd;
+    },
+    onTouchstart(e) {
+      const t = e.touches[0];
+      _swipeStart = { x: t.clientX, y: t.clientY };
+    },
+    onTouchend(e) {
+      if (!_swipeStart) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - _swipeStart.x;
+      const dy = t.clientY - _swipeStart.y;
+      _swipeStart = null;
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return; // tap — ignore
+      if (Math.abs(dx) > Math.abs(dy)) {
+        s.onKey(dx > 0 ? 'right' : 'left');
+      } else {
+        s.onKey(dy > 0 ? 'down' : 'up');
+      }
     }
   };
   _arcadeGameState = s;
@@ -15504,6 +15627,7 @@ function _tetrisInit() {
       ctx.strokeRect(OX+(px+c)*SZ+1,OY+(py+r)*SZ+1,SZ-2,SZ-2);
     }
   }
+  let _tSwipe = null;
   const s = {
     onKey(dir) {
       if (dir==='left'  && validPos(piece,px-1,py)) px--;
@@ -15512,6 +15636,27 @@ function _tetrisInit() {
       if (dir==='up')   { const r=rotateCW(piece); if(validPos(r,px,py)) piece=r; }
       if (dir==='space') { while(validPos(piece,px,py+1)) py++; place(); }
       draw();
+    },
+    onTouchstart(e) {
+      const t = e.touches[0];
+      _tSwipe = { x: t.clientX, y: t.clientY };
+    },
+    onTouchend(e) {
+      if (!_tSwipe) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - _tSwipe.x;
+      const dy = t.clientY - _tSwipe.y;
+      _tSwipe = null;
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+        // short tap = hard drop
+        s.onKey('space');
+        return;
+      }
+      if (Math.abs(dx) > Math.abs(dy)) {
+        s.onKey(dx > 0 ? 'right' : 'left');
+      } else {
+        s.onKey(dy > 0 ? 'down' : 'up'); // swipe up = rotate, swipe down = soft drop
+      }
     }
   };
   _arcadeGameState = s;
@@ -15552,11 +15697,16 @@ function _pongInit() {
     if(e.key==='ArrowUp'||e.key==='w') s.up=false;
     if(e.key==='ArrowDown'||e.key==='s') s.down=false;
   });
-  // Touch/mouse drag on canvas for player paddle
-  s.onTouchstart = s.onMousedown = (e)=>{ s._drag=true; };
-  s.onTouchend   = s.onMouseup   = ()=>{ s._drag=false; };
-  s.onTouchmove  = s.onMousemove = (e)=>{
+  // Mouse drag on canvas for desktop
+  s.onMousedown = ()=>{ s._drag=true; };
+  s.onMouseup   = ()=>{ s._drag=false; };
+  s.onMousemove = (e)=>{
     if(!s._drag) return;
+    const pos = _cvXY(e);
+    s.p1.y = Math.max(0, Math.min(H-PH, pos.y - PH/2));
+  };
+  // Touch: finger directly controls paddle — no drag flag needed
+  s.onTouchstart = s.onTouchmove = (e)=>{
     const pos = _cvXY(e);
     s.p1.y = Math.max(0, Math.min(H-PH, pos.y - PH/2));
   };
@@ -16104,7 +16254,7 @@ function _poolInit(){
     onMouseup(e){if(aim){const p=_cvXY(e);aim.ex=p.x;aim.ey=p.y;_shoot();aim=null;}},
     onTouchstart(e){const p=_cvXY(e);if(balls[0]&&!balls[0].pocketed&&_dist(p,balls[0])<40)aim={sx:p.x,sy:p.y,ex:p.x,ey:p.y};},
     onTouchmove(e){if(aim){const p=_cvXY(e);aim.ex=p.x;aim.ey=p.y;}},
-    onTouchend(e){if(aim){_shoot();aim=null;}},
+    onTouchend(e){if(aim){const p=_cvXY(e);aim.ex=p.x;aim.ey=p.y;_shoot();aim=null;}},
   };
   _arcadeGameState=s; _attachGameListeners();
 

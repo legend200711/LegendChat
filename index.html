@@ -5632,6 +5632,7 @@ body::after {
     <button class="admin-tab" onclick="switchAdminTab('announce')">📢 Announce</button>
     <button class="admin-tab" onclick="switchAdminTab('settings')">⚙️ Settings</button>
     <button class="admin-tab" onclick="switchAdminTab('security')">🔒 Security</button>
+    <button class="admin-tab" onclick="switchAdminTab('roles')">👑 Staff Roles</button>
 </div>
 
 <!-- ══════════════════════════════════
@@ -5811,6 +5812,129 @@ body::after {
         <div id="adminSuspendedList"><div class="empty-state">No suspended users.</div></div>
         <button onclick="adminLoadSuspended()" style="margin-top:10px;font-size:12px;padding:6px 16px;border-radius:8px;">🔄 Refresh</button>
     </div>
+</div>
+
+<!-- ══════════════════════════════════
+     TAB: STAFF ROLES & PERMISSIONS
+══════════════════════════════════ -->
+<div class="admin-tab-content" id="adminTab-roles">
+
+    <!-- Permission Hierarchy Banner -->
+    <div class="section-card" style="margin-bottom:16px; border-color:rgba(255,185,0,0.35); background:linear-gradient(135deg,rgba(90,56,0,0.25),rgba(11,31,58,0.92));">
+        <h3 style="margin:0 0 6px;font-size:13px;color:#ffe566;text-transform:uppercase;letter-spacing:0.8px;">⚡ Permission Hierarchy</h3>
+        <p style="font-size:12px;color:#9bbdd8;margin:0 0 14px;line-height:1.6;">Only the Founder has unrestricted control. Administrators and Moderators have limited permissions and cannot access Founder-only tools or settings.</p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(90,56,0,0.25);border:1px solid rgba(255,185,0,0.5);border-radius:10px;">
+                <span style="font-size:22px;">👑</span>
+                <div>
+                    <div style="font-size:13px;font-weight:800;color:#ffe566;">Founder</div>
+                    <div style="font-size:11px;color:#c8a870;margin-top:1px;">Full control over the entire platform.</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(0,26,51,0.5);border:1px solid rgba(0,180,255,0.45);border-radius:10px;">
+                <span style="font-size:22px;">🛡️</span>
+                <div>
+                    <div style="font-size:13px;font-weight:800;color:#66ccff;">Administrator</div>
+                    <div style="font-size:11px;color:#6a90b8;margin-top:1px;">Community management with limited administrative authority.</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(26,0,51,0.5);border:1px solid rgba(170,80,255,0.4);border-radius:10px;">
+                <span style="font-size:22px;">🛠️</span>
+                <div>
+                    <div style="font-size:13px;font-weight:800;color:#cc88ff;">Moderator</div>
+                    <div style="font-size:11px;color:#8a6aaa;margin-top:1px;">Content moderation only.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Founder -->
+    <div class="section-card" style="margin-bottom:16px; border-color:rgba(255,185,0,0.40); background:linear-gradient(135deg,rgba(90,56,0,0.20),rgba(11,31,58,0.92));">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <span class="badge badge-founder" style="font-size:13px;padding:4px 12px;">👑 Founder</span>
+        </div>
+        <p style="font-size:12px;color:#c8a870;margin:0 0 14px;line-height:1.6;">The Founder has full administrative authority over Shadow Nexus Social.</p>
+
+        <h4 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#ffe566;margin:0 0 8px;">Founder Permissions</h4>
+        <ul style="margin:0 0 0;padding-left:18px;font-size:12px;color:#d8c890;line-height:2;">
+            <li>Full access to all administrative settings.</li>
+            <li>Manage all users.</li>
+            <li>Promote or remove Administrators and Moderators.</li>
+            <li>Award or remove badges.</li>
+            <li>Suspend, restore, ban, or delete user accounts.</li>
+            <li>Delete or restore any post, comment, message (where permitted by platform policy), or chat.</li>
+            <li>Manage reports and appeals.</li>
+            <li>Send site-wide announcements and notifications.</li>
+            <li>Manage verification badges.</li>
+            <li>Edit site settings.</li>
+            <li>Enable or disable maintenance mode.</li>
+            <li>View analytics, logs, and audit history.</li>
+            <li>Manage security settings.</li>
+            <li>Access full database management tools.</li>
+        </ul>
+    </div>
+
+    <!-- Administrator -->
+    <div class="section-card" style="margin-bottom:16px; border-color:rgba(0,180,255,0.35);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <span class="badge badge-admin" style="font-size:13px;padding:4px 12px;">🛡️ Administrator</span>
+        </div>
+        <p style="font-size:12px;color:#7aaac8;margin:0 0 14px;line-height:1.6;">Administrators assist with community moderation and have limited administrative privileges.</p>
+
+        <h4 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#66ccff;margin:0 0 8px;">Administrator Permissions</h4>
+        <ul style="margin:0 0 14px;padding-left:18px;font-size:12px;color:#a8c8e0;line-height:2;">
+            <li>Suspend user accounts.</li>
+            <li>Restore suspended accounts.</li>
+            <li>Review user reports.</li>
+            <li>Delete posts that violate the rules.</li>
+            <li>Delete comments that violate the rules.</li>
+            <li>Delete chat messages that violate the rules.</li>
+            <li>Send warning messages to users.</li>
+            <li>View moderation logs.</li>
+            <li>Escalate serious issues to the Founder.</li>
+        </ul>
+
+        <h4 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#ff6680;margin:0 0 8px;">Administrator Restrictions</h4>
+        <ul style="margin:0;padding-left:18px;font-size:12px;color:#9bbdd8;line-height:2;">
+            <li>Cannot promote or remove Administrators.</li>
+            <li>Cannot create or remove Founder accounts.</li>
+            <li>Cannot access Founder-only settings.</li>
+            <li>Cannot change global site settings.</li>
+            <li>Cannot access database management tools.</li>
+            <li>Cannot manage security settings.</li>
+            <li>Cannot remove the Founder.</li>
+            <li>Cannot change Founder permissions.</li>
+        </ul>
+    </div>
+
+    <!-- Moderator -->
+    <div class="section-card" style="border-color:rgba(170,80,255,0.30);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <span class="badge badge-moderator" style="font-size:13px;padding:4px 12px;">🛠️ Moderator</span>
+        </div>
+        <p style="font-size:12px;color:#8a6aaa;margin:0 0 14px;line-height:1.6;">Moderators are responsible for maintaining a safe and respectful community environment.</p>
+
+        <h4 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#cc88ff;margin:0 0 8px;">Moderator Permissions</h4>
+        <ul style="margin:0 0 14px;padding-left:18px;font-size:12px;color:#c0a8e0;line-height:2;">
+            <li>Remove comments that violate community rules.</li>
+            <li>Remove chat messages that violate community rules.</li>
+            <li>Review reported posts and comments.</li>
+            <li>Send warnings to users.</li>
+            <li>Report serious issues to Administrators or the Founder.</li>
+        </ul>
+
+        <h4 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#ff6680;margin:0 0 8px;">Moderator Restrictions</h4>
+        <ul style="margin:0;padding-left:18px;font-size:12px;color:#9bbdd8;line-height:2;">
+            <li>Cannot suspend or ban user accounts.</li>
+            <li>Cannot promote users.</li>
+            <li>Cannot assign or remove badges.</li>
+            <li>Cannot access administrator settings.</li>
+            <li>Cannot edit site settings.</li>
+            <li>Cannot view sensitive user information.</li>
+            <li>Cannot access Founder tools.</li>
+        </ul>
+    </div>
+
 </div>
 
 </div><!-- end adminPage -->

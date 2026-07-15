@@ -4582,10 +4582,6 @@ body.arcade-fs-ios body::after { display:none !important; }
     touch-action:none;
     -webkit-tap-highlight-color:transparent;
     image-rendering:auto;
-    /* GPU composite layer — eliminates per-frame rasterisation cost on mobile */
-    will-change:contents;
-    /* Tell the browser this element repaints itself — skip stacking context overhead */
-    contain:strict;
 }
 .arcade-game-controls {
     width:100%; flex-shrink:0;

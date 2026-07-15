@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Shadow Nexus Social — Stay Legendary 🌑🔥</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 
 <!-- ── PWA: theme color & manifest ── -->
 <meta name="theme-color" content="#0066FF">
@@ -4508,24 +4508,33 @@ body::after {
     display:none; position:fixed; inset:0; z-index:9500;
     background:#000010; align-items:stretch; justify-content:center;
     flex-direction:column; padding:0; box-sizing:border-box;
-    /* iOS full-screen fix */
+    /* iOS full-screen — prevent body scroll bleed-through */
     width:100%; height:100%;
-    -webkit-overflow-scrolling:touch;
+    overflow:hidden;
+    overscroll-behavior:none;
+    /* Prevent iOS rubber-band on the modal itself */
+    -webkit-overflow-scrolling:auto;
+    touch-action:none;
 }
 #arcadeGameModal.open { display:flex; }
+/* Lock body scroll while game is open */
+body.arcade-open { overflow:hidden; touch-action:none; }
+
 .arcade-game-modal-header {
     width:100%; display:flex; align-items:center; justify-content:space-between;
     padding:10px 14px; background:rgba(7,20,40,0.99);
     border-bottom:1px solid rgba(0,174,239,0.25); flex-shrink:0;
     /* safe area top for notched phones */
     padding-top:max(10px, env(safe-area-inset-top));
+    padding-left:max(14px, env(safe-area-inset-left));
+    padding-right:max(14px, env(safe-area-inset-right));
 }
 .arcade-game-modal-title { font-size:15px; font-weight:800; color:#fff; }
 .arcade-game-modal-score { font-size:13px; color:#39FF14; font-weight:700; }
 .arcade-game-modal-close {
     background:none; border:none; color:#ff5566; font-size:24px;
     cursor:pointer; padding:4px 10px; border-radius:8px; line-height:1;
-    min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center;
+    min-width:48px; min-height:48px; display:flex; align-items:center; justify-content:center;
     touch-action:manipulation;
 }
 .arcade-game-canvas-wrap {
@@ -4533,42 +4542,56 @@ body::after {
     display:flex; align-items:center; justify-content:center;
     background:#000010; overflow:hidden; position:relative;
     touch-action:none; -webkit-user-select:none; user-select:none;
+    /* prevents scroll-to-zoom on iOS */
+    overscroll-behavior:none;
 }
 #arcadeGameCanvas {
-    display:block;
-    /* Fill the wrap exactly — JS sizes it to pixel-perfect dimensions */
+    display:block; max-width:100%; max-height:100%;
+    /* canvas is sized by JS — CSS clamps prevent overflow */
     touch-action:none;
     -webkit-tap-highlight-color:transparent;
+    image-rendering:auto;
 }
 .arcade-game-controls {
     width:100%; flex-shrink:0;
     background:rgba(7,20,40,0.99); border-top:1px solid rgba(0,174,239,0.2);
-    padding:8px 12px; display:flex; align-items:center; justify-content:space-between;
-    flex-wrap:wrap; gap:8px;
-    /* safe area bottom */
-    padding-bottom:max(8px, env(safe-area-inset-bottom));
+    padding:10px 16px; display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:10px;
+    /* safe area bottom + sides */
+    padding-bottom:max(10px, env(safe-area-inset-bottom));
+    padding-left:max(16px, env(safe-area-inset-left));
+    padding-right:max(16px, env(safe-area-inset-right));
+    /* prevent control bar scroll bleed */
+    touch-action:none;
+    overscroll-behavior:none;
 }
 /* On-screen D-pad / action buttons for mobile */
 .arcade-dpad {
-    display:flex; flex-direction:column; align-items:center; gap:3px;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
 }
-.arcade-dpad-row { display:flex; gap:3px; }
+.arcade-dpad-row { display:flex; gap:6px; }
 .arcade-ctrl-btn {
-    width:50px; height:50px; border-radius:12px; font-size:20px; font-weight:bold;
-    background:rgba(0,40,100,0.8); border:1.5px solid rgba(0,174,239,0.5); color:#00AEEF;
+    /* Minimum 54×54 tap target for accessibility */
+    width:54px; height:54px; border-radius:14px; font-size:22px; font-weight:bold;
+    background:rgba(0,40,100,0.85); border:2px solid rgba(0,174,239,0.6); color:#00AEEF;
     display:flex; align-items:center; justify-content:center; cursor:pointer;
     user-select:none; -webkit-user-select:none;
     touch-action:manipulation; -webkit-tap-highlight-color:transparent;
-    flex-shrink:0; /* no CSS transition — instant response on mobile */
+    flex-shrink:0;
+    /* Raised feel with subtle shadow */
+    box-shadow:0 3px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
 }
-.arcade-ctrl-btn:active { background:rgba(0,120,255,0.5); }
+.arcade-ctrl-btn:active,
+.arcade-ctrl-btn.pressed { background:rgba(0,120,255,0.6); border-color:rgba(0,220,255,0.9); transform:scale(0.92); }
 .arcade-ctrl-btn.action-btn {
-    width:56px; height:56px; border-radius:50%;
-    background:rgba(0,80,200,0.6); border-color:rgba(0,174,239,0.8);
-    font-size:22px;
+    width:60px; height:60px; border-radius:50%;
+    background:rgba(0,80,200,0.7); border-color:rgba(0,174,239,0.85);
+    font-size:24px;
+    box-shadow:0 3px 12px rgba(0,120,255,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 .arcade-ctrl-btn.action-btn-green {
-    background:rgba(0,100,30,0.6); border-color:rgba(57,255,20,0.8); color:#39FF14;
+    background:rgba(0,100,30,0.7); border-color:rgba(57,255,20,0.85); color:#39FF14;
+    box-shadow:0 3px 12px rgba(57,255,20,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
 }
 /* Hide on-screen controls on desktop */
 @media (min-width:769px) {
@@ -4580,30 +4603,38 @@ body::after {
 }
 .arcade-mobile-controls {
     display:none; align-items:center; justify-content:space-between;
-    gap:8px; width:100%;
+    gap:10px; width:100%;
 }
 /* Landscape: shrink controls so canvas gets more height */
 @media (orientation:landscape) and (max-height:500px) {
     .arcade-game-modal-header { padding-top:6px; padding-bottom:6px; }
-    .arcade-ctrl-btn { width:38px; height:38px; font-size:16px; border-radius:8px; }
-    .arcade-ctrl-btn.action-btn { width:44px; height:44px; }
-    .arcade-game-controls { padding-top:4px; padding-bottom:4px; }
-    .arcade-dpad { gap:2px; }
-    .arcade-dpad-row { gap:2px; }
+    .arcade-ctrl-btn { width:42px; height:42px; font-size:18px; border-radius:10px; }
+    .arcade-ctrl-btn.action-btn { width:48px; height:48px; font-size:20px; }
+    .arcade-game-controls { padding-top:5px; padding-bottom:5px; gap:6px; }
+    .arcade-dpad { gap:3px; }
+    .arcade-dpad-row { gap:3px; }
+}
+/* Very small phones (iPhone SE, Galaxy A series portrait) */
+@media (max-width:380px) {
+    .arcade-ctrl-btn { width:48px; height:48px; font-size:20px; border-radius:12px; }
+    .arcade-ctrl-btn.action-btn { width:54px; height:54px; font-size:22px; }
+    .arcade-dpad { gap:4px; }
+    .arcade-dpad-row { gap:4px; }
 }
 /* Game over overlay */
 .arcade-gameover-overlay {
-    position:absolute; inset:0; background:rgba(0,0,0,0.78);
+    position:absolute; inset:0; background:rgba(0,0,0,0.82);
     display:none; align-items:center; justify-content:center;
     flex-direction:column; gap:12px; z-index:10;
     backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+    padding:20px;
 }
 .arcade-gameover-overlay.show { display:flex; }
 .arcade-go-title { font-size:22px; font-weight:900; color:#ff3366; font-family:monospace; letter-spacing:2px; text-shadow:0 0 14px rgba(255,51,102,0.7); }
 .arcade-go-score { font-size:15px; color:#d8eeff; font-family:monospace; }
 .arcade-go-best  { font-size:13px; color:#39FF14; font-family:monospace; }
-.arcade-go-btns  { display:flex; gap:10px; margin-top:4px; flex-wrap:wrap; justify-content:center; }
-.arcade-go-btns button { padding:10px 24px; border-radius:10px; font-size:13px; font-weight:700; min-height:44px; touch-action:manipulation; }
+.arcade-go-btns  { display:flex; gap:12px; margin-top:4px; flex-wrap:wrap; justify-content:center; }
+.arcade-go-btns button { padding:12px 28px; border-radius:10px; font-size:14px; font-weight:700; min-height:48px; min-width:100px; touch-action:manipulation; }
 
 /* Multiplayer invite challenge button on profiles */
 .btn-challenge-game {
@@ -14957,6 +14988,8 @@ window.launchArcadeGame = function(gameId) {
 
   const modal = document.getElementById('arcadeGameModal');
   modal.classList.add('open');
+  // Lock body scroll so the page doesn't scroll behind the game modal
+  document.body.classList.add('arcade-open');
   document.getElementById('agmTitle').textContent = g.icon + ' ' + g.name;
   document.getElementById('agmScore').textContent = '';
   document.getElementById('agmDesktopHint').textContent = '⌨ ' + g.hint;
@@ -14968,8 +15001,8 @@ window.launchArcadeGame = function(gameId) {
   // Build mobile controls before sizing so layout is stable
   _buildMobileControls(g);
 
-  // Defer canvas sizing by one rAF — flex layout needs a paint cycle to resolve height
-  requestAnimationFrame(() => {
+  // Double-rAF: first frame resolves flex layout, second reads settled dimensions
+  requestAnimationFrame(() => requestAnimationFrame(() => {
     const wrap = modal.querySelector('.arcade-game-canvas-wrap');
     const cv   = document.getElementById('arcadeGameCanvas');
     const W = wrap.clientWidth  || window.innerWidth;
@@ -14977,28 +15010,31 @@ window.launchArcadeGame = function(gameId) {
     cv.width  = Math.max(W, 200);
     cv.height = Math.max(H, 200);
 
-    switch (gameId) {
-      case 'snake':     _snakeInit();    break;
-      case 'tetris':    _tetrisInit();   break;
-      case 'pong':      _pongInit();     break;
-      case 'tictactoe': _tttInit();      break;
-      case 'connect4':  _c4Init();       break;
-      case 'memory':    _memoryInit();   break;
-      case 'checkers':  _checkersInit(); break;
-      case 'chess':     _chessInit();    break;
-      case 'pool':      _poolInit();     break;
-      case 'breakout':  _breakoutInit(); break;
-    }
-  });
+    _startGame(gameId);
+  }));
 
   window.addEventListener('resize', _arcadeHandleResize);
+  // ResizeObserver keeps canvas pixel-perfect when keyboard/browser-chrome resize happens
+  if (typeof ResizeObserver !== 'undefined') {
+    const wrap = modal.querySelector('.arcade-game-canvas-wrap');
+    if (wrap && !wrap._arcadeRO) {
+      wrap._arcadeRO = new ResizeObserver(() => _arcadeHandleResize());
+      wrap._arcadeRO.observe(wrap);
+    }
+  }
 };
 
 window.closeArcadeGame = function() {
   if (_arcadeRAF) { cancelAnimationFrame(_arcadeRAF); _arcadeRAF = null; }
   _removeGameListeners();
   const modal = document.getElementById('arcadeGameModal');
-  if (modal) modal.classList.remove('open');
+  if (modal) {
+    modal.classList.remove('open');
+    // Disconnect ResizeObserver
+    const wrap = modal.querySelector('.arcade-game-canvas-wrap');
+    if (wrap && wrap._arcadeRO) { wrap._arcadeRO.disconnect(); wrap._arcadeRO = null; }
+  }
+  document.body.classList.remove('arcade-open');
   _arcadeCurrentGame = null;
   window.removeEventListener('resize', _arcadeHandleResize);
   // Rebuild hub grid to refresh best scores
@@ -15012,30 +15048,42 @@ window.arcadeRestartGame = function() {
   launchArcadeGame(_arcadeCurrentGame);
 };
 
+/* Debounce timer for resize — avoids multiple re-inits during a single orientation change */
+let _arcadeResizeTimer = null;
 function _arcadeHandleResize() {
-  const wrap = document.querySelector('.arcade-game-canvas-wrap');
-  if (!wrap || !_arcadeCurrentGame) return;
-  const cv = document.getElementById('arcadeGameCanvas');
-  const W = wrap.clientWidth  || window.innerWidth;
-  const H = wrap.clientHeight || Math.max(200, window.innerHeight - 160);
-  if (Math.abs(cv.width - W) > 8 || Math.abs(cv.height - H) > 8) {
-    cv.width = Math.max(W, 200);
-    cv.height = Math.max(H, 200);
-    if (_arcadeRAF) { cancelAnimationFrame(_arcadeRAF); _arcadeRAF = null; }
-    _removeGameListeners();
-    document.getElementById('arcadeGameOver').classList.remove('show');
-    switch (_arcadeCurrentGame) {
-      case 'snake':     _snakeInit();    break;
-      case 'tetris':    _tetrisInit();   break;
-      case 'pong':      _pongInit();     break;
-      case 'tictactoe': _tttInit();      break;
-      case 'connect4':  _c4Init();       break;
-      case 'memory':    _memoryInit();   break;
-      case 'checkers':  _checkersInit(); break;
-      case 'chess':     _chessInit();    break;
-      case 'pool':      _poolInit();     break;
-      case 'breakout':  _breakoutInit(); break;
+  if (!_arcadeCurrentGame) return;
+  if (_arcadeResizeTimer) clearTimeout(_arcadeResizeTimer);
+  _arcadeResizeTimer = setTimeout(() => {
+    const wrap = document.querySelector('.arcade-game-canvas-wrap');
+    if (!wrap || !_arcadeCurrentGame) return;
+    const cv = document.getElementById('arcadeGameCanvas');
+    const W = wrap.clientWidth  || window.innerWidth;
+    const H = wrap.clientHeight || Math.max(200, window.innerHeight - 160);
+    // Only reinit if dimensions actually changed by more than a rounding pixel
+    if (Math.abs(cv.width - W) > 4 || Math.abs(cv.height - H) > 4) {
+      cv.width  = Math.max(W, 200);
+      cv.height = Math.max(H, 200);
+      if (_arcadeRAF) { cancelAnimationFrame(_arcadeRAF); _arcadeRAF = null; }
+      _removeGameListeners();
+      document.getElementById('arcadeGameOver').classList.remove('show');
+      _startGame(_arcadeCurrentGame);
     }
+  }, 120);
+}
+
+/* Centralised game starter — avoids duplicating the switch everywhere */
+function _startGame(gameId) {
+  switch (gameId) {
+    case 'snake':     _snakeInit();    break;
+    case 'tetris':    _tetrisInit();   break;
+    case 'pong':      _pongInit();     break;
+    case 'tictactoe': _tttInit();      break;
+    case 'connect4':  _c4Init();       break;
+    case 'memory':    _memoryInit();   break;
+    case 'checkers':  _checkersInit(); break;
+    case 'chess':     _chessInit();    break;
+    case 'pool':      _poolInit();     break;
+    case 'breakout':  _breakoutInit(); break;
   }
 }
 
@@ -15334,6 +15382,35 @@ window.challengeToGame = async function(targetUid, targetName) {
 /* ─────────────────────────────────────────────
    MOBILE CONTROLS BUILDER
    ───────────────────────────────────────────── */
+
+/* ── Hold-repeat helper for D-pad buttons ──
+   Fires the action immediately on touchstart/mousedown,
+   then repeats after a 300 ms delay at ~10 Hz while held. */
+let _dpadHoldTimer = null, _dpadHoldInterval = null;
+function _dpadStart(dir, btn) {
+  _dpadCancel();
+  _arcadeDpad(dir);
+  if (btn) btn.classList.add('pressed');
+  _dpadHoldTimer = setTimeout(() => {
+    _dpadHoldInterval = setInterval(() => _arcadeDpad(dir), 90);
+  }, 280);
+}
+function _dpadCancel(btn) {
+  if (_dpadHoldTimer)    { clearTimeout(_dpadHoldTimer);  _dpadHoldTimer = null; }
+  if (_dpadHoldInterval) { clearInterval(_dpadHoldInterval); _dpadHoldInterval = null; }
+  if (btn) btn.classList.remove('pressed');
+}
+
+/* Helper: attach hold events to a dpad button element */
+function _attachDpadBtn(el, dir) {
+  el.addEventListener('touchstart',  e => { e.preventDefault(); _dpadStart(dir, el); }, { passive:false });
+  el.addEventListener('touchend',    e => { e.preventDefault(); _dpadCancel(el); },     { passive:false });
+  el.addEventListener('touchcancel', () => { _dpadCancel(el); });
+  el.addEventListener('mousedown',   () => { _dpadStart(dir, el); });
+  el.addEventListener('mouseup',     () => { _dpadCancel(el); });
+  el.addEventListener('mouseleave',  () => { _dpadCancel(el); });
+}
+
 function _buildMobileControls(g) {
   const wrap = document.getElementById('arcadeMobileControls');
   if (!wrap) return;
@@ -15344,37 +15421,50 @@ function _buildMobileControls(g) {
   if (g.controls === 'dpad') {
     wrap.innerHTML = `
       <div class="arcade-dpad">
-        <div class="arcade-dpad-row"><button class="arcade-ctrl-btn" id="acBtnUp"   ontouchstart="event.preventDefault();_arcadeDpad('up')"   onmousedown="_arcadeDpad('up')">▲</button></div>
+        <div class="arcade-dpad-row"><button class="arcade-ctrl-btn" id="acBtnUp">▲</button></div>
         <div class="arcade-dpad-row">
-          <button class="arcade-ctrl-btn" id="acBtnLeft"  ontouchstart="event.preventDefault();_arcadeDpad('left')"  onmousedown="_arcadeDpad('left')">◀</button>
-          <button class="arcade-ctrl-btn" id="acBtnDown"  ontouchstart="event.preventDefault();_arcadeDpad('down')"  onmousedown="_arcadeDpad('down')">▼</button>
-          <button class="arcade-ctrl-btn" id="acBtnRight" ontouchstart="event.preventDefault();_arcadeDpad('right')" onmousedown="_arcadeDpad('right')">▶</button>
+          <button class="arcade-ctrl-btn" id="acBtnLeft">◀</button>
+          <button class="arcade-ctrl-btn" id="acBtnDown">▼</button>
+          <button class="arcade-ctrl-btn" id="acBtnRight">▶</button>
         </div>
       </div>`;
+    _attachDpadBtn(document.getElementById('acBtnUp'),    'up');
+    _attachDpadBtn(document.getElementById('acBtnLeft'),  'left');
+    _attachDpadBtn(document.getElementById('acBtnDown'),  'down');
+    _attachDpadBtn(document.getElementById('acBtnRight'), 'right');
   } else if (g.controls === 'tetris') {
     wrap.innerHTML = `
       <div class="arcade-dpad">
-        <div class="arcade-dpad-row"><button class="arcade-ctrl-btn" ontouchstart="event.preventDefault();_arcadeDpad('up')"   onmousedown="_arcadeDpad('up')">↻</button></div>
+        <div class="arcade-dpad-row"><button class="arcade-ctrl-btn" id="acBtnRot">↻</button></div>
         <div class="arcade-dpad-row">
-          <button class="arcade-ctrl-btn" ontouchstart="event.preventDefault();_arcadeDpad('left')"  onmousedown="_arcadeDpad('left')">◀</button>
-          <button class="arcade-ctrl-btn" ontouchstart="event.preventDefault();_arcadeDpad('down')"  onmousedown="_arcadeDpad('down')">▼</button>
-          <button class="arcade-ctrl-btn" ontouchstart="event.preventDefault();_arcadeDpad('right')" onmousedown="_arcadeDpad('right')">▶</button>
+          <button class="arcade-ctrl-btn" id="acBtnLeft">◀</button>
+          <button class="arcade-ctrl-btn" id="acBtnDown">▼</button>
+          <button class="arcade-ctrl-btn" id="acBtnRight">▶</button>
         </div>
       </div>
-      <button class="arcade-ctrl-btn action-btn" ontouchstart="event.preventDefault();_arcadeDpad('space')" onmousedown="_arcadeDpad('space')" style="margin-left:8px;">⬇</button>`;
+      <button class="arcade-ctrl-btn action-btn" id="acBtnDrop" style="margin-left:10px;" title="Hard drop">⬇</button>`;
+    _attachDpadBtn(document.getElementById('acBtnLeft'),  'left');
+    _attachDpadBtn(document.getElementById('acBtnRight'), 'right');
+    _attachDpadBtn(document.getElementById('acBtnDown'),  'down');
+    _attachDpadBtn(document.getElementById('acBtnRot'),   'up');
+    const dropBtn = document.getElementById('acBtnDrop');
+    dropBtn.addEventListener('touchstart', e => { e.preventDefault(); _arcadeDpad('space'); }, { passive:false });
+    dropBtn.addEventListener('mousedown',  () => _arcadeDpad('space'));
   } else if (g.controls === 'pong') {
     wrap.innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <button class="arcade-ctrl-btn" ontouchstart="event.preventDefault();_arcadeDpad('up')"   onmousedown="_arcadeDpad('up')"   style="width:60px;">▲</button>
-        <button class="arcade-ctrl-btn" ontouchstart="event.preventDefault();_arcadeDpad('down')" onmousedown="_arcadeDpad('down')" style="width:60px;">▼</button>
-      </div>`;
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="arcade-ctrl-btn" id="acBtnUp"   style="width:64px;">▲</button>
+        <button class="arcade-ctrl-btn" id="acBtnDown" style="width:64px;">▼</button>
+      </div>
+      <span style="font-size:11px;color:#4a7a9a;text-align:center;flex:1;">or drag<br>canvas</span>`;
+    _attachDpadBtn(document.getElementById('acBtnUp'),   'up');
+    _attachDpadBtn(document.getElementById('acBtnDown'), 'down');
   } else if (g.controls === 'paddle') {
-    // Touch-drag handled by canvas events — just show hint
-    wrap.innerHTML = `<span style="font-size:11px;color:#6a90b8;">Drag to move paddle</span>`;
+    wrap.innerHTML = `<span style="font-size:12px;color:#6a90b8;">👆 Drag left / right to move paddle</span>`;
   } else if (g.controls === 'pool') {
-    wrap.innerHTML = `<span style="font-size:11px;color:#6a90b8;">Drag from cue ball to aim & shoot</span>`;
+    wrap.innerHTML = `<span style="font-size:12px;color:#6a90b8;">👆 Drag from cue ball to aim &amp; shoot</span>`;
   } else if (g.controls === 'tap') {
-    wrap.innerHTML = `<span style="font-size:11px;color:#6a90b8;">Tap the canvas to play</span>`;
+    wrap.innerHTML = `<span style="font-size:12px;color:#6a90b8;">👆 Tap the board to play</span>`;
   }
 }
 
@@ -15388,6 +15478,12 @@ window._arcadeDpad = function(dir) {
    ───────────────────────────────────────────── */
 function _removeGameListeners() {
   document.removeEventListener('keydown', _arcadeKeydown);
+  // Run any game-specific cleanup (e.g. Pong's keyup listener)
+  if (_arcadeGameState && _arcadeGameState._cleanup) {
+    try { _arcadeGameState._cleanup(); } catch(e) {}
+  }
+  // Cancel any in-flight dpad hold-repeat
+  _dpadCancel();
   const cv = document.getElementById('arcadeGameCanvas');
   if (cv) {
     cv.removeEventListener('mousedown', _arcadeMousedown);
@@ -15689,14 +15785,19 @@ function _pongInit() {
     p1:{y:H/2-PH/2}, p2:{y:H/2-PH/2},
     score:[0,0], up:false, down:false,
     onKey(dir){
-      if(dir==='up')   s.up=true;
-      if(dir==='down') s.down=true;
+      // Both keyboard hold (continuous) and dpad hold-repeat (discrete) work:
+      // keyboard sets flags; the hold-repeat already calls onKey repeatedly
+      if(dir==='up')   { s.up=true;  s.p1.y=Math.max(0,    s.p1.y-SPEED*2); }
+      if(dir==='down') { s.down=true; s.p1.y=Math.min(H-PH, s.p1.y+SPEED*2); }
     }
   };
-  document.addEventListener('keyup', e=>{
+  const _pongKeyup = e=>{
     if(e.key==='ArrowUp'||e.key==='w') s.up=false;
     if(e.key==='ArrowDown'||e.key==='s') s.down=false;
-  });
+  };
+  document.addEventListener('keyup', _pongKeyup);
+  // Store cleanup fn so _removeGameListeners can call it
+  s._cleanup = () => document.removeEventListener('keyup', _pongKeyup);
   // Mouse drag on canvas for desktop
   s.onMousedown = ()=>{ s._drag=true; };
   s.onMouseup   = ()=>{ s._drag=false; };
@@ -16444,15 +16545,21 @@ window._arcadeRenderProfileSection = async function(targetUid, containerEl) {
    ───────────────────────────────────────────── */
 window.addEventListener('orientationchange', () => {
   if (!_arcadeCurrentGame) return;
+  // Wait for the browser to finish rotating (OS animation + layout reflow)
   setTimeout(() => {
+    // Use the full wrap — no artificial size cap so landscape gets full width
     const wrap = document.querySelector('.arcade-game-canvas-wrap');
     const cv   = document.getElementById('arcadeGameCanvas');
     if (!wrap || !cv) return;
-    const W = Math.min(wrap.clientWidth  || 640, 640);
-    const H = Math.min(wrap.clientHeight || 480, 480);
-    cv.width = W; cv.height = H;
-    if (_arcadeGameState && _arcadeGameState.redraw) _arcadeGameState.redraw();
-  }, 300);
+    const W = wrap.clientWidth  || window.innerWidth;
+    const H = wrap.clientHeight || Math.max(200, window.innerHeight - 160);
+    cv.width  = Math.max(W, 200);
+    cv.height = Math.max(H, 200);
+    if (_arcadeRAF) { cancelAnimationFrame(_arcadeRAF); _arcadeRAF = null; }
+    _removeGameListeners();
+    document.getElementById('arcadeGameOver').classList.remove('show');
+    _startGame(_arcadeCurrentGame);
+  }, 350);
 });
 
 /* Expose open function for nav item */

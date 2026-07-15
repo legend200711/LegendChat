@@ -33,14 +33,29 @@
       const reg = await navigator.serviceWorker.register(swPath, { scope: base });
       console.log('[SW] Registered, scope:', reg.scope);
 
-      // When a NEW service worker activates the controllerchange event fires.
-      // We intentionally do NOT auto-reload here — automatic reloads cause
-      // redirect loops on mobile. Users will get updated files on their next
-      // natural page load (navigation requests are network-first in sw.js).
+      // If a new SW is already waiting on first load, show the update toast now
+      if (reg.waiting) {
+        showUpdateToast(reg.waiting);
+      }
+
+      // Detect new SW installing while the page is open
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // New version ready — prompt user to reload
+            showUpdateToast(newWorker);
+          }
+        });
+      });
+
+      // When the new SW takes control, reload so the fresh files are used
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        // Reload suppressed to prevent mobile reload/redirect loops.
-        // Remove sessionStorage flag so it doesn't linger across sessions.
-        sessionStorage.removeItem('snx-sw-reloading');
+        if (!sessionStorage.getItem('snx-sw-reloading')) {
+          sessionStorage.setItem('snx-sw-reloading', '1');
+          window.location.reload();
+        }
       });
     } catch (err) {
       console.warn('[SW] Registration failed:', err);

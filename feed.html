@@ -5555,191 +5555,7 @@ body::after {
           const bar = document.getElementById('snx-debug-bar');
           if (bar) bar.style.display = 'none';
 
-          limitedDocs.forEach(({ pDoc, ts }, idx) => {
-              const post = pDoc.data();
-
-              const isLiked = post.likedBy?.includes(currentUser.uid);
-              const isOwner = post.uid === currentUser.uid;
-              // Show a human-readable post age instead of a countdown timer
-              const ageMs = ts ? now - ts : 0;
-              const ageMins  = Math.floor(ageMs / 60000);
-              const ageHours = Math.floor(ageMs / 3600000);
-              const ageDays  = Math.floor(ageMs / 86400000);
-              const ageLabel = ts === 0 ? '' :
-                  ageMins  < 1    ? '<span class="post-expiry">just now</span>' :
-                  ageMins  < 60   ? `<span class="post-expiry">${ageMins}m ago</span>` :
-                  ageHours < 24   ? `<span class="post-expiry">${ageHours}h ago</span>` :
-                  ageDays  < 7    ? `<span class="post-expiry">${ageDays}d ago</span>` :
-                  `<span class="post-expiry">${new Date(ts).toLocaleDateString()}</span>`;
-
-              let mediaHTML = '';
-              if (post.mediaUrl) {
-                  // Rewrite old R2 public URLs to go through the Worker (which serves files correctly)
-                  let mu = post.mediaUrl;
-                  mu = mu.replace('https://pub-e5efe8c515324a8ab89ca15c5fa731dd.r2.dev/', 'https://yellow-term-11e6.nthntjrn.workers.dev/');
-                  mu = mu.replace('https://pub-1cb8318faddb49f0b2c91fbd098c271f.r2.dev/', 'https://yellow-term-11e6.nthntjrn.workers.dev/');
-                  const ext = mu.split('?')[0].split('.').pop().toLowerCase();
-                  const audioExts = ['mp3','ogg','wav','aac','flac','m4a','opus'];
-                  const videoExts = ['mp4','webm','mov','avi','mkv','m4v'];
-                  const isAudio = audioExts.includes(ext) || mu.includes('/audio/');
-                  const isVideo = videoExts.includes(ext) || mu.includes('/video/');
-                  const filename = decodeURIComponent(mu.split('/').pop().split('?')[0]);
-                  if (isAudio) {
-                      mediaHTML = `
-                        <div class="post-music-card">
-                            <div class="post-music-icon">🎵</div>
-                            <div class="post-music-info">
-                                <div class="post-music-title">${escFeed(filename)}</div>
-                                <audio class="post-music-audio" src="${mu}" controls preload="metadata"></audio>
-                            </div>
-                        </div>`;
-                  } else if (isVideo) {
-                      mediaHTML = `
-                        <div class="post-video-card">
-                            <video class="post-media-video" src="${mu}" controls playsinline preload="metadata"
-                                onclick="openMediaViewer('video','${mu}')"
-                                onerror="this.parentElement.innerHTML='<div class=\\'video-placeholder\\'>🎬</div>'">
-                            </video>
-                        </div>`;
-                  } else {
-                      mediaHTML = `<img class="post-media-preview" src="${mu}" alt="photo"
-                          onclick="openMediaViewer('image','${mu}')"
-                          onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div style=\\'padding:14px;background:rgba(0,30,70,0.5);border-radius:10px;color:#6a90b8;font-size:13px;margin-top:8px;\\'>🖼 Image unavailable</div>')">`;
-                  }
-              }
-              // Multi-media carousel (mediaUrls array)
-              if (post.mediaUrls && post.mediaUrls.length) {
-                  const items = post.mediaUrls.map(rawMu => {
-                      let mu = rawMu;
-                      mu = mu.replace('https://pub-e5efe8c515324a8ab89ca15c5fa731dd.r2.dev/', 'https://yellow-term-11e6.nthntjrn.workers.dev/');
-                      mu = mu.replace('https://pub-1cb8318faddb49f0b2c91fbd098c271f.r2.dev/', 'https://yellow-term-11e6.nthntjrn.workers.dev/');
-                      const ext = mu.split('?')[0].split('.').pop().toLowerCase();
-                      const videoExts = ['mp4','webm','mov','avi','mkv'];
-                      if (videoExts.some(e => ext === e)) {
-                          return `<video src="${mu}" controls playsinline preload="metadata" onclick="openMediaViewer('video','${mu}')" style="max-height:240px;" onerror="this.style.display='none'"></video>`;
-                      }
-                      return `<img src="${mu}" alt="media" onclick="openMediaViewer('image','${mu}')" style="max-height:240px;" onerror="this.style.display='none'">`;
-                  }).join('');
-                  mediaHTML = `<div class="post-media-carousel">${items}</div>`;
-              }
-
-              const existingEl = document.getElementById(`post-${pDoc.id}`);
-
-              if (existingEl) {
-                  // — Patch only the parts that can change without wiping the DOM node —
-
-                  // 1. Like button: class + count
-                  const likeBtn = existingEl.querySelector(`#like-btn-${pDoc.id}`);
-                  if (likeBtn) {
-                      likeBtn.classList.toggle('liked', isLiked);
-                      const countEl = likeBtn.querySelector('.like-count');
-                      if (countEl) countEl.textContent = post.likes || 0;
-                  }
-
-                  // 2. Repost count
-                  const repostBtn = existingEl.querySelector(`#repost-btn-${pDoc.id}`);
-                  if (repostBtn) {
-                      const rcEl = repostBtn.querySelector('.repost-count');
-                      if (rcEl) rcEl.textContent = post.repostCount || 0;
-                  }
-
-                  // 3. Comments (re-render only if count changed to avoid wiping in-progress inputs)
-                  const commentBox = existingEl.querySelector(`#comments-${pDoc.id}`);
-                  const prevCount = commentBox ? parseInt(commentBox.dataset.count || '0') : -1;
-                  const newCount  = (post.comments || []).length;
-                  if (prevCount !== newCount) {
-                      renderCommentsSubtree(pDoc.id, post.comments || []);
-                      if (commentBox) commentBox.dataset.count = newCount;
-                  }
-
-                  // 4. Keep post in correct DOM position (cheap — only moves if out of order)
-                  const posIdx = finalOrderedIds.indexOf(pDoc.id);
-                  const children = [...container.children];
-                  const curIdx   = children.indexOf(existingEl);
-                  if (curIdx !== posIdx) {
-                      const ref = container.children[posIdx] || null;
-                      container.insertBefore(existingEl, ref);
-                  }
-              } else {
-                  // New post — build the full element
-                  const div = document.createElement("div");
-                  div.className = "postBox";
-                  div.id = `post-${pDoc.id}`;
-
-                  // Repost header — shown when this card is a repost
-                  let repostHeaderHTML = '';
-                  if (post.isRepost) {
-                      const reposterBadges = buildBadgeHtml(post.authorBadges || [], post.authorRole || 'member');
-                      const origBadges     = buildBadgeHtml(post.originalAuthorBadges || [], post.originalAuthorRole || 'member');
-                      repostHeaderHTML = `
-                        <div style="font-size:11px;color:#00cc66;margin-bottom:6px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
-                            🔄 <b>${escFeed(post.authorName)}</b>${reposterBadges} reposted
-                            <span style="color:#3a6a9a;">· original by</span>
-                            <b class="post-author-link" style="font-size:11px;" onclick="viewProfile('${post.originalAuthorUid}')">${escFeed(post.originalAuthorName)} (@${escFeed(post.originalAuthorHandle)})</b>${origBadges}
-                        </div>`;
-                  }
-
-                  // Inline badges for the primary author displayed in the post header
-                  const primaryBadges = post.isRepost
-                      ? buildBadgeHtml(post.originalAuthorBadges || [], post.originalAuthorRole || 'member')
-                      : buildBadgeHtml(post.authorBadges || [], post.authorRole || 'member');
-
-                  const authorUid    = post.isRepost ? post.originalAuthorUid    : post.uid;
-                  const authorName   = post.isRepost ? post.originalAuthorName   : post.authorName;
-                  const authorHandle = post.isRepost ? post.originalAuthorHandle : post.authorHandle;
-                  const authorAvatar = post.isRepost ? (post.originalAuthorAvatar || '') : (post.authorAvatar || '');
-                  const avatarStyle  = authorAvatar
-                      ? `background-image:url('${escFeed(authorAvatar)}');`
-                      : '';
-                  const avatarInitial = (authorName || '?')[0].toUpperCase();
-
-                  div.innerHTML = `
-                    ${repostHeaderHTML}
-                    <div class="post-header-row">
-                        <div style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:80%;">
-                            <div class="post-author-avatar" style="${avatarStyle}" onclick="viewProfile('${authorUid}')" title="View profile">${authorAvatar ? '' : escFeed(avatarInitial)}</div>
-                            <span style="display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;">
-                                <b class="post-author-link" onclick="viewProfile('${authorUid}')">${escFeed(authorName)} (@${escFeed(authorHandle)})</b>${primaryBadges}${post.authorMood ? `<span class="post-mood-chip${post.authorMoodFmt === 'sticker' ? ' mood-sticker-display' : ''}">${escFeed(post.authorMood)}</span>` : ''}
-                            </span>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:6px;">
-                            ${ageLabel}
-                        </div>
-                    </div>
-                    <p style="margin:8px 0;">${renderPostText(post.text)}</p>
-                    ${mediaHTML}
-                    ${(post.taggedUsers && post.taggedUsers.length) ? `
-                    <div class="post-tags-bar">
-                        <span class="post-tags-bar-label">🏷️ With:</span>
-                        ${post.taggedUsers.map(t => `
-                            <span class="post-tag-pill" onclick="viewProfile('${escFeed(t.uid)}')">
-                                @${escFeed(t.username)}
-                                ${t.uid === currentUser.uid ? `<button class="post-tag-pill-remove" onclick="event.stopPropagation();window.removeTagFromPost('${pDoc.id}','${escFeed(t.uid)}')" title="Remove tag">✕</button>` : ''}
-                            </span>`).join('')}
-                    </div>` : ''}
-                    <div class="action-row">
-                        <button class="react-btn ${isLiked ? 'liked' : ''}" id="like-btn-${pDoc.id}" onclick="processPostReaction('${pDoc.id}','like',this)">❤️ <span class="like-count">${post.likes || 0}</span></button>
-                        ${!post.isRepost ? `<button class="react-btn" id="repost-btn-${pDoc.id}" onclick="processPostReaction('${pDoc.id}','repost',this)">🔄 <span class="repost-count">${post.repostCount || 0}</span></button>` : ''}
-                        <button class="react-btn" onclick="sharePostItem('${pDoc.id}')">🔗 Share</button>
-                        ${isOwner ? `<button class="react-btn btn-del-post" onclick="window.deleteTimelinePost('${pDoc.id}')">🗑️ Delete</button>` : ''}
-                    </div>
-                    <div class="commentBox" id="comments-${pDoc.id}" data-count="0"></div>
-                    <div class="comment-input-row">
-                        <input id="input-comm-${pDoc.id}" placeholder="Write a comment…" autocomplete="off">
-                        <button class="comment-submit-btn" onclick="submitPostComment('${pDoc.id}')">Post</button>
-                    </div>
-                  `;
-
-                  // Insert at the correct position
-                  const posIdx = finalOrderedIds.indexOf(pDoc.id);
-                  const refNode = container.children[posIdx] || null;
-                  container.insertBefore(div, refNode);
-
-                  renderCommentsSubtree(pDoc.id, post.comments || []);
-                  const cb = div.querySelector(`#comments-${pDoc.id}`);
-                  if (cb) cb.dataset.count = (post.comments || []).length;
-              }
-          });
+          _renderPostCards(limitedDocs, finalOrderedIds, container, now);
           } catch (renderErr) {
               console.error('[Feed] Render error:', renderErr);
               _snxDebug('Render crash: ' + renderErr.message);
@@ -5765,10 +5581,185 @@ body::after {
       });
   }
 
-  // ── Feed renderer — shared by both onSnapshot and the getDocs fallback ──
+  // ── Shared post-card renderer ─────────────────────────────────────────────
+  // Called by both the live onSnapshot handler and the getDocs fallback so
+  // posts always appear regardless of connection speed.
+  function _renderPostCards(limitedDocs, finalOrderedIds, container, now) {
+      limitedDocs.forEach(({ pDoc, ts }) => {
+          const post = pDoc.data();
+
+          const isLiked = post.likedBy?.includes(currentUser.uid);
+          const isOwner = post.uid === currentUser.uid;
+          const ageMs    = ts ? now - ts : 0;
+          const ageMins  = Math.floor(ageMs / 60000);
+          const ageHours = Math.floor(ageMs / 3600000);
+          const ageDays  = Math.floor(ageMs / 86400000);
+          const ageLabel = ts === 0 ? '' :
+              ageMins  < 1    ? '<span class="post-expiry">just now</span>' :
+              ageMins  < 60   ? `<span class="post-expiry">${ageMins}m ago</span>` :
+              ageHours < 24   ? `<span class="post-expiry">${ageHours}h ago</span>` :
+              ageDays  < 7    ? `<span class="post-expiry">${ageDays}d ago</span>` :
+              `<span class="post-expiry">${new Date(ts).toLocaleDateString()}</span>`;
+
+          let mediaHTML = '';
+          if (post.mediaUrl) {
+              let mu = post.mediaUrl;
+              mu = mu.replace('https://pub-e5efe8c515324a8ab89ca15c5fa731dd.r2.dev/', 'https://yellow-term-11e6.nthntjrn.workers.dev/');
+              mu = mu.replace('https://pub-1cb8318faddb49f0b2c91fbd098c271f.r2.dev/', 'https://yellow-term-11e6.nthntjrn.workers.dev/');
+              const ext = mu.split('?')[0].split('.').pop().toLowerCase();
+              const audioExts = ['mp3','ogg','wav','aac','flac','m4a','opus'];
+              const videoExts = ['mp4','webm','mov','avi','mkv','m4v'];
+              const isAudio = audioExts.includes(ext) || mu.includes('/audio/');
+              const isVideo = videoExts.includes(ext) || mu.includes('/video/');
+              const filename = decodeURIComponent(mu.split('/').pop().split('?')[0]);
+              if (isAudio) {
+                  mediaHTML = `
+                    <div class="post-music-card">
+                        <div class="post-music-icon">🎵</div>
+                        <div class="post-music-info">
+                            <div class="post-music-title">${escFeed(filename)}</div>
+                            <audio class="post-music-audio" src="${mu}" controls preload="metadata"></audio>
+                        </div>
+                    </div>`;
+              } else if (isVideo) {
+                  mediaHTML = `
+                    <div class="post-video-card">
+                        <video class="post-media-video" src="${mu}" controls playsinline preload="metadata"
+                            onclick="openMediaViewer('video','${mu}')"
+                            onerror="this.parentElement.innerHTML='<div class=\\'video-placeholder\\'>🎬</div>'">
+                        </video>
+                    </div>`;
+              } else {
+                  mediaHTML = `<img class="post-media-preview" src="${mu}" alt="photo"
+                      onclick="openMediaViewer('image','${mu}')"
+                      onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div style=\\'padding:14px;background:rgba(0,30,70,0.5);border-radius:10px;color:#6a90b8;font-size:13px;margin-top:8px;\\'>🖼 Image unavailable</div>')">`;
+              }
+          }
+          if (post.mediaUrls && post.mediaUrls.length) {
+              const items = post.mediaUrls.map(rawMu => {
+                  let mu = rawMu;
+                  mu = mu.replace('https://pub-e5efe8c515324a8ab89ca15c5fa731dd.r2.dev/', 'https://yellow-term-11e6.nthntjrn.workers.dev/');
+                  mu = mu.replace('https://pub-1cb8318faddb49f0b2c91fbd098c271f.r2.dev/', 'https://yellow-term-11e6.nthntjrn.workers.dev/');
+                  const ext = mu.split('?')[0].split('.').pop().toLowerCase();
+                  const videoExts = ['mp4','webm','mov','avi','mkv'];
+                  if (videoExts.some(e => ext === e)) {
+                      return `<video src="${mu}" controls playsinline preload="metadata" onclick="openMediaViewer('video','${mu}')" style="max-height:240px;" onerror="this.style.display='none'"></video>`;
+                  }
+                  return `<img src="${mu}" alt="media" onclick="openMediaViewer('image','${mu}')" style="max-height:240px;" onerror="this.style.display='none'">`;
+              }).join('');
+              mediaHTML = `<div class="post-media-carousel">${items}</div>`;
+          }
+
+          const existingEl = document.getElementById(`post-${pDoc.id}`);
+          if (existingEl) {
+              // Patch the parts that can change without rebuilding the whole node
+              const likeBtn = existingEl.querySelector(`#like-btn-${pDoc.id}`);
+              if (likeBtn) {
+                  likeBtn.classList.toggle('liked', isLiked);
+                  const countEl = likeBtn.querySelector('.like-count');
+                  if (countEl) countEl.textContent = post.likes || 0;
+              }
+              const repostBtn = existingEl.querySelector(`#repost-btn-${pDoc.id}`);
+              if (repostBtn) {
+                  const rcEl = repostBtn.querySelector('.repost-count');
+                  if (rcEl) rcEl.textContent = post.repostCount || 0;
+              }
+              const commentBox = existingEl.querySelector(`#comments-${pDoc.id}`);
+              const prevCount = commentBox ? parseInt(commentBox.dataset.count || '0') : -1;
+              const newCount  = (post.comments || []).length;
+              if (prevCount !== newCount) {
+                  renderCommentsSubtree(pDoc.id, post.comments || []);
+                  if (commentBox) commentBox.dataset.count = newCount;
+              }
+              // Keep in correct DOM position
+              const posIdx = finalOrderedIds.indexOf(pDoc.id);
+              const children = [...container.children];
+              const curIdx   = children.indexOf(existingEl);
+              if (curIdx !== posIdx) {
+                  const ref = container.children[posIdx] || null;
+                  container.insertBefore(existingEl, ref);
+              }
+          } else {
+              // New post — build the full card element
+              const div = document.createElement("div");
+              div.className = "postBox";
+              div.id = `post-${pDoc.id}`;
+
+              let repostHeaderHTML = '';
+              if (post.isRepost) {
+                  const reposterBadges = buildBadgeHtml(post.authorBadges || [], post.authorRole || 'member');
+                  const origBadges     = buildBadgeHtml(post.originalAuthorBadges || [], post.originalAuthorRole || 'member');
+                  repostHeaderHTML = `
+                    <div style="font-size:11px;color:#00cc66;margin-bottom:6px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+                        🔄 <b>${escFeed(post.authorName)}</b>${reposterBadges} reposted
+                        <span style="color:#3a6a9a;">· original by</span>
+                        <b class="post-author-link" style="font-size:11px;" onclick="viewProfile('${post.originalAuthorUid}')">${escFeed(post.originalAuthorName)} (@${escFeed(post.originalAuthorHandle)})</b>${origBadges}
+                    </div>`;
+              }
+
+              const primaryBadges = post.isRepost
+                  ? buildBadgeHtml(post.originalAuthorBadges || [], post.originalAuthorRole || 'member')
+                  : buildBadgeHtml(post.authorBadges || [], post.authorRole || 'member');
+
+              const authorUid    = post.isRepost ? post.originalAuthorUid    : post.uid;
+              const authorName   = post.isRepost ? post.originalAuthorName   : post.authorName;
+              const authorHandle = post.isRepost ? post.originalAuthorHandle : post.authorHandle;
+              const authorAvatar = post.isRepost ? (post.originalAuthorAvatar || '') : (post.authorAvatar || '');
+              const avatarStyle  = authorAvatar ? `background-image:url('${escFeed(authorAvatar)}');` : '';
+              const avatarInitial = (authorName || '?')[0].toUpperCase();
+
+              div.innerHTML = `
+                ${repostHeaderHTML}
+                <div class="post-header-row">
+                    <div style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:80%;">
+                        <div class="post-author-avatar" style="${avatarStyle}" onclick="viewProfile('${authorUid}')" title="View profile">${authorAvatar ? '' : escFeed(avatarInitial)}</div>
+                        <span style="display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;">
+                            <b class="post-author-link" onclick="viewProfile('${authorUid}')">${escFeed(authorName)} (@${escFeed(authorHandle)})</b>${primaryBadges}${post.authorMood ? `<span class="post-mood-chip${post.authorMoodFmt === 'sticker' ? ' mood-sticker-display' : ''}">${escFeed(post.authorMood)}</span>` : ''}
+                        </span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        ${ageLabel}
+                    </div>
+                </div>
+                <p style="margin:8px 0;">${renderPostText(post.text)}</p>
+                ${mediaHTML}
+                ${(post.taggedUsers && post.taggedUsers.length) ? `
+                <div class="post-tags-bar">
+                    <span class="post-tags-bar-label">🏷️ With:</span>
+                    ${post.taggedUsers.map(t => `
+                        <span class="post-tag-pill" onclick="viewProfile('${escFeed(t.uid)}')">
+                            @${escFeed(t.username)}
+                            ${t.uid === currentUser.uid ? `<button class="post-tag-pill-remove" onclick="event.stopPropagation();window.removeTagFromPost('${pDoc.id}','${escFeed(t.uid)}')" title="Remove tag">✕</button>` : ''}
+                        </span>`).join('')}
+                </div>` : ''}
+                <div class="action-row">
+                    <button class="react-btn ${isLiked ? 'liked' : ''}" id="like-btn-${pDoc.id}" onclick="processPostReaction('${pDoc.id}','like',this)">❤️ <span class="like-count">${post.likes || 0}</span></button>
+                    ${!post.isRepost ? `<button class="react-btn" id="repost-btn-${pDoc.id}" onclick="processPostReaction('${pDoc.id}','repost',this)">🔄 <span class="repost-count">${post.repostCount || 0}</span></button>` : ''}
+                    <button class="react-btn" onclick="sharePostItem('${pDoc.id}')">🔗 Share</button>
+                    ${isOwner ? `<button class="react-btn btn-del-post" onclick="window.deleteTimelinePost('${pDoc.id}')">🗑️ Delete</button>` : ''}
+                </div>
+                <div class="commentBox" id="comments-${pDoc.id}" data-count="0"></div>
+                <div class="comment-input-row">
+                    <input id="input-comm-${pDoc.id}" placeholder="Write a comment…" autocomplete="off">
+                    <button class="comment-submit-btn" onclick="submitPostComment('${pDoc.id}')">Post</button>
+                </div>
+              `;
+
+              const posIdx = finalOrderedIds.indexOf(pDoc.id);
+              const refNode = container.children[posIdx] || null;
+              container.insertBefore(div, refNode);
+
+              renderCommentsSubtree(pDoc.id, post.comments || []);
+              const cb = div.querySelector(`#comments-${pDoc.id}`);
+              if (cb) cb.dataset.count = (post.comments || []).length;
+          }
+      });
+  }
+
+  // ── getDocs fallback renderer ─────────────────────────────────────────────
+  // Called when onSnapshot hasn't fired within 3 s. Fully renders all post
+  // cards so the feed is populated even on slow/restricted connections.
   function _renderFeedSnapshot(snapshot) {
-      // Delegate to the onSnapshot handler by faking a snapshot call
-      // (the handler is defined inline above; this is a thin re-entry wrapper)
       try {
           const container = document.getElementById("feedPosts");
           const now = Date.now();
@@ -5782,18 +5773,22 @@ body::after {
           allDocs.sort((a, b) => b.ts - a.ts);
           const limitedDocs = allDocs.slice(0, scrollLimit);
           const incomingIds = new Set(limitedDocs.map(v => v.pDoc.id));
+
+          // Remove stale DOM nodes
           container.querySelectorAll('.postBox[id^="post-"]').forEach(el => {
               if (!incomingIds.has(el.id.replace('post-', ''))) el.remove();
           });
+
           if (incomingIds.size === 0) {
               container.innerHTML = `<div style="text-align:center;padding:48px 20px;color:#3a5a7a;"><div style="font-size:40px;margin-bottom:14px;">🌑</div><div style="font-size:15px;font-weight:700;color:#4a7aaa;margin-bottom:8px;">The Eclipse is empty</div><div style="font-size:13px;color:#334;line-height:1.6;">No posts yet — be the first to share!</div></div>`;
               return;
           }
+
           const bar = document.getElementById('snx-debug-bar');
           if (bar) bar.style.display = 'none';
-          // Individual post DOM nodes are built by the inline onSnapshot handler above;
-          // the fallback just ensures the container is populated — a full page reload
-          // will attach the live listener and render properly.
+
+          const finalOrderedIds = limitedDocs.map(v => v.pDoc.id);
+          _renderPostCards(limitedDocs, finalOrderedIds, container, now);
       } catch(_) {}
   }
 

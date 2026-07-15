@@ -15717,7 +15717,7 @@ function _snakeInit() {
     snake: [{x:Math.floor(COLS/2), y:Math.floor(ROWS/2)}],
     dir: {x:1, y:0}, nextDir:{x:1, y:0},
     food: _snakeFood(COLS, ROWS),
-    score: 0, dead: false, speed: 110,
+    score: 0, dead: false, speed: 96,
     onKey(dir) {
       if (s.dead) { arcadeRestartGame(); return; }
       const nd = {up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}}[dir];
@@ -15760,7 +15760,7 @@ function _snakeInit() {
     s.snake.unshift(head);
     if (head.x === s.food.x && head.y === s.food.y) {
       s.score += 10;
-      s.speed = Math.max(55, s.speed - 1);
+      s.speed = Math.max(48, s.speed - 2);
       _setScore(s.score);
       s.food = _snakeFood(COLS, ROWS);
     } else s.snake.pop();
@@ -15821,7 +15821,7 @@ function _tetrisInit() {
   let piece = PIECES[ci].map(r=>[...r]);
   let color = COLORS[ci];
   let px=Math.floor((COLS-piece[0].length)/2), py=0;
-  let score=0, speed=600, lastDrop=0;
+  let score=0, speed=522, lastDrop=0;
 
   function validPos(p, ox, oy) {
     for (let r=0;r<p.length;r++) for (let c=0;c<p[r].length;c++) {
@@ -15916,7 +15916,7 @@ function _tetrisInit() {
   };
   _arcadeGameState = s;
   _attachGameListeners();
-  speed = 600;
+  speed = 522;
 
   function loop(ts) {
     _arcadeRAF = requestAnimationFrame(loop);
@@ -15924,7 +15924,7 @@ function _tetrisInit() {
       lastDrop = ts;
       if (validPos(piece,px,py+1)) py++;
       else place();
-      speed = Math.max(80, 600 - score/2);
+      speed = Math.max(70, 522 - score/2);
     }
     draw();
   }
@@ -15938,9 +15938,9 @@ function _pongInit() {
   const cv  = document.getElementById('arcadeGameCanvas');
   const ctx = cv.getContext('2d');
   const W=cv.width, H=cv.height;
-  const PH=80, PW=12, SPEED=5;
+  const PH=80, PW=12, SPEED=5.75;
   const s = {
-    ball:{x:W/2,y:H/2,vx:4,vy:3.2},
+    ball:{x:W/2,y:H/2,vx:4.6,vy:3.68},
     p1:{y:H/2-PH/2}, p2:{y:H/2-PH/2},
     score:[0,0], up:false, down:false,
     onKey(dir){
@@ -15980,7 +15980,7 @@ function _pongInit() {
     if(s.down) s.p1.y = Math.min(H-PH, s.p1.y + SPEED);
     // Simple AI
     const aiTarget = s.ball.y - PH/2;
-    s.p2.y += (aiTarget - s.p2.y) * 0.07;
+    s.p2.y += (aiTarget - s.p2.y) * 0.08;
     s.p2.y = Math.max(0, Math.min(H-PH, s.p2.y));
     // Ball move
     s.ball.x += s.ball.vx; s.ball.y += s.ball.vy;
@@ -16023,7 +16023,7 @@ function _pongInit() {
     ctx.fillText(s.score[1], 3*W/4, 40);
   }
   function _reset() {
-    s.ball={x:W/2,y:H/2, vx:(Math.random()>0.5?1:-1)*4, vy:(Math.random()-0.5)*5};
+    s.ball={x:W/2,y:H/2, vx:(Math.random()>0.5?1:-1)*4.6, vy:(Math.random()-0.5)*5.75};
   }
   _arcadeRAF = requestAnimationFrame(loop);
 }
@@ -16061,7 +16061,7 @@ function _tttInit() {
       if(w2){ s.over=true; s.losses++; drawBoard(); _gameOver(s.wins*100); return; }
       if(s.board.every(v=>v)){ s.over=true; drawBoard(); _gameOver(s.wins*100); return; }
       s.turn=1; drawBoard();
-    },380);
+    },330);
   };
   s.onTouchend = s.onClick;
 
@@ -16145,7 +16145,7 @@ function _c4Init() {
     if(_c4Check(s.board,1)){s.over=true;s.wins++;_setScore(s.wins*200);draw();_gameOver(s.wins*200);return;}
     if(s.board[0].every(v=>v)){s.over=true;draw();_gameOver(s.wins*200);return;}
     s.turn=2; draw();
-    setTimeout(()=>{ _c4AI(s); draw(); },350);
+    setTimeout(()=>{ _c4AI(s); draw(); },305);
   };
 
   function draw(){
@@ -16227,7 +16227,7 @@ function _memoryInit(){
         if(s.open[0].v===s.open[1].v){s.open.forEach(c=>c.matched=true);s.matched++;const sc=(16-s.moves)*50+100;_setScore(sc);if(s.matched===8)_gameOver(sc);}
         else{s.open.forEach(c=>c.flipped=false);}
         s.open=[]; s.lock=false; draw();
-      },820);
+      },713);
     }
     draw();
   };
@@ -16294,7 +16294,7 @@ function _checkersInit(){
         if(r===0) s.board[r][c]=3; // king
         s.score+=mv.cap?20:5; _setScore(s.score);
         s.sel=null; s.turn=2; draw();
-        setTimeout(()=>{ _chkAI(s); draw(); },400);
+        setTimeout(()=>{ _chkAI(s); draw(); },348);
       } else if((s.board[r][c]===1||s.board[r][c]===3)&&(r!==s.sel.r||c!==s.sel.c)){
         s.sel={r,c};
       } else s.sel=null;
@@ -16403,7 +16403,7 @@ function _chessInit(){
         const capVal={p:10,r:50,n:30,b:30,q:90}[captured[1]]||0;
         s.score+=capVal; _setScore(s.score);
         s.sel=null; s.moves=[]; s.turn='b'; draw();
-        setTimeout(()=>{ _chessAI(s); draw(); },500);
+        setTimeout(()=>{ _chessAI(s); draw(); },435);
       } else {
         s.sel=null; s.moves=[];
         if(board[r][c]&&board[r][c][0]==='w'){ s.sel={r,c}; s.moves=_chessMoves(board,r,c,'w'); }
@@ -16485,7 +16485,7 @@ function _chessAI(s){
 function _poolInit(){
   const cv=document.getElementById('arcadeGameCanvas'), ctx=cv.getContext('2d');
   const W=cv.width, H=cv.height;
-  const FRICTION=0.985, POCKET_R=18, BALL_R=10;
+  const FRICTION=0.988, POCKET_R=18, BALL_R=10;
   const pockets=[
     {x:POCKET_R,y:POCKET_R},{x:W/2,y:POCKET_R/2},{x:W-POCKET_R,y:POCKET_R},
     {x:POCKET_R,y:H-POCKET_R},{x:W/2,y:H-POCKET_R/2},{x:W-POCKET_R,y:H-POCKET_R},
@@ -16522,7 +16522,7 @@ function _poolInit(){
   function _shoot(){
     if(!balls[0]||balls[0].pocketed)return;
     const dx=aim.sx-aim.ex, dy=aim.sy-aim.ey;
-    const pow=Math.min(Math.hypot(dx,dy)*0.18,14);
+    const pow=Math.min(Math.hypot(dx,dy)*0.207,16.1);
     balls[0].vx=dx/Math.hypot(dx,dy)*pow; balls[0].vy=dy/Math.hypot(dx,dy)*pow;
     shots++;
   }
@@ -16592,15 +16592,15 @@ function _breakoutInit(){
   for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
     bricks.push({x:10+c*(BR_W+4),y:40+r*(BR_H+4),alive:true,col:colors[r]});
   }
-  let pad={x:W/2-PAD_W/2,y:H-30}, ball={x:W/2,y:H-50,vx:4,vy:-4.5}, score=0, lives=3;
+  let pad={x:W/2-PAD_W/2,y:H-30}, ball={x:W/2,y:H-50,vx:4.6,vy:-5.18}, score=0, lives=3;
   let mousePad=null;
 
   const s={
     onMousemove(e){const p=_cvXY(e);pad.x=Math.max(0,Math.min(W-PAD_W,p.x-PAD_W/2));},
     onTouchmove(e){const p=_cvXY(e);pad.x=Math.max(0,Math.min(W-PAD_W,p.x-PAD_W/2));},
     onKey(dir){
-      if(dir==='left')  pad.x=Math.max(0,pad.x-22);
-      if(dir==='right') pad.x=Math.min(W-PAD_W,pad.x+22);
+      if(dir==='left')  pad.x=Math.max(0,pad.x-25);
+      if(dir==='right') pad.x=Math.min(W-PAD_W,pad.x+25);
     }
   };
   _arcadeGameState=s; _attachGameListeners();
@@ -16610,11 +16610,11 @@ function _breakoutInit(){
     ball.x+=ball.vx; ball.y+=ball.vy;
     if(ball.x<=BALL_R||ball.x>=W-BALL_R) ball.vx*=-1;
     if(ball.y<=BALL_R) ball.vy=Math.abs(ball.vy);
-    if(ball.y>H){lives--;_setScore(score);if(!lives){_gameOver(score);return;}ball={x:W/2,y:H-50,vx:4,vy:-4.5};}
+    if(ball.y>H){lives--;_setScore(score);if(!lives){_gameOver(score);return;}ball={x:W/2,y:H-50,vx:4.6,vy:-5.18};}
     // Paddle
     if(ball.y+BALL_R>=pad.y&&ball.y<pad.y+PAD_H&&ball.x>=pad.x&&ball.x<=pad.x+PAD_W){
       ball.vy=-Math.abs(ball.vy);
-      ball.vx=((ball.x-(pad.x+PAD_W/2))/(PAD_W/2))*6;
+      ball.vx=((ball.x-(pad.x+PAD_W/2))/(PAD_W/2))*6.9;
     }
     // Bricks
     bricks.forEach(b=>{

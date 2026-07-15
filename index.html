@@ -2437,6 +2437,265 @@ img.post-media-preview::before {
     /* Stack storm room header on very narrow */
     .storm-room-header { flex-wrap: wrap; gap: 8px; }
 }
+/* ════════════════════════════════════════════
+   SUPPORT ROOMS — calm, warm, healing chat spaces
+   Distinct from Storm Rooms — soft palette, safe vibe
+   ════════════════════════════════════════════ */
+
+/* Background canvas for support rooms */
+#support-canvas {
+    position: fixed; inset: 0; width: 100vw; height: 100vh;
+    pointer-events: none; z-index: 0; display: none;
+}
+#supportRoomsPage.active #support-canvas { display: block; }
+
+/* Lobby */
+.support-lobby {
+    position: relative; z-index: 2;
+    max-width: 480px; margin: 0 auto;
+    display: flex; flex-direction: column; gap: 16px;
+}
+.support-lobby h2 {
+    text-align: center; font-size: 26px; font-weight: 900;
+    color: #c8a8ff;
+    text-shadow: 0 0 16px rgba(180,120,255,0.7), 0 0 36px rgba(140,80,220,0.45);
+    margin: 0 0 6px;
+    letter-spacing: 0.5px;
+}
+.support-sub {
+    text-align: center; color: #7a6a8a; font-size: 13px; margin: 0 0 8px;
+}
+.support-card {
+    background: rgba(18, 8, 34, 0.85);
+    border: 1px solid rgba(180,120,255,0.28);
+    border-radius: 16px; padding: 22px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 28px rgba(140,80,220,0.12), inset 0 0 20px rgba(0,0,0,0.3);
+}
+.support-card h3 {
+    margin: 0 0 14px; font-size: 14px; color: #c8a8ff;
+    text-transform: uppercase; letter-spacing: 0.8px;
+}
+
+/* Room list in lobby */
+.support-room-list { display: flex; flex-direction: column; gap: 10px; }
+.support-room-btn {
+    display: flex; align-items: center; gap: 14px;
+    width: 100%; padding: 14px 16px;
+    background: rgba(30, 12, 60, 0.7);
+    border: 1px solid rgba(180,120,255,0.25);
+    border-radius: 12px; cursor: pointer;
+    transition: background 0.18s, border-color 0.18s, box-shadow 0.18s;
+    text-align: left; font-family: inherit;
+}
+.support-room-btn:hover {
+    background: rgba(60,20,100,0.55);
+    border-color: rgba(200,150,255,0.6);
+    box-shadow: 0 0 16px rgba(160,100,255,0.2);
+}
+.support-room-btn .srb-icon { font-size: 26px; flex-shrink: 0; }
+.support-room-btn .srb-info { flex: 1; min-width: 0; }
+.support-room-btn .srb-name { font-size: 14px; font-weight: 700; color: #e0d0ff; margin-bottom: 2px; }
+.support-room-btn .srb-desc { font-size: 11px; color: #7a6a8a; }
+.support-room-btn .srb-arrow { font-size: 14px; color: #c8a8ff; flex-shrink: 0; }
+.support-room-btn .srb-count {
+    font-size: 11px; color: #a8ffdc; font-weight: 700;
+    background: rgba(80,255,180,0.1); border: 1px solid rgba(80,255,180,0.2);
+    padding: 2px 8px; border-radius: 10px; flex-shrink: 0;
+}
+
+/* Display name input */
+.support-input {
+    width: 100%; padding: 10px 14px; background: rgba(10,4,22,0.75);
+    border: 1px solid rgba(180,120,255,0.3); color: #e8d8ff;
+    border-radius: 10px; font-size: 14px; box-sizing: border-box;
+    outline: none; transition: border-color 0.2s; font-family: inherit;
+    margin-bottom: 12px;
+}
+.support-input:focus { border-color: #c8a8ff; box-shadow: 0 0 8px rgba(180,120,255,0.22); }
+.support-input::placeholder { color: rgba(160,120,220,0.38); }
+
+/* Room wrap (active chat) */
+.support-room-wrap {
+    display: none; flex-direction: column;
+    height: calc(100vh - 120px); min-height: 400px;
+    position: relative; z-index: 2;
+    max-width: 700px; margin: 0 auto;
+}
+.support-room-wrap.active { display: flex; }
+
+/* Header bar */
+.support-room-header {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(12,5,26,0.92); border: 1px solid rgba(180,120,255,0.22);
+    border-radius: 14px 14px 0 0; padding: 12px 18px; flex-shrink: 0;
+    backdrop-filter: blur(8px);
+}
+.support-room-title {
+    font-size: 15px; font-weight: bold; color: #c8a8ff;
+    text-shadow: 0 0 8px rgba(180,120,255,0.5);
+}
+.support-room-meta { font-size: 12px; color: #5a4a6a; margin-top: 2px; }
+.support-online-badge {
+    background: rgba(80,255,180,0.1); border: 1px solid rgba(80,255,180,0.25);
+    color: #a8ffd8; font-size: 11px; font-weight: bold; padding: 3px 10px;
+    border-radius: 20px; white-space: nowrap; flex-shrink: 0;
+}
+.support-leave-btn {
+    background: rgba(255,100,150,0.1); border: 1px solid rgba(255,100,150,0.28);
+    color: #ff99bb; font-size: 12px; font-weight: bold; padding: 4px 12px;
+    border-radius: 20px; cursor: pointer; margin-left: 10px; transition: background 0.15s;
+    flex-shrink: 0; font-family: inherit;
+}
+.support-leave-btn:hover { background: rgba(255,100,150,0.22); }
+
+/* Safety notice bar */
+.support-safety-bar {
+    background: rgba(20,8,40,0.9); border-left: 3px solid rgba(180,120,255,0.5);
+    border-right: 1px solid rgba(180,120,255,0.15);
+    padding: 8px 16px; font-size: 11px; color: #8a70aa;
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+
+/* Messages area */
+.support-messages {
+    flex: 1; overflow-y: auto; padding: 14px 16px;
+    background: rgba(8,3,18,0.75); backdrop-filter: blur(6px);
+    border-left: 1px solid rgba(180,120,255,0.12);
+    border-right: 1px solid rgba(180,120,255,0.12);
+    display: flex; flex-direction: column; gap: 8px;
+    scroll-behavior: smooth;
+}
+.support-messages::-webkit-scrollbar { width: 4px; }
+.support-messages::-webkit-scrollbar-track { background: transparent; }
+.support-messages::-webkit-scrollbar-thumb { background: rgba(180,120,255,0.18); border-radius: 4px; }
+
+/* Message bubbles */
+.support-msg {
+    display: flex; flex-direction: column; gap: 2px;
+    animation: supportMsgIn 0.22s ease-out;
+}
+@keyframes supportMsgIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.support-msg.mine { align-items: flex-end; }
+.support-msg.theirs { align-items: flex-start; }
+.support-msg-name { font-size: 10px; color: #c8a8ff; margin-bottom: 1px; padding: 0 4px; }
+.support-msg.mine .support-msg-name { color: #a8ffd8; }
+.support-msg-system .support-msg-name { display: none; }
+
+.support-bubble {
+    max-width: 72%; padding: 9px 14px; border-radius: 16px;
+    font-size: 13.5px; line-height: 1.55; word-break: break-word; position: relative;
+}
+.support-msg.mine .support-bubble {
+    background: linear-gradient(135deg, #2d0a5a 0%, #4a1580 100%);
+    border: 1px solid rgba(180,120,255,0.45); border-bottom-right-radius: 4px;
+    color: #f0e0ff;
+}
+.support-msg.theirs .support-bubble {
+    background: rgba(20,8,40,0.88); border: 1px solid rgba(180,120,255,0.18);
+    border-bottom-left-radius: 4px; color: #d8c8f0;
+}
+.support-msg.support-msg-system .support-bubble {
+    background: rgba(0,0,0,0.2); border: 1px solid rgba(180,120,255,0.1);
+    color: #5a4a6a; font-size: 11px; font-style: italic; text-align: center;
+    border-radius: 20px; padding: 4px 14px; max-width: 90%;
+    align-self: center;
+}
+.support-msg-ts { font-size: 9px; color: #3a2a4a; padding: 0 4px; }
+
+/* Support reactions */
+.support-reactions {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; padding: 0 2px;
+}
+.support-react-chip {
+    background: rgba(20,8,40,0.7); border: 1px solid rgba(180,120,255,0.18);
+    border-radius: 10px; padding: 1px 7px; font-size: 13px; cursor: pointer;
+    transition: background 0.12s; display: flex; align-items: center; gap: 3px; color: #8a6aaa;
+}
+.support-react-chip:hover { background: rgba(60,20,100,0.55); }
+.support-react-chip span.count { font-size: 10px; color: #6a5a8a; }
+.support-react-chip.mine-react { border-color: rgba(200,150,255,0.5); background: rgba(60,20,110,0.5); }
+
+/* Reaction hover bar on bubble */
+.support-react-bar {
+    position: absolute; bottom: 100%; left: 0; margin-bottom: 4px;
+    background: rgba(14,6,30,0.96); border: 1px solid rgba(180,120,255,0.28);
+    border-radius: 30px; padding: 4px 8px; display: none;
+    gap: 4px; z-index: 50; box-shadow: 0 4px 18px rgba(0,0,0,0.5);
+}
+.support-bubble:hover .support-react-bar { display: flex; }
+.support-react-pick {
+    background: none; border: none; font-size: 20px; cursor: pointer;
+    padding: 3px; border-radius: 6px; line-height: 1; transition: transform 0.1s;
+}
+.support-react-pick:hover { transform: scale(1.35); }
+
+/* Float animation */
+@keyframes floatSupportReact {
+    0%   { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(1.6); }
+}
+.support-float-react {
+    position: fixed; pointer-events: none; font-size: 28px;
+    animation: floatSupportReact 1.4s ease-out forwards; z-index: 9999;
+}
+
+/* Input footer */
+.support-footer {
+    background: rgba(12,5,26,0.92); border: 1px solid rgba(180,120,255,0.22);
+    border-top: none; border-radius: 0 0 14px 14px;
+    padding: 8px 10px; display: flex; gap: 6px; align-items: flex-end;
+    backdrop-filter: blur(8px); flex-shrink: 0; position: relative;
+}
+.support-footer-input-wrap {
+    flex: 1; display: flex; align-items: center; background: #ffffff;
+    border: 1px solid rgba(180,120,255,0.38); border-radius: 22px;
+    padding: 2px 6px 2px 14px; transition: border-color 0.15s; min-height: 40px;
+}
+.support-footer-input-wrap:focus-within { border-color: rgba(200,150,255,0.75); }
+#supportMsgInput {
+    flex: 1; background: transparent; border: none; color: #111;
+    font-size: 13px; padding: 7px 4px; outline: none; resize: none;
+    max-height: 80px; overflow-y: auto; line-height: 1.4; margin: 0; width: 100%;
+    font-family: inherit;
+}
+#supportMsgInput::placeholder { color: rgba(80,80,80,0.5); }
+.support-icon-btn {
+    background: none; border: none; color: #6a4a8a; font-size: 18px; cursor: pointer;
+    padding: 4px 5px; border-radius: 6px; line-height: 1; flex-shrink: 0;
+    transition: color 0.15s, background 0.15s;
+}
+.support-icon-btn:hover { color: #c8a8ff; background: rgba(180,120,255,0.1); }
+.support-send-btn {
+    background: linear-gradient(135deg, #3a0870 0%, #6020b0 100%);
+    border: 1px solid #c8a8ff; color: #f0e0ff; font-weight: bold;
+    padding: 0; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+    font-size: 16px; flex-shrink: 0; transition: opacity 0.15s, transform 0.1s;
+    display: flex; align-items: center; justify-content: center;
+}
+.support-send-btn:hover { opacity: 0.85; transform: scale(1.06); }
+
+/* Emoji picker for support rooms */
+.support-emoji-picker {
+    position: absolute; bottom: 58px; left: 10px;
+    background: #0e0620; border: 1px solid rgba(180,120,255,0.28);
+    border-radius: 12px; padding: 10px; width: 280px; max-height: 200px;
+    overflow-y: auto; display: none; z-index: 600;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+}
+.support-emoji-picker.open { display: block; }
+.support-emoji-grid { display: grid; grid-template-columns: repeat(8,1fr); gap: 2px; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .support-room-wrap { height: calc(100vh - 80px); }
+    .support-bubble { max-width: 84%; }
+    .support-emoji-picker { width: calc(100vw - 32px); left: 0; right: 0; }
+    .support-room-header { flex-wrap: wrap; gap: 8px; }
+}
 </style>
 
 <style id="responsive-patch">
@@ -3732,8 +3991,11 @@ body::after {
         <button class="nav-item" id="navStorm" onclick="navTo('stormRoomsPage')">
             <span class="nav-icon">⚡</span> Storm Rooms
         </button>
+        <button class="nav-item" id="navSupport" onclick="navTo('supportRoomsPage')">
+            <span class="nav-icon">🫂</span> Support Rooms
+        </button>
         <button class="nav-item" id="navCommunity" onclick="navTo('communityPage')">
-            <span class="nav-icon">💜</span> Community Hub
+            <span class="nav-icon">💙</span> Community Hub
         </button>
         <!-- Admin Panel — only visible to the Founder; toggled in JS after auth -->
         <button class="nav-item nav-item-admin" id="navAdmin" onclick="navTo('adminPage')" style="display:none;">
@@ -4835,11 +5097,155 @@ body::after {
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════
+     SUPPORT ROOMS PAGE
+     Calm, moderated safe spaces. Distinct from Storm Rooms.
+     ═══════════════════════════════════════════════════════════ -->
+<div class="page" id="supportRoomsPage">
+
+    <!-- Soft ambient canvas (gentle particles) -->
+    <canvas id="support-canvas"></canvas>
+
+    <!-- ── LOBBY (shown until user joins a room) ── -->
+    <div class="support-lobby" id="supportLobby">
+
+        <h2>🫂 Support Rooms</h2>
+        <p class="support-sub">Safe, anonymous · Moderated · No judgment, only support</p>
+
+        <!-- Display name -->
+        <div class="support-card">
+            <h3>💜 Your Name in This Space</h3>
+            <input class="support-input" id="supportDisplayName" placeholder="Choose a gentle name (e.g. Moonpetal, Quiet Storm)…" maxlength="24">
+            <p style="font-size:11px;color:#5a4a6a;margin:0;">You're anonymous. No one here knows your real identity.</p>
+        </div>
+
+        <!-- Room list -->
+        <div class="support-card">
+            <h3>🌸 Choose a Room</h3>
+            <div class="support-room-list">
+                <button class="support-room-btn" onclick="supportJoinRoom('night-owls','🌙 Night Owls')">
+                    <span class="srb-icon">🌙</span>
+                    <span class="srb-info">
+                        <span class="srb-name">Night Owls — Anxiety Support</span>
+                        <span class="srb-desc">For those who struggle at night · Always open</span>
+                    </span>
+                    <span class="srb-count" id="srb-count-night-owls">—</span>
+                    <span class="srb-arrow">›</span>
+                </button>
+                <button class="support-room-btn" onclick="supportJoinRoom('morning-light','🌅 Morning Light')">
+                    <span class="srb-icon">🌅</span>
+                    <span class="srb-info">
+                        <span class="srb-name">Morning Light — Depression</span>
+                        <span class="srb-desc">Start the day together · Gentle space</span>
+                    </span>
+                    <span class="srb-count" id="srb-count-morning-light">—</span>
+                    <span class="srb-arrow">›</span>
+                </button>
+                <button class="support-room-btn" onclick="supportJoinRoom('venting-lounge','🌊 Venting Lounge')">
+                    <span class="srb-icon">🌊</span>
+                    <span class="srb-info">
+                        <span class="srb-name">Venting Lounge</span>
+                        <span class="srb-desc">Say what's on your mind · No judgment</span>
+                    </span>
+                    <span class="srb-count" id="srb-count-venting-lounge">—</span>
+                    <span class="srb-arrow">›</span>
+                </button>
+                <button class="support-room-btn" onclick="supportJoinRoom('healing-circle','🌿 Healing Circle')">
+                    <span class="srb-icon">🌿</span>
+                    <span class="srb-info">
+                        <span class="srb-name">Healing Circle — Trauma &amp; Recovery</span>
+                        <span class="srb-desc">Trauma &amp; recovery support · Safe &amp; slow</span>
+                    </span>
+                    <span class="srb-count" id="srb-count-healing-circle">—</span>
+                    <span class="srb-arrow">›</span>
+                </button>
+                <button class="support-room-btn" onclick="supportJoinRoom('grief-garden','🕊️ Grief Garden')">
+                    <span class="srb-icon">🕊️</span>
+                    <span class="srb-info">
+                        <span class="srb-name">Grief Garden</span>
+                        <span class="srb-desc">Loss &amp; grief support · Hold space together</span>
+                    </span>
+                    <span class="srb-count" id="srb-count-grief-garden">—</span>
+                    <span class="srb-arrow">›</span>
+                </button>
+                <button class="support-room-btn" onclick="supportJoinRoom('self-love','💛 Self-Love Club')">
+                    <span class="srb-icon">💛</span>
+                    <span class="srb-info">
+                        <span class="srb-name">Self-Love Club</span>
+                        <span class="srb-desc">Body image, esteem &amp; personal growth</span>
+                    </span>
+                    <span class="srb-count" id="srb-count-self-love">—</span>
+                    <span class="srb-arrow">›</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Ground rules -->
+        <div class="support-card" style="border-color:rgba(80,255,180,0.18);">
+            <h3 style="color:#a8ffd8;">🤝 Room Rules</h3>
+            <ul style="margin:0;padding:0 0 0 16px;font-size:12px;color:#6a5a8a;line-height:1.9;">
+                <li>Be kind · No bullying or triggering language</li>
+                <li>You are not alone — someone here cares</li>
+                <li>Don't give medical / professional advice</li>
+                <li>If you're in crisis please contact a helpline</li>
+                <li>Respect everyone's pace and feelings</li>
+            </ul>
+            <div style="margin-top:12px;font-size:11px;color:#5a4a6a;">
+                🆘 Crisis? <strong style="color:#ff99bb;">Text HOME to 741741</strong> (Crisis Text Line) or call <strong style="color:#ff99bb;">988</strong> (Suicide &amp; Crisis Lifeline)
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── ACTIVE CHAT ROOM ── -->
+    <div class="support-room-wrap" id="supportRoomWrap">
+
+        <!-- Header -->
+        <div class="support-room-header">
+            <div>
+                <div class="support-room-title" id="supportRoomTitle">🌸 Support Room</div>
+                <div class="support-room-meta" id="supportRoomMeta">Safe, anonymous, moderated</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <div class="support-online-badge">🟢 <span id="supportOnlineCount">0</span> here</div>
+                <button class="support-leave-btn" onclick="supportLeaveRoom()">✕ Leave</button>
+            </div>
+        </div>
+
+        <!-- Crisis bar -->
+        <div class="support-safety-bar">
+            🛡️ This is a safe space. Be gentle with each other. · Crisis? Call <strong style="color:#ff99bb;">988</strong> · Text HOME to <strong style="color:#ff99bb;">741741</strong>
+        </div>
+
+        <!-- Messages -->
+        <div class="support-messages" id="supportMessages"></div>
+
+        <!-- Footer input -->
+        <div class="support-footer" id="supportFooter">
+
+            <!-- Emoji picker -->
+            <div class="support-emoji-picker" id="supportEmojiPicker">
+                <div class="support-emoji-grid" id="supportEmojiGrid"></div>
+            </div>
+
+            <button class="support-icon-btn" onclick="supportToggleEmoji()" title="Emoji">🌸</button>
+
+            <div class="support-footer-input-wrap">
+                <textarea id="supportMsgInput" placeholder="Share with care…" rows="1" autocomplete="off"></textarea>
+            </div>
+
+            <button class="support-send-btn" onclick="supportSendMsg()" title="Send">💜</button>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
      COMMUNITY HUB PAGE
      ═══════════════════════════════════════════════════════════ -->
 <div class="page" id="communityPage">
 
-<h2 class="eclipse-title">💜 Community Hub</h2>
+<h2 class="eclipse-title">💙 Community Hub</h2>
 <p style="text-align:center;color:#6a90b8;font-size:13px;margin:-12px 0 20px;">A safe space to grow, heal, and uplift each other</p>
 
 <!-- ══════════════════════════════════
@@ -4901,7 +5307,7 @@ body::after {
     <div class="comm-section-title">🫂 Support Rooms</div>
     <p style="font-size:12px;color:#4a7a9a;margin:0 0 12px;">Moderated safe spaces. No judgment, only support.</p>
     <div class="comm-rooms-list">
-        <div class="comm-room-item" onclick="navTo('stormRoomsPage')">
+        <div class="comm-room-item" onclick="supportEnterRoom('night-owls','🌙 Night Owls')">
             <div class="comm-room-icon">🌙</div>
             <div class="comm-room-info">
                 <div class="comm-room-name">Night Owls — Anxiety Support</div>
@@ -4909,7 +5315,7 @@ body::after {
             </div>
             <div class="comm-room-count">Join →</div>
         </div>
-        <div class="comm-room-item" onclick="navTo('stormRoomsPage')">
+        <div class="comm-room-item" onclick="supportEnterRoom('morning-light','🌅 Morning Light')">
             <div class="comm-room-icon">🌅</div>
             <div class="comm-room-info">
                 <div class="comm-room-name">Morning Light — Depression</div>
@@ -4917,15 +5323,15 @@ body::after {
             </div>
             <div class="comm-room-count">Join →</div>
         </div>
-        <div class="comm-room-item" onclick="navTo('stormRoomsPage')">
-            <div class="comm-room-icon">🔥</div>
+        <div class="comm-room-item" onclick="supportEnterRoom('venting-lounge','🌊 Venting Lounge')">
+            <div class="comm-room-icon">🌊</div>
             <div class="comm-room-info">
                 <div class="comm-room-name">Venting Lounge</div>
                 <div class="comm-room-desc">Anonymous · Say what's on your mind</div>
             </div>
             <div class="comm-room-count">Join →</div>
         </div>
-        <div class="comm-room-item" onclick="navTo('stormRoomsPage')">
+        <div class="comm-room-item" onclick="supportEnterRoom('healing-circle','🌿 Healing Circle')">
             <div class="comm-room-icon">🌿</div>
             <div class="comm-room-info">
                 <div class="comm-room-name">Healing Circle</div>
@@ -8787,7 +9193,7 @@ function navTo(pageId) {
         searchPage:'navSearch', friendsPage:'navFriends',
         notificationsPage:'navNotifs', settingsPage:'navSettings',
         stormRoomsPage:'navStorm', adminPage:'navAdmin',
-        communityPage:'navCommunity'
+        communityPage:'navCommunity', supportRoomsPage:'navSupport'
     };
     const navEl = document.getElementById(map[pageId]);
     if (navEl) navEl.classList.add('active-nav');
@@ -11088,7 +11494,376 @@ if (_origNavTo) {
         _origNavTo(pageId);
         if (pageId === 'stormRoomsPage' && _stormRoom) _stormStartCanvas();
         if (pageId !== 'stormRoomsPage' && _stormCanvasRAF) _stormStopCanvas();
+        if (pageId === 'supportRoomsPage') _supportStartCanvas();
+        if (pageId !== 'supportRoomsPage' && _supportCanvasRAF) _supportStopCanvas();
     };
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SUPPORT ROOMS — real, calm, healing live chat
+   Firebase RTDB path: supportRooms/<roomId>/messages + presence
+   ══════════════════════════════════════════════════════════════════ */
+
+const SUPPORT_MSG_TTL = 24 * 60 * 60 * 1000; // messages live 24 hours (not 10 min like storm)
+
+let _supportRoom     = null;   // current room id
+let _supportName     = 'Anonymous';
+let _supportPresence = null;
+let _supportMsgsUnsub  = null;
+let _supportPresUnsub  = null;
+let _supportMsgMap   = {};
+let _supportLobbyPresUnsubs = {}; // per-room presence watchers for lobby counts
+
+/* ── Helper: enter room from Community Hub shortcut ── */
+window.supportEnterRoom = function(roomId, roomLabel) {
+    navTo('supportRoomsPage');
+    // Small delay so the page renders before joining
+    setTimeout(() => supportJoinRoom(roomId, roomLabel), 120);
+};
+
+/* ── Display name ── */
+function _supportGetName() {
+    const n = document.getElementById('supportDisplayName')?.value.trim();
+    return n || 'Anonymous';
+}
+
+/* ── Join a room ── */
+window.supportJoinRoom = async function(roomId, roomLabel) {
+    _supportName = _supportGetName();
+    _supportRoom = roomId;
+    _supportMsgMap = {};
+
+    // Stop lobby presence watchers
+    Object.values(_supportLobbyPresUnsubs).forEach(u => {
+        try { off(ref(_rtdb, `supportRooms/${u.roomId}/presence`), 'value', u.fn); } catch(_) {}
+    });
+    _supportLobbyPresUnsubs = {};
+
+    // Update UI
+    document.getElementById('supportLobby').style.display = 'none';
+    const wrap = document.getElementById('supportRoomWrap');
+    wrap.classList.add('active');
+
+    document.getElementById('supportRoomTitle').textContent = roomLabel || ('🌸 ' + roomId);
+    document.getElementById('supportRoomMeta').textContent = 'Safe, anonymous, moderated · Messages fade after 24h';
+
+    // Register presence
+    const presRef = ref(_rtdb, `supportRooms/${_supportRoom}/presence/${_supportSafeName()}`);
+    _supportPresence = presRef;
+    await set(presRef, { name: _supportName, joined: Date.now() });
+    onDisconnect(presRef).remove();
+
+    // Watch presence count
+    if (_supportPresUnsub) off(ref(_rtdb, `supportRooms/${_supportRoom}/presence`), 'value', _supportPresUnsub);
+    const presCountRef = ref(_rtdb, `supportRooms/${_supportRoom}/presence`);
+    _supportPresUnsub = (snap) => {
+        const cnt = snap.exists() ? Object.keys(snap.val()).length : 0;
+        document.getElementById('supportOnlineCount').textContent = cnt;
+    };
+    onValue(presCountRef, _supportPresUnsub);
+
+    // Post join system message
+    _supportPushSystem(`${_esc(_supportName)} joined 🌸`);
+
+    // Listen for messages
+    _supportListenMessages();
+
+    // Start ambient canvas
+    _supportStartCanvas();
+};
+
+/* ── Leave room ── */
+window.supportLeaveRoom = async function() {
+    if (!_supportRoom) return;
+
+    _supportPushSystem(`${_esc(_supportName)} left 🍃`);
+
+    if (_supportPresence) { await remove(_supportPresence); _supportPresence = null; }
+    if (_supportMsgsUnsub) { off(ref(_rtdb, `supportRooms/${_supportRoom}/messages`), 'value', _supportMsgsUnsub); _supportMsgsUnsub = null; }
+    if (_supportPresUnsub) { off(ref(_rtdb, `supportRooms/${_supportRoom}/presence`), 'value', _supportPresUnsub); _supportPresUnsub = null; }
+
+    _supportRoom = null;
+    _supportMsgMap = {};
+
+    document.getElementById('supportMessages').innerHTML = '';
+    document.getElementById('supportRoomWrap').classList.remove('active');
+    document.getElementById('supportLobby').style.display = '';
+
+    // Restart lobby presence counts
+    _supportWatchLobbyPresence();
+    _supportStopCanvas();
+};
+
+/* ── Lobby presence count watchers (so users see how many are in each room) ── */
+const SUPPORT_ROOMS = ['night-owls','morning-light','venting-lounge','healing-circle','grief-garden','self-love'];
+
+function _supportWatchLobbyPresence() {
+    SUPPORT_ROOMS.forEach(roomId => {
+        const presRef = ref(_rtdb, `supportRooms/${roomId}/presence`);
+        const fn = (snap) => {
+            const cnt = snap.exists() ? Object.keys(snap.val()).length : 0;
+            const el = document.getElementById(`srb-count-${roomId}`);
+            if (el) el.textContent = cnt > 0 ? `${cnt} here` : '—';
+        };
+        onValue(presRef, fn);
+        _supportLobbyPresUnsubs[roomId] = { roomId, fn };
+    });
+}
+
+/* Start watching when the support page loads */
+document.addEventListener('DOMContentLoaded', () => {
+    _supportWatchLobbyPresence();
+});
+// Also call immediately in case DOMContentLoaded already fired
+if (document.readyState !== 'loading') _supportWatchLobbyPresence();
+
+/* ── Message listener ── */
+function _supportListenMessages() {
+    const msgsRef = ref(_rtdb, `supportRooms/${_supportRoom}/messages`);
+    if (_supportMsgsUnsub) off(msgsRef, 'value', _supportMsgsUnsub);
+
+    _supportMsgsUnsub = (snap) => {
+        if (!snap.exists()) { document.getElementById('supportMessages').innerHTML = ''; return; }
+        const msgs = snap.val();
+        const container = document.getElementById('supportMessages');
+        const now = Date.now();
+        const wasAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+
+        const sorted = Object.entries(msgs)
+            .map(([k,v]) => ({ key: k, ...v }))
+            .filter(m => m.ts && (now - m.ts) < SUPPORT_MSG_TTL)
+            .sort((a,b) => a.ts - b.ts);
+
+        container.innerHTML = '';
+        _supportMsgMap = {};
+        sorted.forEach(m => {
+            const el = _supportRenderMsg(m);
+            container.appendChild(el);
+            _supportMsgMap[m.key] = el;
+        });
+
+        if (wasAtBottom) container.scrollTop = container.scrollHeight;
+    };
+    onValue(msgsRef, _supportMsgsUnsub);
+}
+
+/* ── Render a message bubble ── */
+function _supportRenderMsg(m) {
+    const isMine = m.name === _supportName;
+    const isSys  = m.type === 'system';
+    const wrap = document.createElement('div');
+    wrap.dataset.key = m.key;
+
+    if (isSys) {
+        wrap.className = 'support-msg support-msg-system';
+        wrap.innerHTML = `<div class="support-bubble">${m.text}</div>`;
+        return wrap;
+    }
+
+    wrap.className = `support-msg ${isMine ? 'mine' : 'theirs'}`;
+
+    const reactions = m.reactions || {};
+    const reactionHtml = _supportReactionsHtml(reactions, m.key);
+
+    // Support-specific reaction emojis — warm and caring
+    const supportReacts = ['💙','🤗','✨','🌸','🕊️'];
+
+    wrap.innerHTML = `
+        <div class="support-msg-name">${_esc(m.name)}</div>
+        <div class="support-bubble" id="sbubble-s-${m.key}">
+            <div class="support-react-bar">
+                ${supportReacts.map(e =>
+                    `<button class="support-react-pick" onclick="supportReact('${m.key}','${e}',event)">${e}</button>`
+                ).join('')}
+            </div>
+            <div class="support-msg-text">${_esc(m.text)}</div>
+            <div style="display:flex;gap:4px;margin-top:3px;justify-content:${isMine?'flex-end':'flex-start'};">
+                <span class="support-msg-ts">${_fmtTime(m.ts)}</span>
+            </div>
+        </div>
+        <div class="support-reactions" id="sreact-s-${m.key}">${reactionHtml}</div>`;
+    return wrap;
+}
+
+function _supportReactionsHtml(reactions, key) {
+    let html = '';
+    for (const [emoji, users] of Object.entries(reactions)) {
+        const cnt = Object.keys(users).length;
+        if (!cnt) continue;
+        const mine = users[_supportSafeName()] ? 'mine-react' : '';
+        html += `<span class="support-react-chip ${mine}" onclick="supportReact('${key}','${emoji}',event)">${emoji}<span class="count">${cnt}</span></span>`;
+    }
+    return html;
+}
+
+function _supportSafeName() {
+    return _supportName.replace(/[^a-zA-Z0-9]/g,'_').slice(0,20) || 'user';
+}
+
+function _supportPushSystem(text) {
+    if (!_supportRoom) return;
+    push(ref(_rtdb, `supportRooms/${_supportRoom}/messages`), {
+        type: 'system', text, ts: Date.now(), name: 'System'
+    });
+}
+
+/* ── Send message ── */
+window.supportSendMsg = function() {
+    const input = document.getElementById('supportMsgInput');
+    const text = input.value.trim();
+    if (!text || !_supportRoom) return;
+    input.value = '';
+    input.style.height = 'auto';
+
+    push(ref(_rtdb, `supportRooms/${_supportRoom}/messages`), {
+        name: _supportName,
+        text,
+        ts: Date.now(),
+        type: 'text'
+    });
+};
+
+// Enter sends, Shift+Enter = newline
+document.getElementById('supportMsgInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); supportSendMsg(); }
+});
+document.getElementById('supportMsgInput').addEventListener('input', (e) => {
+    e.target.style.height = 'auto';
+    e.target.style.height = Math.min(e.target.scrollHeight, 80) + 'px';
+});
+
+/* ── Reactions ── */
+window.supportReact = function(msgKey, emoji, event) {
+    if (!_supportRoom || !msgKey) return;
+    event && event.stopPropagation();
+    const safeName = _supportSafeName();
+    const reactRef = ref(_rtdb, `supportRooms/${_supportRoom}/messages/${msgKey}/reactions/${emoji}/${safeName}`);
+    get(reactRef).then(snap => {
+        if (snap.exists()) {
+            remove(reactRef);
+        } else {
+            set(reactRef, true);
+            if (event) {
+                const r = event.currentTarget.getBoundingClientRect();
+                const el = document.createElement('div');
+                el.className = 'support-float-react';
+                el.textContent = emoji;
+                el.style.left = (r.left + r.width/2 - 14) + 'px';
+                el.style.top  = (r.top  + window.scrollY - 10) + 'px';
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 1500);
+            }
+        }
+    });
+};
+
+/* ── Emoji picker ── */
+const SUPPORT_EMOJIS = [
+    { label:'Feelings', emojis:['💙','🤗','✨','🌸','🕊️','🌿','💛','💜','🌙','🌅','🌊','🌱'] },
+    { label:'Support',  emojis:['🫂','❤️','🙏','💪','🌟','🎗️','🤍','🫶','💐','🌈','☀️','🍃'] },
+    { label:'People',   emojis:['😊','🥺','😢','😌','🙂','😔','🤭','😇','😴','🥹','😮‍💨','🫠'] },
+];
+
+function _supportBuildEmoji() {
+    const grid = document.getElementById('supportEmojiGrid');
+    if (grid.childElementCount > 0) return;
+    SUPPORT_EMOJIS.forEach(sec => {
+        const lbl = document.createElement('div');
+        lbl.className = 'sep-label'; lbl.textContent = sec.label;
+        grid.appendChild(lbl);
+        sec.emojis.forEach(em => {
+            const btn = document.createElement('button');
+            btn.className = 'sep-btn'; btn.textContent = em; btn.type = 'button';
+            btn.addEventListener('click', () => {
+                const ta = document.getElementById('supportMsgInput');
+                const s = ta.selectionStart || ta.value.length;
+                const e = ta.selectionEnd   || ta.value.length;
+                ta.value = ta.value.slice(0,s) + em + ta.value.slice(e);
+                ta.selectionStart = ta.selectionEnd = s + em.length;
+                ta.focus();
+            });
+            grid.appendChild(btn);
+        });
+    });
+}
+
+window.supportToggleEmoji = function() {
+    _supportBuildEmoji();
+    document.getElementById('supportEmojiPicker').classList.toggle('open');
+};
+
+document.addEventListener('click', (e) => {
+    const picker = document.getElementById('supportEmojiPicker');
+    if (picker && !picker.contains(e.target) && !e.target.closest('.support-icon-btn'))
+        picker.classList.remove('open');
+});
+
+/* ── Ambient canvas — soft floating light orbs ── */
+let _supportCanvasRAF = null;
+
+function _supportStartCanvas() {
+    const cv = document.getElementById('support-canvas');
+    if (!cv) return;
+    if (_supportCanvasRAF) return; // already running
+    cv.width  = window.innerWidth;
+    cv.height = window.innerHeight;
+    const ctx = cv.getContext('2d');
+
+    const orbs = Array.from({ length: 18 }, () => ({
+        x: Math.random() * cv.width,
+        y: Math.random() * cv.height,
+        r: 60 + Math.random() * 120,
+        speed: 0.15 + Math.random() * 0.25,
+        opacity: 0.04 + Math.random() * 0.06,
+        dx: (Math.random() - 0.5) * 0.4,
+        dy: -0.1 - Math.random() * 0.2,
+        hue: Math.random() < 0.5 ? '180,100,255' : '120,200,255',
+    }));
+
+    function _drawFrame() {
+        ctx.clearRect(0, 0, cv.width, cv.height);
+
+        // Soft deep-purple background wash
+        const bg = ctx.createLinearGradient(0, 0, 0, cv.height);
+        bg.addColorStop(0,   'rgba(10,4,22,0.7)');
+        bg.addColorStop(0.6, 'rgba(16,6,32,0.5)');
+        bg.addColorStop(1,   'rgba(6,2,14,0.75)');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, cv.width, cv.height);
+
+        // Gentle floating light orbs
+        orbs.forEach(o => {
+            const g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+            g.addColorStop(0,   `rgba(${o.hue},${o.opacity})`);
+            g.addColorStop(0.5, `rgba(${o.hue},${o.opacity * 0.4})`);
+            g.addColorStop(1,   'rgba(0,0,0,0)');
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+            ctx.fill();
+
+            o.x += o.dx;
+            o.y += o.dy;
+            if (o.y + o.r < 0) { o.y = cv.height + o.r; o.x = Math.random() * cv.width; }
+            if (o.x + o.r < 0 || o.x - o.r > cv.width) o.dx *= -1;
+        });
+
+        _supportCanvasRAF = requestAnimationFrame(_drawFrame);
+    }
+    _drawFrame();
+    window.addEventListener('resize', _supportResizeCanvas);
+}
+
+function _supportResizeCanvas() {
+    const cv = document.getElementById('support-canvas');
+    if (cv) { cv.width = window.innerWidth; cv.height = window.innerHeight; }
+}
+
+function _supportStopCanvas() {
+    if (_supportCanvasRAF) { cancelAnimationFrame(_supportCanvasRAF); _supportCanvasRAF = null; }
+    window.removeEventListener('resize', _supportResizeCanvas);
+    const cv = document.getElementById('support-canvas');
+    if (cv) { const ctx = cv.getContext('2d'); ctx.clearRect(0, 0, cv.width, cv.height); }
 }
 </script>
 

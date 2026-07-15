@@ -12667,32 +12667,38 @@ function arcadeStartGame() {
     _arcadeCanvas  = document.getElementById('arcadeCanvas');
     _arcadeCtx     = _arcadeCanvas?.getContext('2d');
     if (!_arcadeCanvas || !_arcadeCtx) return;
-    _arcadeResizeCanvas();
     _arcadeStopLoop();
     _arcadeRunning = true;
 
-    switch (_arcadeGame) {
-        case 'snake':     _snakeInit();     break;
-        case 'pool':      _poolInit();      break;
-        case 'chess':     _chessInit();     break;
-        case 'breakout':  _breakoutInit();  break;
-        case 'tetris':    _tetrisInit();    break;
-        case 'checkers':  _checkersInit();  break;
-        case 'tictactoe': _tictactoeInit(); break;
-        case 'connect4':  _connect4Init();  break;
-        case 'memory':    _memoryInit();    break;
-        case 'pong':      _pongInit();      break;
-    }
+    // Use requestAnimationFrame so the browser has painted the modal and the
+    // canvas wrap has real dimensions before we size the canvas and start the loop.
+    requestAnimationFrame(() => {
+        _arcadeResizeCanvas();
+        switch (_arcadeGame) {
+            case 'snake':     _snakeInit();     break;
+            case 'pool':      _poolInit();      break;
+            case 'chess':     _chessInit();     break;
+            case 'breakout':  _breakoutInit();  break;
+            case 'tetris':    _tetrisInit();    break;
+            case 'checkers':  _checkersInit();  break;
+            case 'tictactoe': _tictactoeInit(); break;
+            case 'connect4':  _connect4Init();  break;
+            case 'memory':    _memoryInit();    break;
+            case 'pong':      _pongInit();      break;
+        }
+    });
 }
 
 function _arcadeResizeCanvas() {
     if (!_arcadeCanvas) return;
     const wrap = document.getElementById('arcadeCanvasWrap');
     if (!wrap) return;
-    const W = wrap.clientWidth  || 520;
-    const H = wrap.clientHeight || 360;
-    _arcadeCanvas.width  = W;
-    _arcadeCanvas.height = H;
+    // clientWidth can be 0 if the modal hasn't painted yet — fall back to
+    // the modal card width or a safe default so games never get a 0-size canvas.
+    const W = wrap.clientWidth  || wrap.offsetWidth  || 520;
+    const H = wrap.clientHeight || wrap.offsetHeight || 360;
+    if (W > 0) _arcadeCanvas.width  = W;
+    if (H > 0) _arcadeCanvas.height = H;
 }
 
 function _arcadeStopLoop() {

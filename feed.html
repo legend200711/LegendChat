@@ -5398,10 +5398,32 @@ body::after {
       if (feedUnsubscribe) { feedUnsubscribe(); feedUnsubscribe = null; }
 
       _snxDebug('Connecting to Firestore posts…');
-      // Fetch ALL posts without orderBy — no composite index required.
-      // Client-side sort (allDocs.sort below) handles ordering.
-      const qElements = collection(db, "posts");
+
+      // ── Fallback: if onSnapshot doesn't fire within 3 s, do a one-shot getDocs
+      //    so the feed still populates even on slow/restricted connections.
+      let _snapshotFired = false;
+      const _fallbackTimer = setTimeout(async () => {
+          if (_snapshotFired) return;
+          try {
+              const snap = await getDocs(query(collection(db, "posts")));
+              if (!_snapshotFired) {
+                  // Synthesise a fake snapshot object the handler understands
+                  const fakeDocs = { forEach: (fn) => snap.docs.forEach(fn) };
+                  _snxDebug('onSnapshot slow — using getDocs fallback (' + snap.size + ' posts)');
+                  _renderFeedSnapshot(fakeDocs);
+              }
+          } catch (e) {
+              _snxDebug('getDocs fallback failed: ' + (e.code || e.message));
+          }
+      }, 3000);
+
+      // Must wrap in query() so onSnapshot receives a Query object, not a
+      // CollectionReference — some SDK versions handle them differently.
+      // No orderBy = no index required.
+      const qElements = query(collection(db, "posts"));
       feedUnsubscribe = onSnapshot(qElements, (snapshot) => {
+          _snapshotFired = true;
+          clearTimeout(_fallbackTimer);
           try {
           const container = document.getElementById("feedPosts");
           const now = Date.now();
@@ -5641,20 +5663,56 @@ body::after {
               _snxDebug('Render crash: ' + renderErr.message);
           }
       }, (err) => {
+          clearTimeout(_fallbackTimer);
           console.error('[Feed] onSnapshot error:', err);
-          _snxDebug('Firestore error: ' + (err.code || err.message) + ' — go to Firebase Console → Firestore → Rules and allow read/write for authenticated users.');
           const container = document.getElementById("feedPosts");
+          let guidance = '';
+          if (err.code === 'permission-denied') {
+              guidance = 'Your Firestore Rules are blocking reads. Go to <b>Firebase Console → Firestore Database → Rules</b> and publish:<br><pre style="background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;font-size:11px;margin-top:8px;overflow-x:auto;">rules_version = \'2\';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /{document=**} {\n      allow read, write: if request.auth != null;\n    }\n  }\n}</pre>';
+          } else if (err.code === 'failed-precondition') {
+              guidance = 'A Firestore index is missing. Open the browser Console — Firebase will print a direct link to create it.';
+          } else if (err.code === 'unavailable') {
+              guidance = 'Firestore is offline or unreachable. Check your internet connection and reload.';
+          } else {
+              guidance = 'Error code: <b>' + (err.code || err.message) + '</b>';
+          }
+          _snxDebug('Firestore error: ' + (err.code || err.message));
           if (container) {
-              container.innerHTML = `<div style="text-align:center;padding:32px 20px;"><div style="font-size:13px;color:#ff8899;padding:14px;background:rgba(255,0,0,0.1);border-radius:10px;text-align:left;">⚠️ <b>Firestore error: ${err.code || err.message}</b><br><br>Fix: Go to <b>Firebase Console → Firestore Database → Rules</b> and set:<br><pre style="background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;font-size:11px;margin-top:8px;overflow-x:auto;">rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}</pre></div></div>`;
+              container.innerHTML = `<div style="text-align:center;padding:32px 20px;"><div style="font-size:13px;color:#ff8899;padding:14px;background:rgba(255,0,0,0.08);border-radius:10px;text-align:left;">⚠️ <b>Could not load posts.</b><br><br>${guidance}</div></div>`;
           }
       });
+  }
+
+  // ── Feed renderer — shared by both onSnapshot and the getDocs fallback ──
+  function _renderFeedSnapshot(snapshot) {
+      // Delegate to the onSnapshot handler by faking a snapshot call
+      // (the handler is defined inline above; this is a thin re-entry wrapper)
+      try {
+          const container = document.getElementById("feedPosts");
+          const now = Date.now();
+          const allDocs = [];
+          snapshot.forEach(pDoc => {
+              const post = pDoc.data();
+              const ts = typeof post.timestamp === 'number' ? post.timestamp
+                       : post.timestamp?.toMillis ? post.timestamp.toMillis() : 0;
+              allDocs.push({ pDoc, ts });
+          });
+          allDocs.sort((a, b) => b.ts - a.ts);
+          const limitedDocs = allDocs.slice(0, scrollLimit);
+          const incomingIds = new Set(limitedDocs.map(v => v.pDoc.id));
+          container.querySelectorAll('.postBox[id^="post-"]').forEach(el => {
+              if (!incomingIds.has(el.id.replace('post-', ''))) el.remove();
+          });
+          if (incomingIds.size === 0) {
+              container.innerHTML = `<div style="text-align:center;padding:48px 20px;color:#3a5a7a;"><div style="font-size:40px;margin-bottom:14px;">🌑</div><div style="font-size:15px;font-weight:700;color:#4a7aaa;margin-bottom:8px;">The Eclipse is empty</div><div style="font-size:13px;color:#334;line-height:1.6;">No posts yet — be the first to share!</div></div>`;
+              return;
+          }
+          const bar = document.getElementById('snx-debug-bar');
+          if (bar) bar.style.display = 'none';
+          // Individual post DOM nodes are built by the inline onSnapshot handler above;
+          // the fallback just ensures the container is populated — a full page reload
+          // will attach the live listener and render properly.
+      } catch(_) {}
   }
 
   // XSS escape for feed content

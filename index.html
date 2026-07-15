@@ -6210,10 +6210,10 @@ body::after {
         <h3 style="margin:0 0 6px;font-size:13px;color:#ffe566;text-transform:uppercase;letter-spacing:0.8px;">👤 Assign / Remove Staff Role</h3>
         <p style="font-size:12px;color:#9bbdd8;margin:0 0 14px;line-height:1.6;">Search any member and set their role to Moderator, Administrator, or Member. The Founder role cannot be assigned here.</p>
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-            <input id="roleAssignSearch" placeholder="Search by name or @handle…" style="flex:1;margin:0;font-size:12px;padding:7px 10px;" oninput="roleAssignSearch()">
-            <button onclick="roleAssignSearch()" style="flex-shrink:0;font-size:12px;padding:7px 14px;border-radius:8px;">Search</button>
+            <input id="roleAssignSearch" placeholder="Search by name or @handle…" style="flex:1;margin:0;font-size:12px;padding:7px 10px;" oninput="window.roleAssignSearch()">
+            <button onclick="window.roleAssignSearch()" style="flex-shrink:0;font-size:12px;padding:7px 14px;border-radius:8px;">Search</button>
         </div>
-        <div id="roleAssignList"><div class="empty-state" style="padding:14px 0;color:#6a90b8;font-size:13px;">Search for a user above.</div></div>
+        <div id="roleAssignList"><div class="empty-state" style="padding:14px 0;color:#6a90b8;font-size:13px;">Loading…</div></div>
     </div>
 
 </div>
@@ -10321,7 +10321,7 @@ body::after {
                       : 'border-color:rgba(255,255,255,0.18);color:#9bbdd8;background:transparent;';
                   return `<button
                       style="font-size:11px;padding:4px 11px;border-radius:8px;${active ? colors : 'opacity:0.45;'}cursor:pointer;"
-                      onclick="assignRole('${u.uid}','${r}','${(u.displayName||'').replace(/'/g,"\\'")}')">
+                      onclick="window.assignRole('${u.uid}','${r}','${(u.displayName||'').replace(/'/g,"\\'")}')">
                       ${ROLE_LABEL[r]}${active ? ' ✓' : ''}
                   </button>`;
               }).join('');
@@ -10618,7 +10618,8 @@ function navTo(pageId) {
     // Render admin panel on navigation (re-fetches latest data each time)
     if (pageId === 'adminPage' && typeof renderAdminPanel === 'function') {
         renderAdminPanel();
-        if (typeof window.adminLoadSettings === 'function') window.adminLoadSettings();
+        if (typeof window.adminLoadSettings  === 'function') window.adminLoadSettings();
+        if (typeof window.roleAssignSearch   === 'function') window.roleAssignSearch();
     }
     // Render moderator panel on navigation
     if (pageId === 'moderatorPage' && typeof window.renderModeratorPanel === 'function') window.renderModeratorPanel();

@@ -4298,6 +4298,299 @@ body::after {
 
 /* ── composer @mention wrapper needs relative positioning ── */
 .post-composer-wrap { position: relative; }
+
+/* ═══════════════════════════════════════════════════════════
+   SHADOW NEXUS ARCADE — Built-In Retro Arcade System
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Arcade Hub Modal ── */
+#arcadeHubModal {
+    display:none; position:fixed; inset:0; z-index:8500;
+    background:rgba(0,3,15,0.92); align-items:center; justify-content:center;
+    padding:12px; box-sizing:border-box; backdrop-filter:blur(8px);
+}
+#arcadeHubModal.open { display:flex; }
+.arcade-hub-card {
+    background:linear-gradient(180deg,#071428 0%,#0B1F3A 100%);
+    border:1px solid rgba(0,174,239,0.45);
+    border-radius:18px; width:100%; max-width:680px;
+    max-height:92vh; display:flex; flex-direction:column;
+    box-shadow:0 0 80px rgba(0,174,239,0.3),0 0 0 1px rgba(0,200,255,0.06);
+    overflow:hidden; animation:deleteModalIn 0.25s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.arcade-hub-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 20px; border-bottom:1px solid rgba(0,174,239,0.2);
+    flex-shrink:0; background:rgba(7,20,40,0.98);
+}
+.arcade-hub-title {
+    font-size:18px; font-weight:900; color:#fff;
+    text-shadow:0 0 16px rgba(0,174,239,0.7),0 0 32px rgba(0,174,239,0.35);
+    letter-spacing:1.5px;
+}
+.arcade-hub-subtitle { font-size:11px; color:#6a90b8; margin-top:2px; }
+.arcade-hub-close {
+    background:none; border:none; color:#ff5566; font-size:22px;
+    cursor:pointer; padding:4px 8px; border-radius:8px; line-height:1;
+    transition:background 0.15s;
+}
+.arcade-hub-close:hover { background:rgba(255,51,102,0.12); }
+.arcade-hub-tabs {
+    display:flex; gap:0; overflow-x:auto; scrollbar-width:none;
+    border-bottom:1px solid rgba(0,174,239,0.15); flex-shrink:0;
+    background:rgba(7,20,40,0.92);
+}
+.arcade-hub-tabs::-webkit-scrollbar { display:none; }
+.arcade-hub-tab {
+    flex-shrink:0; padding:10px 18px; font-size:12px; font-weight:700;
+    color:#6a90b8; cursor:pointer; border-bottom:2px solid transparent;
+    background:none; border-top:none; border-left:none; border-right:none;
+    transition:color 0.15s,border-color 0.15s; font-family:inherit; white-space:nowrap;
+}
+.arcade-hub-tab:hover { color:#00AEEF; }
+.arcade-hub-tab.active { color:#00AEEF; border-bottom-color:#00AEEF; }
+.arcade-hub-body {
+    flex:1; overflow-y:auto; padding:16px 18px;
+    -webkit-overflow-scrolling:touch; min-height:0;
+}
+
+/* ── Game grid in arcade hub ── */
+.arcade-game-grid {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+    gap:12px; margin-bottom:4px;
+}
+.arcade-game-tile {
+    background:rgba(0,20,55,0.8); border:1px solid rgba(0,174,239,0.25);
+    border-radius:14px; padding:16px 12px; text-align:center; cursor:pointer;
+    transition:border-color 0.2s,box-shadow 0.2s,transform 0.15s;
+    position:relative; user-select:none;
+}
+.arcade-game-tile:hover {
+    border-color:rgba(0,174,239,0.65);
+    box-shadow:0 0 22px rgba(0,174,239,0.28);
+    transform:translateY(-2px);
+}
+.arcade-game-tile:active { transform:scale(0.96); }
+.arcade-game-icon { font-size:32px; margin-bottom:8px; display:block; }
+.arcade-game-name { font-size:12px; font-weight:700; color:#d0e8ff; margin-bottom:3px; }
+.arcade-game-desc { font-size:10px; color:#4a7a9a; line-height:1.4; }
+.arcade-game-best {
+    position:absolute; top:7px; right:8px; font-size:9px; font-weight:700;
+    color:#39FF14; background:rgba(57,255,20,0.1); border:1px solid rgba(57,255,20,0.25);
+    padding:1px 5px; border-radius:8px;
+}
+.arcade-game-badge-new {
+    position:absolute; top:7px; left:8px; font-size:9px; font-weight:700;
+    color:#fff; background:rgba(255,51,102,0.8); padding:1px 5px; border-radius:8px;
+}
+
+/* ── My Stats section ── */
+.arcade-stats-grid {
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr));
+    gap:10px; margin-bottom:16px;
+}
+.arcade-stat-card {
+    background:rgba(0,10,30,0.7); border:1px solid rgba(0,174,239,0.22);
+    border-radius:12px; padding:14px 10px; text-align:center;
+}
+.arcade-stat-num { font-size:22px; font-weight:800; color:#00AEEF; }
+.arcade-stat-label { font-size:10px; color:#6a90b8; margin-top:3px; text-transform:uppercase; letter-spacing:0.4px; }
+
+/* ── Leaderboard ── */
+.arcade-lb-tabs {
+    display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap;
+}
+.arcade-lb-tab {
+    background:rgba(0,10,30,0.7); border:1px solid rgba(0,174,239,0.22);
+    color:#6a90b8; padding:6px 12px; border-radius:10px; cursor:pointer;
+    font-size:11px; font-weight:700; transition:all 0.15s;
+}
+.arcade-lb-tab:hover { border-color:rgba(0,174,239,0.55); color:#00AEEF; }
+.arcade-lb-tab.active {
+    background:rgba(0,174,239,0.15); border-color:rgba(0,174,239,0.65);
+    color:#00AEEF; box-shadow:0 0 10px rgba(0,174,239,0.2);
+}
+.arcade-lb-game-select {
+    width:100%; background:rgba(7,20,40,0.9); border:1px solid rgba(0,174,239,0.35);
+    color:#fff; border-radius:8px; padding:8px 12px; font-size:13px;
+    margin-bottom:14px; font-family:inherit; cursor:pointer;
+}
+.arcade-lb-row {
+    display:flex; align-items:center; gap:12px;
+    padding:10px 0; border-bottom:1px solid rgba(0,51,102,0.3);
+}
+.arcade-lb-row:last-child { border-bottom:none; }
+.arcade-lb-rank {
+    width:28px; text-align:center; font-size:14px; font-weight:800;
+    color:#6a90b8; flex-shrink:0;
+}
+.arcade-lb-rank.gold   { color:#ffd700; text-shadow:0 0 8px rgba(255,215,0,0.7); }
+.arcade-lb-rank.silver { color:#c0c0c0; }
+.arcade-lb-rank.bronze { color:#cd7f32; }
+.arcade-lb-avatar {
+    width:36px; height:36px; border-radius:50%; background:#0B1F3A;
+    background-size:cover; background-position:center;
+    border:2px solid rgba(0,174,239,0.38); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:bold; color:#00AEEF; overflow:hidden;
+}
+.arcade-lb-info { flex:1; min-width:0; }
+.arcade-lb-name { font-size:13px; font-weight:600; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.arcade-lb-score { font-size:11px; color:#39FF14; font-weight:700; margin-top:1px; }
+.arcade-lb-empty { text-align:center; color:#334; font-size:13px; padding:30px 0; }
+
+/* ── Invite / Active Games section ── */
+.arcade-invite-card {
+    background:rgba(0,20,55,0.75); border:1px solid rgba(0,174,239,0.28);
+    border-radius:12px; padding:14px 16px; margin-bottom:10px;
+    display:flex; align-items:center; gap:14px;
+    animation:postSlideIn 0.2s ease-out both;
+}
+.arcade-invite-icon { font-size:26px; flex-shrink:0; }
+.arcade-invite-info { flex:1; min-width:0; }
+.arcade-invite-title { font-size:13px; font-weight:700; color:#d0e8ff; }
+.arcade-invite-sub { font-size:11px; color:#6a90b8; margin-top:2px; }
+.arcade-invite-actions { display:flex; gap:8px; flex-shrink:0; flex-wrap:wrap; }
+.arcade-invite-actions button { font-size:11px; padding:6px 12px; border-radius:10px; }
+.btn-arcade-accept { border-color:rgba(57,255,20,0.55)!important; color:#39FF14!important; }
+.btn-arcade-decline { border-color:rgba(255,51,102,0.45)!important; color:#ff6680!important; }
+.btn-arcade-rematch { border-color:rgba(0,174,239,0.55)!important; color:#00AEEF!important; }
+.arcade-invite-empty { text-align:center; color:#334; font-size:13px; padding:20px 0; }
+
+/* ── Profile: Arcade stats section ── */
+.profile-arcade-section {
+    background:var(--bg-card,#0d2444); border:1px solid rgba(0,174,239,0.22);
+    border-radius:12px; padding:14px 16px; margin-bottom:14px;
+}
+.profile-arcade-header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:12px;
+}
+.profile-arcade-title {
+    font-size:13px; font-weight:700; color:#c8e8ff; letter-spacing:0.4px;
+}
+.profile-arcade-games {
+    display:flex; flex-wrap:wrap; gap:8px;
+}
+.profile-arcade-chip {
+    display:inline-flex; align-items:center; gap:5px;
+    background:rgba(0,20,55,0.7); border:1px solid rgba(0,174,239,0.28);
+    border-radius:20px; padding:4px 10px; font-size:11px; color:#9bbdd8;
+}
+.profile-arcade-chip .chip-score { color:#39FF14; font-weight:700; margin-left:2px; }
+
+/* ── GAME MODAL (the actual game container) ── */
+#arcadeGameModal {
+    display:none; position:fixed; inset:0; z-index:9500;
+    background:rgba(0,0,0,0.96); align-items:center; justify-content:center;
+    flex-direction:column; padding:0; box-sizing:border-box;
+}
+#arcadeGameModal.open { display:flex; }
+.arcade-game-modal-header {
+    width:100%; max-width:640px; display:flex; align-items:center; justify-content:space-between;
+    padding:10px 14px; background:rgba(7,20,40,0.99);
+    border-bottom:1px solid rgba(0,174,239,0.25); flex-shrink:0;
+}
+.arcade-game-modal-title { font-size:15px; font-weight:800; color:#fff; }
+.arcade-game-modal-score { font-size:13px; color:#39FF14; font-weight:700; }
+.arcade-game-modal-close {
+    background:none; border:none; color:#ff5566; font-size:24px;
+    cursor:pointer; padding:4px 8px; border-radius:8px; line-height:1;
+}
+.arcade-game-canvas-wrap {
+    width:100%; max-width:640px; flex:1;
+    display:flex; align-items:center; justify-content:center;
+    background:#000010; overflow:hidden; position:relative;
+    touch-action:none;
+}
+#arcadeGameCanvas {
+    display:block; max-width:100%; max-height:100%;
+    image-rendering:pixelated;
+}
+.arcade-game-controls {
+    width:100%; max-width:640px; flex-shrink:0;
+    background:rgba(7,20,40,0.99); border-top:1px solid rgba(0,174,239,0.2);
+    padding:8px 12px; display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:8px;
+}
+/* On-screen D-pad / action buttons for mobile */
+.arcade-dpad {
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+}
+.arcade-dpad-row { display:flex; gap:2px; }
+.arcade-ctrl-btn {
+    width:46px; height:46px; border-radius:10px; font-size:18px; font-weight:bold;
+    background:rgba(0,40,100,0.7); border:1px solid rgba(0,174,239,0.4); color:#00AEEF;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    user-select:none; transition:background 0.1s, transform 0.1s;
+    touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+    flex-shrink:0;
+}
+.arcade-ctrl-btn:active { background:rgba(0,100,255,0.35); transform:scale(0.92); }
+.arcade-ctrl-btn.action-btn {
+    width:52px; height:52px; border-radius:50%;
+    background:rgba(0,80,200,0.5); border-color:rgba(0,174,239,0.7);
+    font-size:20px;
+}
+.arcade-ctrl-btn.action-btn-green {
+    background:rgba(0,100,30,0.5); border-color:rgba(57,255,20,0.7); color:#39FF14;
+}
+/* Hide on-screen controls on desktop */
+@media (min-width:769px) {
+    .arcade-mobile-controls { display:none !important; }
+}
+/* Always show on mobile */
+@media (max-width:768px) {
+    .arcade-mobile-controls { display:flex !important; }
+}
+.arcade-mobile-controls {
+    display:none; align-items:center; justify-content:space-between;
+    gap:12px; width:100%;
+}
+/* Landscape orientation adjustments */
+@media (orientation:landscape) and (max-width:900px) {
+    .arcade-game-canvas-wrap { max-height:55vw; }
+    .arcade-mobile-controls { padding:4px 8px; }
+    .arcade-ctrl-btn { width:40px; height:40px; font-size:16px; }
+}
+/* Game over overlay */
+.arcade-gameover-overlay {
+    position:absolute; inset:0; background:rgba(0,0,0,0.72);
+    display:none; align-items:center; justify-content:center;
+    flex-direction:column; gap:10px; z-index:10;
+    backdrop-filter:blur(3px);
+}
+.arcade-gameover-overlay.show { display:flex; }
+.arcade-go-title { font-size:22px; font-weight:900; color:#ff3366; font-family:monospace; letter-spacing:2px; }
+.arcade-go-score { font-size:15px; color:#d8eeff; font-family:monospace; }
+.arcade-go-best  { font-size:13px; color:#39FF14; font-family:monospace; }
+.arcade-go-btns  { display:flex; gap:10px; margin-top:4px; }
+.arcade-go-btns button { padding:8px 22px; border-radius:10px; font-size:13px; font-weight:700; }
+
+/* Multiplayer invite challenge button on profiles */
+.btn-challenge-game {
+    border-color:rgba(57,255,20,0.5)!important; color:#39FF14!important;
+    font-size:12px; padding:6px 14px; border-radius:20px;
+}
+.btn-challenge-game:hover {
+    background:rgba(57,255,20,0.08)!important; border-color:rgba(57,255,20,0.8)!important;
+    box-shadow:0 0 12px rgba(57,255,20,0.25)!important;
+}
+
+/* Responsive arcade hub */
+@media (max-width:768px) {
+    .arcade-hub-card { max-width:100%; max-height:96vh; border-radius:18px 18px 0 0; }
+    #arcadeHubModal { align-items:flex-end; padding:0; }
+    .arcade-game-grid { grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; }
+    .arcade-hub-body  { padding:12px 14px; }
+    #arcadeGameModal { padding:0; }
+    .arcade-game-modal-header { max-width:100%; }
+    .arcade-game-canvas-wrap  { max-width:100%; }
+    .arcade-game-controls     { max-width:100%; }
+}
+@supports (padding:env(safe-area-inset-bottom)) {
+    .arcade-game-controls { padding-bottom:calc(8px + env(safe-area-inset-bottom)); }
+}
 </style>
 
 <body>
@@ -4347,6 +4640,9 @@ body::after {
         </button>
         <button class="nav-item" id="navSettings" onclick="navTo('settingsPage')">
             <span class="nav-icon">⚙️</span> Settings
+        </button>
+        <button class="nav-item" id="navArcade" onclick="openArcadeHub()">
+            <span class="nav-icon">🕹️</span> Arcade
         </button>
         <button class="nav-item" id="navStorm" onclick="navTo('stormRoomsPage')">
             <span class="nav-icon">⚡</span> Storm Rooms
@@ -4855,6 +5151,10 @@ body::after {
                 <div class="epm-section-toggle-row">
                     <span>📊 Stats (followers, posts…)</span>
                     <label class="notif-toggle-wrap"><input type="checkbox" id="secShowStats" class="notif-toggle-cb" checked><span class="notif-toggle-slider"></span></label>
+                </div>
+                <div class="epm-section-toggle-row">
+                    <span>🕹️ Arcade Stats &amp; Records</span>
+                    <label class="notif-toggle-wrap"><input type="checkbox" id="secShowArcade" class="notif-toggle-cb" checked><span class="notif-toggle-slider"></span></label>
                 </div>
             </div>
 
@@ -14425,6 +14725,1710 @@ function _supportStopCanvas() {
 })();
 </script>
 
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   SHADOW NEXUS ARCADE ENGINE
+   Fully self-contained — all games, hub, leaderboard, invites,
+   profile integration, mobile touch controls, Firebase persistence.
+   ═══════════════════════════════════════════════════════════════════ */
+(function() {
+'use strict';
+
+/* ─────────────────────────────────────────────
+   GAME REGISTRY
+   ───────────────────────────────────────────── */
+const ARCADE_GAMES = [
+  { id:'snake',     name:'Snake',        icon:'🐍', desc:'Eat dots, grow long, don\'t crash.',       hint:'Arrow keys / WASD',   controls:'dpad' },
+  { id:'tetris',    name:'Tetris',        icon:'🟦', desc:'Clear lines before they stack up.',        hint:'← → rotate, ↓ drop', controls:'tetris' },
+  { id:'pong',      name:'Pong',          icon:'🏓', desc:'Classic paddle vs AI or a friend.',       hint:'W/S or ↑/↓',          controls:'pong' },
+  { id:'tictactoe', name:'Tic-Tac-Toe',   icon:'⭕', desc:'Three in a row wins.',                    hint:'Tap a square',        controls:'tap' },
+  { id:'connect4',  name:'Connect Four',  icon:'🔴', desc:'Drop chips to get four in a row.',        hint:'Tap a column',        controls:'tap' },
+  { id:'memory',    name:'Memory Match',  icon:'🃏', desc:'Flip cards and find matching pairs.',     hint:'Tap to flip',         controls:'tap' },
+  { id:'checkers',  name:'Checkers',      icon:'♟',  desc:'Classic draughts — jump & capture.',     hint:'Tap piece, tap dest', controls:'tap' },
+  { id:'chess',     name:'Chess',         icon:'♛',  desc:'Full chess vs AI or a friend.',           hint:'Tap piece, tap dest', controls:'tap' },
+  { id:'pool',      name:'Pool',          icon:'🎱', desc:'Pocket all your balls before opponent.',  hint:'Drag to aim & shoot', controls:'pool' },
+  { id:'breakout',  name:'Breakout',      icon:'🧱', desc:'Bounce ball, smash bricks, score big.',  hint:'Mouse / touch',       controls:'paddle' },
+];
+
+/* ─────────────────────────────────────────────
+   STATE
+   ───────────────────────────────────────────── */
+let _arcadeCurrentGame  = null;  // id string
+let _arcadeRAF          = null;
+let _arcadeScore        = 0;
+let _arcadeGameState    = null;  // game-specific state object
+let _arcadeLbScope      = 'global';
+let _arcadeLbPeriod     = 'alltime';
+let _arcadeInviteUnsub  = null;
+let _arcadeOrientation  = null;
+
+/* ─────────────────────────────────────────────
+   HELPERS
+   ───────────────────────────────────────────── */
+function _fs()   { return window._snxFirestore; }
+function _rtdb() { return window._snxFirebaseApp ? window._snxFirebaseApp._rtdb : null; }
+function _me()   { return window._snxCurrentUser; }
+function _myData(){ return window._snxUserData || {}; }
+function esc(s)  { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function _arcadeDb() {
+  const fs = _fs();
+  if (!fs) return null;
+  return fs.db;
+}
+
+function toastArcade(msg) {
+  if (window.toastNotification) window.toastNotification(msg);
+}
+
+/* Local best score storage */
+function _localBest(gameId, val) {
+  const k = 'snx_arcade_best_' + gameId;
+  if (val !== undefined) {
+    const prev = parseInt(localStorage.getItem(k)||'0',10);
+    if (val > prev) localStorage.setItem(k, val);
+    return Math.max(val, prev);
+  }
+  return parseInt(localStorage.getItem(k)||'0',10);
+}
+
+/* ─────────────────────────────────────────────
+   ARCADE HUB — open / close / tabs
+   ───────────────────────────────────────────── */
+window.openArcadeHub = function() {
+  const modal = document.getElementById('arcadeHubModal');
+  if (!modal) return;
+  modal.classList.add('open');
+  _buildGameGrid();
+  switchArcadeTab('games', document.getElementById('ahTab-games'));
+  _subscribeInvites();
+  // Close sidebar on mobile
+  const side = document.getElementById('side');
+  if (side && side.classList.contains('active')) {
+    side.classList.remove('active');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (overlay) overlay.classList.remove('visible');
+    const btn = document.getElementById('menuButton');
+    if (btn) { btn.classList.remove('is-open'); btn.setAttribute('aria-expanded','false'); }
+  }
+};
+
+window.closeArcadeHub = function() {
+  const modal = document.getElementById('arcadeHubModal');
+  if (modal) modal.classList.remove('open');
+  _unsubInvites();
+};
+
+window.switchArcadeTab = function(tab, btn) {
+  ['games','invites','stats','leaderboard'].forEach(t => {
+    const panel = document.getElementById('ahPanel-' + t);
+    const tabBtn = document.getElementById('ahTab-' + t);
+    if (panel) panel.style.display = (t === tab) ? '' : 'none';
+    if (tabBtn) tabBtn.classList.toggle('active', t === tab);
+  });
+  if (btn) { /* already handled above */ }
+  if (tab === 'stats')       _renderMyStats();
+  if (tab === 'leaderboard') renderLeaderboard();
+  if (tab === 'invites')     _renderInvites();
+};
+
+/* ─────────────────────────────────────────────
+   GAME GRID
+   ───────────────────────────────────────────── */
+function _buildGameGrid() {
+  const grid = document.getElementById('arcadeGameGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  ARCADE_GAMES.forEach(g => {
+    const best = _localBest(g.id);
+    const bestHtml = best > 0 ? `<span class="arcade-game-best">${best}</span>` : '';
+    const div = document.createElement('div');
+    div.className = 'arcade-game-tile';
+    div.innerHTML = `
+      ${bestHtml}
+      <span class="arcade-game-icon">${g.icon}</span>
+      <div class="arcade-game-name">${g.name}</div>
+      <div class="arcade-game-desc">${g.desc}</div>`;
+    div.addEventListener('click', () => launchArcadeGame(g.id));
+    div.addEventListener('touchend', e => { e.preventDefault(); launchArcadeGame(g.id); }, { passive:false });
+    grid.appendChild(div);
+  });
+}
+
+/* ─────────────────────────────────────────────
+   LAUNCH / CLOSE GAME
+   ───────────────────────────────────────────── */
+window.launchArcadeGame = function(gameId) {
+  const g = ARCADE_GAMES.find(x => x.id === gameId);
+  if (!g) return;
+  _arcadeCurrentGame = gameId;
+  _arcadeScore = 0;
+
+  const modal = document.getElementById('arcadeGameModal');
+  modal.classList.add('open');
+  document.getElementById('agmTitle').textContent = g.icon + ' ' + g.name;
+  document.getElementById('agmScore').textContent = '';
+  document.getElementById('agmDesktopHint').textContent = '⌨ ' + g.hint;
+  document.getElementById('arcadeGameOver').classList.remove('show');
+
+  // Fit canvas to container
+  const wrap = modal.querySelector('.arcade-game-canvas-wrap');
+  const cv   = document.getElementById('arcadeGameCanvas');
+  const W = Math.min(wrap.clientWidth  || 640, 640);
+  const H = Math.min(wrap.clientHeight || 480, 480);
+  cv.width  = W || 480;
+  cv.height = H || 480;
+
+  // Build mobile controls
+  _buildMobileControls(g);
+
+  // Start the requested game
+  if (_arcadeRAF) { cancelAnimationFrame(_arcadeRAF); _arcadeRAF = null; }
+  _arcadeGameState = null;
+
+  switch (gameId) {
+    case 'snake':     _snakeInit();    break;
+    case 'tetris':    _tetrisInit();   break;
+    case 'pong':      _pongInit();     break;
+    case 'tictactoe': _tttInit();      break;
+    case 'connect4':  _c4Init();       break;
+    case 'memory':    _memoryInit();   break;
+    case 'checkers':  _checkersInit(); break;
+    case 'chess':     _chessInit();    break;
+    case 'pool':      _poolInit();     break;
+    case 'breakout':  _breakoutInit(); break;
+  }
+
+  // Orientation change — keep game running
+  _arcadeOrientation = screen.orientation ? screen.orientation.type : null;
+  window.addEventListener('resize', _arcadeHandleResize);
+};
+
+window.closeArcadeGame = function() {
+  if (_arcadeRAF) { cancelAnimationFrame(_arcadeRAF); _arcadeRAF = null; }
+  _removeGameListeners();
+  const modal = document.getElementById('arcadeGameModal');
+  if (modal) modal.classList.remove('open');
+  _arcadeCurrentGame = null;
+  window.removeEventListener('resize', _arcadeHandleResize);
+  // Rebuild hub grid to refresh best scores
+  _buildGameGrid();
+};
+
+window.arcadeRestartGame = function() {
+  document.getElementById('arcadeGameOver').classList.remove('show');
+  if (_arcadeRAF) { cancelAnimationFrame(_arcadeRAF); _arcadeRAF = null; }
+  _removeGameListeners();
+  launchArcadeGame(_arcadeCurrentGame);
+};
+
+function _arcadeHandleResize() {
+  // Refit canvas without restarting game
+  const wrap = document.querySelector('.arcade-game-canvas-wrap');
+  if (!wrap) return;
+  const cv = document.getElementById('arcadeGameCanvas');
+  const W = Math.min(wrap.clientWidth || 640, 640);
+  const H = Math.min(wrap.clientHeight || 480, 480);
+  if (cv.width !== W || cv.height !== H) {
+    // For board games, just redraw; for action games, resize keeps state
+    cv.width = W; cv.height = H;
+    if (_arcadeGameState && _arcadeGameState.redraw) _arcadeGameState.redraw();
+  }
+}
+
+/* ─────────────────────────────────────────────
+   SCORE DISPLAY & SAVE
+   ───────────────────────────────────────────── */
+function _setScore(val) {
+  _arcadeScore = val;
+  const el = document.getElementById('agmScore');
+  if (el) el.textContent = 'Score: ' + val;
+}
+
+function _gameOver(score) {
+  if (_arcadeRAF) { cancelAnimationFrame(_arcadeRAF); _arcadeRAF = null; }
+  const best = _localBest(_arcadeCurrentGame, score);
+  const go   = document.getElementById('arcadeGameOver');
+  document.getElementById('agoScore').textContent = 'Score: ' + score;
+  document.getElementById('agoBest').textContent  = 'Best: '  + best;
+  go.classList.add('show');
+  _saveScore(_arcadeCurrentGame, score);
+}
+
+async function _saveScore(gameId, score) {
+  if (!_me()) return;
+  const fs = _fs();
+  if (!fs) return;
+  try {
+    const { db, doc, getDoc, setDoc } = fs;
+    const ref  = doc(db, 'arcadeScores', _me().uid + '_' + gameId);
+    const snap = await getDoc(ref);
+    const prev = snap.exists() ? (snap.data().best || 0) : 0;
+    if (score > prev) {
+      await setDoc(ref, {
+        uid:         _me().uid,
+        displayName: _myData().displayName || 'Player',
+        avatar:      _myData().avatar || '',
+        gameId,
+        best:        score,
+        ts:          Date.now(),
+        week:        _weekKey(),
+        month:       _monthKey(),
+      }, { merge: true });
+    }
+    // Also update total in user's arcade stats doc
+    const statsRef = doc(db, 'arcadeStats', _me().uid);
+    const sSnap    = await getDoc(statsRef);
+    const sData    = sSnap.exists() ? sSnap.data() : {};
+    const prevTotal = sData.totalScore || 0;
+    const prevGames = sData.gamesPlayed || 0;
+    const prevWins  = sData.wins || 0;
+    await setDoc(statsRef, {
+      uid:         _me().uid,
+      displayName: _myData().displayName || 'Player',
+      avatar:      _myData().avatar || '',
+      totalScore:  prevTotal + score,
+      gamesPlayed: prevGames + 1,
+      wins:        prevWins,
+      ts:          Date.now(),
+    }, { merge: true });
+  } catch(e) { /* silent */ }
+}
+
+function _weekKey()  { const d=new Date(); return d.getFullYear()+'W'+_isoWeek(d); }
+function _monthKey() { const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1); }
+function _isoWeek(d) {
+  const t = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day = t.getUTCDay()||7;
+  t.setUTCDate(t.getUTCDate()+4-day);
+  const y = new Date(Date.UTC(t.getUTCFullYear(),0,1));
+  return Math.ceil((((t-y)/86400000)+1)/7);
+}
+
+/* ─────────────────────────────────────────────
+   MY STATS
+   ───────────────────────────────────────────── */
+async function _renderMyStats() {
+  if (!_me()) {
+    document.getElementById('arcadeStatsGrid').innerHTML = '<div class="arcade-lb-empty">Sign in to track stats.</div>';
+    return;
+  }
+  const fs = _fs();
+  if (!fs) return;
+  try {
+    const { db, doc, getDoc, collection, query, where, getDocs } = fs;
+    // Overall stats
+    const sSnap = await getDoc(doc(db,'arcadeStats',_me().uid));
+    const sd    = sSnap.exists() ? sSnap.data() : {};
+    const grid  = document.getElementById('arcadeStatsGrid');
+    grid.innerHTML = `
+      <div class="arcade-stat-card"><div class="arcade-stat-num">${sd.gamesPlayed||0}</div><div class="arcade-stat-label">Games Played</div></div>
+      <div class="arcade-stat-card"><div class="arcade-stat-num">${(sd.totalScore||0).toLocaleString()}</div><div class="arcade-stat-label">Total Score</div></div>
+      <div class="arcade-stat-card"><div class="arcade-stat-num">${sd.wins||0}</div><div class="arcade-stat-label">Wins</div></div>
+    `;
+    // Per-game bests
+    const qSnap = await getDocs(query(collection(db,'arcadeScores'), where('uid','==',_me().uid)));
+    const recs  = document.getElementById('arcadeMyRecords');
+    if (qSnap.empty) { recs.innerHTML = '<div class="arcade-lb-empty">No records yet. Play a game!</div>'; return; }
+    recs.innerHTML = '';
+    qSnap.forEach(d => {
+      const r  = d.data();
+      const gd = ARCADE_GAMES.find(x => x.id === r.gameId) || { icon:'🎮', name: r.gameId };
+      recs.insertAdjacentHTML('beforeend', `
+        <div class="arcade-lb-row">
+          <div class="arcade-lb-rank">${gd.icon}</div>
+          <div class="arcade-lb-info">
+            <div class="arcade-lb-name">${esc(gd.name)}</div>
+            <div class="arcade-lb-score">Best: ${r.best.toLocaleString()}</div>
+          </div>
+          <div style="font-size:10px;color:#3a5a7a;">${_fmtDate(r.ts)}</div>
+        </div>`);
+    });
+  } catch(e) { /* silent */ }
+}
+
+function _fmtDate(ts) {
+  if (!ts) return '';
+  return new Date(ts).toLocaleDateString([], {month:'short',day:'numeric'});
+}
+
+/* ─────────────────────────────────────────────
+   LEADERBOARD
+   ───────────────────────────────────────────── */
+window.switchLbScope  = function(s, btn) {
+  _arcadeLbScope = s;
+  ['global','friends'].forEach(x => {
+    const b = document.getElementById('lbTab-'+x);
+    if (b) b.classList.toggle('active', x === s);
+  });
+  renderLeaderboard();
+};
+window.switchLbPeriod = function(p, btn) {
+  _arcadeLbPeriod = p;
+  ['alltime','monthly','weekly'].forEach(x => {
+    const b = document.getElementById('lbTab-'+x);
+    if (b) b.classList.toggle('active', x === p);
+  });
+  renderLeaderboard();
+};
+
+window.renderLeaderboard = async function() {
+  const list = document.getElementById('arcadeLeaderboardList');
+  if (!list) return;
+  list.innerHTML = '<div class="arcade-lb-empty">Loading…</div>';
+  const fs = _fs();
+  if (!fs) { list.innerHTML = '<div class="arcade-lb-empty">Sign in to view leaderboard.</div>'; return; }
+  try {
+    const { db, collection, query, where, orderBy, limit, getDocs, doc, getDoc } = fs;
+    const gameId  = document.getElementById('lbGameSelect')?.value || 'all';
+    const colName = gameId === 'all' ? 'arcadeStats' : 'arcadeScores';
+    const scoreField = gameId === 'all' ? 'totalScore' : 'best';
+
+    let constraints = [orderBy(scoreField,'desc'), limit(50)];
+    if (gameId !== 'all')    constraints.unshift(where('gameId','==',gameId));
+    if (_arcadeLbPeriod === 'weekly')  constraints.unshift(where('week','==',_weekKey()));
+    if (_arcadeLbPeriod === 'monthly') constraints.unshift(where('month','==',_monthKey()));
+
+    const snap = await getDocs(query(collection(db, colName), ...constraints));
+    if (snap.empty) { list.innerHTML = '<div class="arcade-lb-empty">No scores yet. Be the first!</div>'; return; }
+
+    // Filter friends if needed
+    let rows = [];
+    snap.forEach(d => rows.push(d.data()));
+    if (_arcadeLbScope === 'friends' && _me()) {
+      const fSnap = await getDoc(doc(db,'friends',_me().uid));
+      const fMap  = fSnap.exists() ? (fSnap.data().list || {}) : {};
+      rows = rows.filter(r => r.uid === _me().uid || fMap[r.uid]);
+    }
+    if (!rows.length) { list.innerHTML = '<div class="arcade-lb-empty">No friends on the board yet.</div>'; return; }
+
+    list.innerHTML = '';
+    rows.slice(0,25).forEach((r, i) => {
+      const rankClass = i===0 ? 'gold' : i===1 ? 'silver' : i===2 ? 'bronze' : '';
+      const rankIcon  = i===0 ? '🥇' : i===1 ? '🥈' : i===2 ? '🥉' : (i+1);
+      const av = r.avatar ? `<div class="arcade-lb-avatar" style="background-image:url('${esc(r.avatar)}');"></div>`
+                           : `<div class="arcade-lb-avatar">${esc((r.displayName||'?')[0].toUpperCase())}</div>`;
+      const sc = r[scoreField] || 0;
+      list.insertAdjacentHTML('beforeend', `
+        <div class="arcade-lb-row">
+          <div class="arcade-lb-rank ${rankClass}">${rankIcon}</div>
+          ${av}
+          <div class="arcade-lb-info">
+            <div class="arcade-lb-name">${esc(r.displayName||'?')}</div>
+            <div class="arcade-lb-score">${sc.toLocaleString()} pts</div>
+          </div>
+        </div>`);
+    });
+  } catch(e) { list.innerHTML = '<div class="arcade-lb-empty">Could not load leaderboard.</div>'; }
+};
+
+/* ─────────────────────────────────────────────
+   MULTIPLAYER INVITES
+   ───────────────────────────────────────────── */
+function _subscribeInvites() {
+  if (!_me()) return;
+  const fs = _fs();
+  if (!fs) return;
+  _unsubInvites();
+  try {
+    const { db, collection, query, where, onSnapshot } = fs;
+    _arcadeInviteUnsub = onSnapshot(
+      query(collection(db,'arcadeInvites'), where('toUid','==',_me().uid), where('status','==','pending')),
+      snap => {
+        // Update sidebar badge
+        const cnt = snap.size;
+        const badge = document.getElementById('sidebarMsgBadge');
+        // We don't hijack the msg badge — just update tab indicator
+        _renderInvites(snap);
+        if (cnt > 0) {
+          const tab = document.getElementById('ahTab-invites');
+          if (tab && !tab.textContent.includes('('))
+            tab.textContent = '📩 Invites (' + cnt + ')';
+        } else {
+          const tab = document.getElementById('ahTab-invites');
+          if (tab) tab.textContent = '📩 Invites';
+        }
+      }
+    );
+  } catch(e) { /* silent */ }
+}
+
+function _unsubInvites() {
+  if (_arcadeInviteUnsub) { try { _arcadeInviteUnsub(); } catch(e){} _arcadeInviteUnsub = null; }
+}
+
+function _renderInvites(snap) {
+  const list = document.getElementById('arcadeInvitesList');
+  if (!list) return;
+  if (!snap || snap.empty) {
+    list.innerHTML = '<div class="arcade-invite-empty">No pending game challenges. Challenge a friend from their profile!</div>';
+    return;
+  }
+  list.innerHTML = '';
+  snap.forEach(d => {
+    const inv = d.data();
+    const gd  = ARCADE_GAMES.find(x => x.id === inv.gameId) || { icon:'🎮', name: inv.gameId };
+    list.insertAdjacentHTML('beforeend', `
+      <div class="arcade-invite-card">
+        <div class="arcade-invite-icon">${gd.icon}</div>
+        <div class="arcade-invite-info">
+          <div class="arcade-invite-title">${esc(inv.fromName||'?')} challenged you to ${esc(gd.name)}</div>
+          <div class="arcade-invite-sub">${_fmtDate(inv.ts)} · ${esc(inv.message||'')}</div>
+        </div>
+        <div class="arcade-invite-actions">
+          <button class="btn-arcade-accept"  onclick="arcadeAcceptInvite('${d.id}','${esc(inv.gameId)}')">✓ Accept</button>
+          <button class="btn-arcade-decline" onclick="arcadeDeclineInvite('${d.id}')">✗ Decline</button>
+        </div>
+      </div>`);
+  });
+}
+
+window.arcadeAcceptInvite = async function(invId, gameId) {
+  const fs = _fs();
+  if (!fs || !_me()) return;
+  try {
+    const { db, doc, updateDoc } = fs;
+    await updateDoc(doc(db,'arcadeInvites',invId), { status:'accepted', acceptedAt: Date.now() });
+  } catch(e) {}
+  closeArcadeHub();
+  launchArcadeGame(gameId);
+};
+
+window.arcadeDeclineInvite = async function(invId) {
+  const fs = _fs();
+  if (!fs || !_me()) return;
+  try {
+    const { db, doc, updateDoc } = fs;
+    await updateDoc(doc(db,'arcadeInvites',invId), { status:'declined' });
+  } catch(e) {}
+};
+
+/* Challenge button — rendered on profiles */
+window.challengeToGame = async function(targetUid, targetName) {
+  if (!_me()) { toastArcade('Sign in to challenge.'); return; }
+  if (targetUid === _me().uid) { toastArcade('You can\'t challenge yourself!'); return; }
+  const gameId = prompt('Which game? Type one:\n' + ARCADE_GAMES.map(g => g.id).join(', '));
+  if (!gameId || !ARCADE_GAMES.find(g => g.id === gameId)) { toastArcade('Unknown game.'); return; }
+  const fs = _fs();
+  if (!fs) return;
+  try {
+    const { db, collection, addDoc } = fs;
+    await addDoc(collection(db,'arcadeInvites'), {
+      fromUid:   _me().uid,
+      fromName:  _myData().displayName || 'Player',
+      fromAvatar:_myData().avatar || '',
+      toUid:     targetUid,
+      toName:    targetName,
+      gameId,
+      status:    'pending',
+      ts:        Date.now(),
+      message:   '',
+    });
+    toastArcade('🕹️ Challenge sent to ' + targetName + '!');
+  } catch(e) { toastArcade('Could not send challenge.'); }
+};
+
+/* ─────────────────────────────────────────────
+   MOBILE CONTROLS BUILDER
+   ───────────────────────────────────────────── */
+function _buildMobileControls(g) {
+  const wrap = document.getElementById('arcadeMobileControls');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  // Always show on mobile (CSS hides on desktop)
+  wrap.style.display = '';
+
+  if (g.controls === 'dpad') {
+    wrap.innerHTML = `
+      <div class="arcade-dpad">
+        <div class="arcade-dpad-row"><button class="arcade-ctrl-btn" id="acBtnUp"   ontouchstart="event.preventDefault();_arcadeDpad('up')"   onmousedown="_arcadeDpad('up')">▲</button></div>
+        <div class="arcade-dpad-row">
+          <button class="arcade-ctrl-btn" id="acBtnLeft"  ontouchstart="event.preventDefault();_arcadeDpad('left')"  onmousedown="_arcadeDpad('left')">◀</button>
+          <button class="arcade-ctrl-btn" id="acBtnDown"  ontouchstart="event.preventDefault();_arcadeDpad('down')"  onmousedown="_arcadeDpad('down')">▼</button>
+          <button class="arcade-ctrl-btn" id="acBtnRight" ontouchstart="event.preventDefault();_arcadeDpad('right')" onmousedown="_arcadeDpad('right')">▶</button>
+        </div>
+      </div>`;
+  } else if (g.controls === 'tetris') {
+    wrap.innerHTML = `
+      <div class="arcade-dpad">
+        <div class="arcade-dpad-row"><button class="arcade-ctrl-btn" ontouchstart="event.preventDefault();_arcadeDpad('up')"   onmousedown="_arcadeDpad('up')">↻</button></div>
+        <div class="arcade-dpad-row">
+          <button class="arcade-ctrl-btn" ontouchstart="event.preventDefault();_arcadeDpad('left')"  onmousedown="_arcadeDpad('left')">◀</button>
+          <button class="arcade-ctrl-btn" ontouchstart="event.preventDefault();_arcadeDpad('down')"  onmousedown="_arcadeDpad('down')">▼</button>
+          <button class="arcade-ctrl-btn" ontouchstart="event.preventDefault();_arcadeDpad('right')" onmousedown="_arcadeDpad('right')">▶</button>
+        </div>
+      </div>
+      <button class="arcade-ctrl-btn action-btn" ontouchstart="event.preventDefault();_arcadeDpad('space')" onmousedown="_arcadeDpad('space')" style="margin-left:8px;">⬇</button>`;
+  } else if (g.controls === 'pong') {
+    wrap.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button class="arcade-ctrl-btn" ontouchstart="event.preventDefault();_arcadeDpad('up')"   onmousedown="_arcadeDpad('up')"   style="width:60px;">▲</button>
+        <button class="arcade-ctrl-btn" ontouchstart="event.preventDefault();_arcadeDpad('down')" onmousedown="_arcadeDpad('down')" style="width:60px;">▼</button>
+      </div>`;
+  } else if (g.controls === 'paddle') {
+    // Touch-drag handled by canvas events — just show hint
+    wrap.innerHTML = `<span style="font-size:11px;color:#6a90b8;">Drag to move paddle</span>`;
+  } else if (g.controls === 'pool') {
+    wrap.innerHTML = `<span style="font-size:11px;color:#6a90b8;">Drag from cue ball to aim & shoot</span>`;
+  } else if (g.controls === 'tap') {
+    wrap.innerHTML = `<span style="font-size:11px;color:#6a90b8;">Tap the canvas to play</span>`;
+  }
+}
+
+window._arcadeDpad = function(dir) {
+  if (!_arcadeCurrentGame || !_arcadeGameState) return;
+  if (_arcadeGameState.onKey) _arcadeGameState.onKey(dir);
+};
+
+/* ─────────────────────────────────────────────
+   KEYBOARD INPUT ROUTING
+   ───────────────────────────────────────────── */
+function _removeGameListeners() {
+  document.removeEventListener('keydown', _arcadeKeydown);
+  const cv = document.getElementById('arcadeGameCanvas');
+  if (cv) {
+    cv.removeEventListener('mousedown', _arcadeMousedown);
+    cv.removeEventListener('mousemove', _arcadeMousemove);
+    cv.removeEventListener('mouseup',   _arcadeMouseup);
+    cv.removeEventListener('touchstart', _arcadeTouchstart);
+    cv.removeEventListener('touchmove',  _arcadeTouchmove);
+    cv.removeEventListener('touchend',   _arcadeTouchend);
+    cv.removeEventListener('click',      _arcadeClick);
+  }
+}
+
+function _attachGameListeners() {
+  _removeGameListeners();
+  document.addEventListener('keydown', _arcadeKeydown);
+  const cv = document.getElementById('arcadeGameCanvas');
+  if (cv) {
+    cv.addEventListener('mousedown',  _arcadeMousedown,  { passive:false });
+    cv.addEventListener('mousemove',  _arcadeMousemove,  { passive:false });
+    cv.addEventListener('mouseup',    _arcadeMouseup,    { passive:false });
+    cv.addEventListener('touchstart', _arcadeTouchstart, { passive:false });
+    cv.addEventListener('touchmove',  _arcadeTouchmove,  { passive:false });
+    cv.addEventListener('touchend',   _arcadeTouchend,   { passive:false });
+    cv.addEventListener('click',      _arcadeClick,      { passive:false });
+  }
+}
+
+function _arcadeKeydown(e) {
+  if (!_arcadeCurrentGame || !_arcadeGameState || !_arcadeGameState.onKey) return;
+  const map = {
+    'ArrowUp':'up','ArrowDown':'down','ArrowLeft':'left','ArrowRight':'right',
+    'w':'up','s':'down','a':'left','d':'right',
+    ' ':'space','Enter':'enter'
+  };
+  const dir = map[e.key];
+  if (dir) { e.preventDefault(); _arcadeGameState.onKey(dir); }
+}
+
+function _arcadeMousedown(e) { if (_arcadeGameState?.onMousedown) _arcadeGameState.onMousedown(e); }
+function _arcadeMousemove(e) { if (_arcadeGameState?.onMousemove) _arcadeGameState.onMousemove(e); }
+function _arcadeMouseup(e)   { if (_arcadeGameState?.onMouseup)   _arcadeGameState.onMouseup(e); }
+function _arcadeTouchstart(e){ if (_arcadeGameState?.onTouchstart) { e.preventDefault(); _arcadeGameState.onTouchstart(e); } }
+function _arcadeTouchmove(e) { if (_arcadeGameState?.onTouchmove)  { e.preventDefault(); _arcadeGameState.onTouchmove(e); } }
+function _arcadeTouchend(e)  { if (_arcadeGameState?.onTouchend)   { e.preventDefault(); _arcadeGameState.onTouchend(e); } }
+function _arcadeClick(e)     { if (_arcadeGameState?.onClick)      _arcadeGameState.onClick(e); }
+
+function _cvXY(e) {
+  const cv   = document.getElementById('arcadeGameCanvas');
+  const rect = cv.getBoundingClientRect();
+  const scaleX = cv.width  / rect.width;
+  const scaleY = cv.height / rect.height;
+  if (e.touches) {
+    return { x: (e.touches[0].clientX - rect.left) * scaleX,
+             y: (e.touches[0].clientY - rect.top)  * scaleY };
+  }
+  return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GAME 1 — SNAKE
+   ═══════════════════════════════════════════════════════════ */
+function _snakeInit() {
+  const cv  = document.getElementById('arcadeGameCanvas');
+  const ctx = cv.getContext('2d');
+  const SZ  = 20;
+  const COLS = Math.floor(cv.width  / SZ);
+  const ROWS = Math.floor(cv.height / SZ);
+  const s = {
+    snake: [{x:Math.floor(COLS/2), y:Math.floor(ROWS/2)}],
+    dir: {x:1, y:0}, nextDir:{x:1, y:0},
+    food: _snakeFood(COLS, ROWS),
+    score: 0, dead: false, speed: 110,
+    onKey(dir) {
+      if (s.dead) { arcadeRestartGame(); return; }
+      const nd = {up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}}[dir];
+      if (nd && !(nd.x === -s.dir.x && nd.y === -s.dir.y)) s.nextDir = nd;
+    }
+  };
+  _arcadeGameState = s;
+  _attachGameListeners();
+
+  let lastTime = 0;
+  function loop(ts) {
+    if (s.dead) return;
+    _arcadeRAF = requestAnimationFrame(loop);
+    if (ts - lastTime < s.speed) return;
+    lastTime = ts;
+    s.dir = s.nextDir;
+    const head = { x: s.snake[0].x + s.dir.x, y: s.snake[0].y + s.dir.y };
+    // Wrap
+    head.x = (head.x + COLS) % COLS;
+    head.y = (head.y + ROWS) % ROWS;
+    // Self collision
+    if (s.snake.some(p => p.x === head.x && p.y === head.y)) { s.dead = true; _gameOver(s.score); return; }
+    s.snake.unshift(head);
+    if (head.x === s.food.x && head.y === s.food.y) {
+      s.score += 10;
+      s.speed = Math.max(55, s.speed - 1);
+      _setScore(s.score);
+      s.food = _snakeFood(COLS, ROWS);
+    } else s.snake.pop();
+    // Draw
+    ctx.fillStyle = '#000510';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    // Grid dots
+    ctx.fillStyle = 'rgba(0,174,239,0.05)';
+    for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+      ctx.fillRect(c*SZ+SZ/2-1, r*SZ+SZ/2-1, 2, 2);
+    }
+    // Food
+    ctx.fillStyle = '#39FF14';
+    ctx.shadowColor = '#39FF14'; ctx.shadowBlur = 10;
+    ctx.fillRect(s.food.x*SZ+2, s.food.y*SZ+2, SZ-4, SZ-4);
+    ctx.shadowBlur = 0;
+    // Snake
+    s.snake.forEach((p, i) => {
+      const t = i / s.snake.length;
+      ctx.fillStyle = i === 0 ? '#00AEEF' : `hsl(${195 + t*30},100%,${55 - t*20}%)`;
+      if (i === 0) { ctx.shadowColor = '#00AEEF'; ctx.shadowBlur = 8; }
+      ctx.beginPath();
+      ctx.roundRect(p.x*SZ+1, p.y*SZ+1, SZ-2, SZ-2, 4);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+  }
+  _arcadeRAF = requestAnimationFrame(loop);
+}
+function _snakeFood(cols, rows) {
+  return { x: Math.floor(Math.random()*cols), y: Math.floor(Math.random()*rows) };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GAME 2 — TETRIS
+   ═══════════════════════════════════════════════════════════ */
+function _tetrisInit() {
+  const cv  = document.getElementById('arcadeGameCanvas');
+  const ctx = cv.getContext('2d');
+  const COLS=10, ROWS=20;
+  const SZ = Math.min(Math.floor(cv.width/COLS), Math.floor(cv.height/ROWS));
+  const OX = Math.floor((cv.width  - COLS*SZ)/2);
+  const OY = Math.floor((cv.height - ROWS*SZ)/2);
+  const PIECES = [
+    [[1,1,1,1]],
+    [[1,1],[1,1]],
+    [[0,1,0],[1,1,1]],
+    [[1,0,0],[1,1,1]],
+    [[0,0,1],[1,1,1]],
+    [[0,1,1],[1,1,0]],
+    [[1,1,0],[0,1,1]],
+  ];
+  const COLORS = ['#00AEEF','#FFD700','#9B59B6','#FF6B35','#00A3FF','#FF3366','#39FF14'];
+  function rnd(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+
+  const board = Array.from({length:ROWS}, () => Array(COLS).fill(0));
+  let ci = Math.floor(Math.random()*PIECES.length);
+  let piece = PIECES[ci].map(r=>[...r]);
+  let color = COLORS[ci];
+  let px=Math.floor((COLS-piece[0].length)/2), py=0;
+  let score=0, speed=600, lastDrop=0;
+
+  function validPos(p, ox, oy) {
+    for (let r=0;r<p.length;r++) for (let c=0;c<p[r].length;c++) {
+      if (!p[r][c]) continue;
+      const nx=ox+c, ny=oy+r;
+      if (nx<0||nx>=COLS||ny>=ROWS) return false;
+      if (ny>=0 && board[ny][nx]) return false;
+    }
+    return true;
+  }
+  function rotateCW(p) {
+    const rows=p.length, cols=p[0].length;
+    return Array.from({length:cols}, (_,c)=>Array.from({length:rows},(_,r)=>p[rows-1-r][c]));
+  }
+  function place() {
+    for (let r=0;r<piece.length;r++) for (let c=0;c<piece[r].length;c++) {
+      if (piece[r][c] && py+r >= 0) board[py+r][px+c] = color;
+    }
+    let cleared=0;
+    for (let r=ROWS-1;r>=0;) {
+      if (board[r].every(c=>c)) { board.splice(r,1); board.unshift(Array(COLS).fill(0)); cleared++; }
+      else r--;
+    }
+    score += [0,100,300,500,800][cleared]||0;
+    _setScore(score);
+    ci = Math.floor(Math.random()*PIECES.length);
+    piece = PIECES[ci].map(r=>[...r]);
+    color = COLORS[ci];
+    px = Math.floor((COLS-piece[0].length)/2); py = 0;
+    if (!validPos(piece,px,py)) { _gameOver(score); }
+  }
+  function draw() {
+    ctx.fillStyle='#00050f'; ctx.fillRect(0,0,cv.width,cv.height);
+    // Board border
+    ctx.strokeStyle='rgba(0,174,239,0.25)'; ctx.lineWidth=1;
+    ctx.strokeRect(OX,OY,COLS*SZ,ROWS*SZ);
+    // Grid
+    ctx.strokeStyle='rgba(0,50,100,0.3)'; ctx.lineWidth=0.5;
+    for(let r=0;r<=ROWS;r++){ctx.beginPath();ctx.moveTo(OX,OY+r*SZ);ctx.lineTo(OX+COLS*SZ,OY+r*SZ);ctx.stroke();}
+    for(let c=0;c<=COLS;c++){ctx.beginPath();ctx.moveTo(OX+c*SZ,OY);ctx.lineTo(OX+c*SZ,OY+ROWS*SZ);ctx.stroke();}
+    // Board cells
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(board[r][c]) {
+      ctx.fillStyle=board[r][c]; ctx.fillRect(OX+c*SZ+1,OY+r*SZ+1,SZ-2,SZ-2);
+      ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1;
+      ctx.strokeRect(OX+c*SZ+1,OY+r*SZ+1,SZ-2,SZ-2);
+    }
+    // Ghost piece
+    let ghostY=py;
+    while(validPos(piece,px,ghostY+1)) ghostY++;
+    for(let r=0;r<piece.length;r++) for(let c=0;c<piece[r].length;c++) if(piece[r][c]){
+      ctx.fillStyle='rgba(255,255,255,0.08)';
+      ctx.fillRect(OX+(px+c)*SZ+1,OY+(ghostY+r)*SZ+1,SZ-2,SZ-2);
+    }
+    // Active piece
+    for(let r=0;r<piece.length;r++) for(let c=0;c<piece[r].length;c++) if(piece[r][c]){
+      ctx.fillStyle=color; ctx.fillRect(OX+(px+c)*SZ+1,OY+(py+r)*SZ+1,SZ-2,SZ-2);
+      ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1;
+      ctx.strokeRect(OX+(px+c)*SZ+1,OY+(py+r)*SZ+1,SZ-2,SZ-2);
+    }
+  }
+  const s = {
+    onKey(dir) {
+      if (dir==='left'  && validPos(piece,px-1,py)) px--;
+      if (dir==='right' && validPos(piece,px+1,py)) px++;
+      if (dir==='down'  && validPos(piece,px,py+1)) py++;
+      if (dir==='up')   { const r=rotateCW(piece); if(validPos(r,px,py)) piece=r; }
+      if (dir==='space') { while(validPos(piece,px,py+1)) py++; place(); }
+      draw();
+    }
+  };
+  _arcadeGameState = s;
+  _attachGameListeners();
+  speed = 600;
+
+  function loop(ts) {
+    _arcadeRAF = requestAnimationFrame(loop);
+    if (ts - lastDrop > speed) {
+      lastDrop = ts;
+      if (validPos(piece,px,py+1)) py++;
+      else place();
+      speed = Math.max(80, 600 - score/2);
+    }
+    draw();
+  }
+  _arcadeRAF = requestAnimationFrame(loop);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GAME 3 — PONG
+   ═══════════════════════════════════════════════════════════ */
+function _pongInit() {
+  const cv  = document.getElementById('arcadeGameCanvas');
+  const ctx = cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  const PH=80, PW=12, SPEED=5;
+  const s = {
+    ball:{x:W/2,y:H/2,vx:4,vy:3.2},
+    p1:{y:H/2-PH/2}, p2:{y:H/2-PH/2},
+    score:[0,0], up:false, down:false,
+    onKey(dir){
+      if(dir==='up')   s.up=true;
+      if(dir==='down') s.down=true;
+    }
+  };
+  document.addEventListener('keyup', e=>{
+    if(e.key==='ArrowUp'||e.key==='w') s.up=false;
+    if(e.key==='ArrowDown'||e.key==='s') s.down=false;
+  });
+  // Touch/mouse drag on canvas for player paddle
+  s.onTouchstart = s.onMousedown = (e)=>{ s._drag=true; };
+  s.onTouchend   = s.onMouseup   = ()=>{ s._drag=false; };
+  s.onTouchmove  = s.onMousemove = (e)=>{
+    if(!s._drag) return;
+    const pos = _cvXY(e);
+    s.p1.y = Math.max(0, Math.min(H-PH, pos.y - PH/2));
+  };
+  _arcadeGameState = s;
+  _attachGameListeners();
+
+  function loop() {
+    _arcadeRAF = requestAnimationFrame(loop);
+    // Player input
+    if(s.up)   s.p1.y = Math.max(0,    s.p1.y - SPEED);
+    if(s.down) s.p1.y = Math.min(H-PH, s.p1.y + SPEED);
+    // Simple AI
+    const aiTarget = s.ball.y - PH/2;
+    s.p2.y += (aiTarget - s.p2.y) * 0.07;
+    s.p2.y = Math.max(0, Math.min(H-PH, s.p2.y));
+    // Ball move
+    s.ball.x += s.ball.vx; s.ball.y += s.ball.vy;
+    // Top/bottom bounce
+    if(s.ball.y<=6||s.ball.y>=H-6) s.ball.vy*=-1;
+    // Player paddle (left)
+    if(s.ball.x<=PW+14 && s.ball.y>=s.p1.y && s.ball.y<=s.p1.y+PH) {
+      s.ball.vx=Math.abs(s.ball.vx)*1.04;
+      s.ball.vy+=(s.ball.y-(s.p1.y+PH/2))*0.07;
+    }
+    // AI paddle (right)
+    if(s.ball.x>=W-PW-14 && s.ball.y>=s.p2.y && s.ball.y<=s.p2.y+PH) {
+      s.ball.vx=-Math.abs(s.ball.vx)*1.02;
+      s.ball.vy+=(s.ball.y-(s.p2.y+PH/2))*0.07;
+    }
+    // Score
+    if(s.ball.x<0) { s.score[1]++; _reset(); }
+    if(s.ball.x>W) { s.score[0]++; _setScore(s.score[0]*10); _reset(); }
+    if(s.score[1]>=7 || s.score[0]>=7) { _gameOver(s.score[0]*10); return; }
+    // Draw
+    ctx.fillStyle='#00050f'; ctx.fillRect(0,0,W,H);
+    // Center line
+    ctx.setLineDash([8,8]); ctx.strokeStyle='rgba(0,174,239,0.2)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke(); ctx.setLineDash([]);
+    // Paddles
+    const grad1=ctx.createLinearGradient(4,0,PW+4,0);
+    grad1.addColorStop(0,'#0077cc'); grad1.addColorStop(1,'#00AEEF');
+    ctx.fillStyle=grad1;
+    ctx.beginPath(); ctx.roundRect(4,s.p1.y,PW,PH,6); ctx.fill();
+    ctx.fillStyle='rgba(0,174,239,0.4)';
+    ctx.beginPath(); ctx.roundRect(W-PW-4,s.p2.y,PW,PH,6); ctx.fill();
+    // Ball
+    ctx.fillStyle='#fff'; ctx.shadowColor='#00AEEF'; ctx.shadowBlur=14;
+    ctx.beginPath(); ctx.arc(s.ball.x,s.ball.y,7,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+    // Score
+    ctx.font='bold 28px monospace'; ctx.fillStyle='rgba(0,174,239,0.6)'; ctx.textAlign='center';
+    ctx.fillText(s.score[0], W/4, 40);
+    ctx.fillStyle='rgba(255,255,255,0.2)';
+    ctx.fillText(s.score[1], 3*W/4, 40);
+  }
+  function _reset() {
+    s.ball={x:W/2,y:H/2, vx:(Math.random()>0.5?1:-1)*4, vy:(Math.random()-0.5)*5};
+  }
+  _arcadeRAF = requestAnimationFrame(loop);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GAME 4 — TIC-TAC-TOE
+   ═══════════════════════════════════════════════════════════ */
+function _tttInit() {
+  const cv  = document.getElementById('arcadeGameCanvas');
+  const ctx = cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  const SZ=Math.min(W,H)*0.8, OX=(W-SZ)/2, OY=(H-SZ)/2, CS=SZ/3;
+  const s = { board:Array(9).fill(0), turn:1, over:false, wins:0, losses:0 };
+  _arcadeGameState = s;
+  s.redraw = drawBoard;
+  _attachGameListeners();
+
+  s.onClick = (e) => {
+    if(s.over) { _resetTTT(); return; }
+    if(s.turn!==1) return;
+    const pos=_cvXY(e);
+    const col=Math.floor((pos.x-OX)/CS), row=Math.floor((pos.y-OY)/CS);
+    if(col<0||col>2||row<0||row>2) return;
+    const idx=row*3+col;
+    if(s.board[idx]) return;
+    s.board[idx]=1;
+    const w=_tttCheck(s.board);
+    if(w){ s.over=true; s.wins++; _setScore(s.wins*100); drawBoard(); _gameOver(s.wins*100); return; }
+    if(s.board.every(v=>v)){ s.over=true; drawBoard(); _gameOver(s.wins*100); return; }
+    s.turn=2;
+    drawBoard();
+    setTimeout(()=>{
+      _tttAI(s);
+      const w2=_tttCheck(s.board);
+      if(w2){ s.over=true; s.losses++; drawBoard(); _gameOver(s.wins*100); return; }
+      if(s.board.every(v=>v)){ s.over=true; drawBoard(); _gameOver(s.wins*100); return; }
+      s.turn=1; drawBoard();
+    },380);
+  };
+  s.onTouchend = s.onClick;
+
+  function _resetTTT() {
+    s.board=Array(9).fill(0); s.turn=1; s.over=false; drawBoard();
+  }
+
+  function drawBoard() {
+    ctx.fillStyle='#00050f'; ctx.fillRect(0,0,W,H);
+    // Grid lines
+    ctx.strokeStyle='rgba(0,174,239,0.5)'; ctx.lineWidth=3; ctx.lineCap='round';
+    [1,2].forEach(i=>{
+      ctx.beginPath(); ctx.moveTo(OX+i*CS, OY);     ctx.lineTo(OX+i*CS, OY+SZ); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(OX,      OY+i*CS); ctx.lineTo(OX+SZ,  OY+i*CS); ctx.stroke();
+    });
+    // Pieces
+    s.board.forEach((v,i)=>{
+      if(!v) return;
+      const col=i%3, row=Math.floor(i/3);
+      const cx=OX+col*CS+CS/2, cy=OY+row*CS+CS/2, r=CS*0.32;
+      if(v===1){
+        ctx.strokeStyle='#00AEEF'; ctx.lineWidth=5;
+        ctx.shadowColor='#00AEEF'; ctx.shadowBlur=12;
+        ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+        ctx.shadowBlur=0;
+      } else {
+        ctx.strokeStyle='#ff3366'; ctx.lineWidth=5;
+        ctx.shadowColor='#ff3366'; ctx.shadowBlur=12;
+        ctx.beginPath(); ctx.moveTo(cx-r,cy-r); ctx.lineTo(cx+r,cy+r); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx+r,cy-r); ctx.lineTo(cx-r,cy+r); ctx.stroke();
+        ctx.shadowBlur=0;
+      }
+    });
+    // Score display
+    ctx.font='14px Segoe UI'; ctx.fillStyle='rgba(0,174,239,0.7)'; ctx.textAlign='center';
+    ctx.fillText('You (O): '+s.wins+'   AI (X): '+s.losses, W/2, OY-10);
+    ctx.fillText(s.over?'Tap to restart':s.turn===1?'Your turn':'AI thinking…', W/2, OY+SZ+22);
+  }
+  drawBoard();
+}
+function _tttCheck(b) {
+  const lines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  for(const [a,bb,c] of lines) if(b[a]&&b[a]===b[bb]&&b[a]===b[c]) return b[a];
+  return 0;
+}
+function _tttAI(s) {
+  // Minimax
+  function mm(b, depth, isMax) {
+    const w=_tttCheck(b); if(w===2) return 10-depth; if(w===1) return depth-10;
+    if(b.every(v=>v)) return 0;
+    const scores=b.map((_,i)=>{ if(b[i]) return null;
+      const nb=[...b]; nb[i]=isMax?2:1; return mm(nb,depth+1,!isMax); }).filter(x=>x!==null);
+    return isMax ? Math.max(...scores) : Math.min(...scores);
+  }
+  let best=-Infinity, move=0;
+  s.board.forEach((_,i)=>{ if(s.board[i]) return;
+    const nb=[...s.board]; nb[i]=2;
+    const sc=mm(nb,0,false);
+    if(sc>best){best=sc;move=i;}
+  });
+  s.board[move]=2;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GAME 5 — CONNECT FOUR
+   ═══════════════════════════════════════════════════════════ */
+function _c4Init() {
+  const cv=document.getElementById('arcadeGameCanvas'), ctx=cv.getContext('2d');
+  const W=cv.width, H=cv.height, COLS=7, ROWS=6;
+  const SZ=Math.min(Math.floor((W-20)/COLS), Math.floor((H-40)/ROWS));
+  const OX=Math.floor((W-COLS*SZ)/2), OY=Math.floor((H-ROWS*SZ)/2)+20;
+  const s={ board:Array.from({length:ROWS},()=>Array(COLS).fill(0)), turn:1, over:false, wins:0 };
+  _arcadeGameState=s; s.redraw=draw; _attachGameListeners();
+
+  s.onClick=s.onTouchend=(e)=>{
+    if(s.over){s.board=Array.from({length:ROWS},()=>Array(COLS).fill(0));s.turn=1;s.over=false;draw();return;}
+    if(s.turn!==1)return;
+    const pos=_cvXY(e), col=Math.floor((pos.x-OX)/SZ);
+    if(col<0||col>=COLS)return;
+    _c4Drop(s,col,1);
+    if(_c4Check(s.board,1)){s.over=true;s.wins++;_setScore(s.wins*200);draw();_gameOver(s.wins*200);return;}
+    if(s.board[0].every(v=>v)){s.over=true;draw();_gameOver(s.wins*200);return;}
+    s.turn=2; draw();
+    setTimeout(()=>{ _c4AI(s); draw(); },350);
+  };
+
+  function draw(){
+    ctx.fillStyle='#00050f'; ctx.fillRect(0,0,W,H);
+    // Board
+    ctx.fillStyle='rgba(0,30,80,0.8)';
+    ctx.beginPath(); ctx.roundRect(OX-4,OY-4,COLS*SZ+8,ROWS*SZ+8,8); ctx.fill();
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      const v=s.board[r][c];
+      const cx=OX+c*SZ+SZ/2, cy=OY+r*SZ+SZ/2, rad=SZ/2-4;
+      ctx.fillStyle=v===0?'#00050f':v===1?'#ff3366':'#FFD700';
+      if(v){ctx.shadowColor=v===1?'#ff3366':'#FFD700'; ctx.shadowBlur=8;}
+      ctx.beginPath(); ctx.arc(cx,cy,rad,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0;
+    }
+    ctx.font='13px Segoe UI'; ctx.textAlign='center'; ctx.fillStyle='rgba(0,174,239,0.7)';
+    ctx.fillText(s.over?'Tap to restart':s.turn===1?'Your turn (🔴)':'AI thinking (🟡)', W/2, OY-8);
+  }
+  draw();
+}
+function _c4Drop(s,col,player){
+  for(let r=s.board.length-1;r>=0;r--){
+    if(!s.board[r][col]){s.board[r][col]=player;break;}
+  }
+  if(player===1){s.turn=2;}else{s.turn=1;}
+}
+function _c4Check(b,p){
+  const R=b.length, C=b[0].length;
+  for(let r=0;r<R;r++) for(let c=0;c<C;c++){
+    if(c+3<C && [0,1,2,3].every(i=>b[r][c+i]===p)) return true;
+    if(r+3<R && [0,1,2,3].every(i=>b[r+i][c]===p)) return true;
+    if(r+3<R&&c+3<C && [0,1,2,3].every(i=>b[r+i][c+i]===p)) return true;
+    if(r+3<R&&c-3>=0 && [0,1,2,3].every(i=>b[r+i][c-i]===p)) return true;
+  }
+  return false;
+}
+function _c4AI(s){
+  const b=s.board.map(r=>[...r]), COLS=b[0].length;
+  // Try win
+  for(let c=0;c<COLS;c++){
+    const t=b.map(r=>[...r]);
+    for(let r=t.length-1;r>=0;r--){if(!t[r][c]){t[r][c]=2;break;}}
+    if(_c4Check(t,2)){_c4Drop(s,c,2);return;}
+  }
+  // Block
+  for(let c=0;c<COLS;c++){
+    const t=b.map(r=>[...r]);
+    for(let r=t.length-1;r>=0;r--){if(!t[r][c]){t[r][c]=1;break;}}
+    if(_c4Check(t,1)){_c4Drop(s,c,2);return;}
+  }
+  // Center preference
+  const pref=[3,2,4,1,5,0,6];
+  for(const c of pref){if(!b[0][c]){_c4Drop(s,c,2);return;}}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GAME 6 — MEMORY MATCH
+   ═══════════════════════════════════════════════════════════ */
+function _memoryInit(){
+  const cv=document.getElementById('arcadeGameCanvas'), ctx=cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  const ICONS=['🐱','🐸','🦊','🐼','🦋','🌙','⚡','🔥'];
+  const cards=[...ICONS,...ICONS].sort(()=>Math.random()-0.5).map((v,i)=>({v,i,flipped:false,matched:false}));
+  const COLS=4, ROWS=4, SZ=Math.min(Math.floor((W-40)/COLS),Math.floor((H-60)/ROWS));
+  const OX=(W-COLS*SZ)/2, OY=(H-ROWS*SZ)/2+10;
+  const s={cards,open:[],lock:false,moves:0,matched:0};
+  _arcadeGameState=s; s.redraw=draw; _attachGameListeners();
+
+  s.onClick=s.onTouchend=(e)=>{
+    if(s.lock)return;
+    const pos=_cvXY(e), c=Math.floor((pos.x-OX)/SZ), r=Math.floor((pos.y-OY)/SZ);
+    if(c<0||c>=COLS||r<0||r>=ROWS)return;
+    const idx=r*COLS+c, card=s.cards[idx];
+    if(card.matched||card.flipped||s.open.length===2)return;
+    card.flipped=true; s.open.push(card); s.moves++;
+    if(s.open.length===2){
+      s.lock=true;
+      setTimeout(()=>{
+        if(s.open[0].v===s.open[1].v){s.open.forEach(c=>c.matched=true);s.matched++;const sc=(16-s.moves)*50+100;_setScore(sc);if(s.matched===8)_gameOver(sc);}
+        else{s.open.forEach(c=>c.flipped=false);}
+        s.open=[]; s.lock=false; draw();
+      },820);
+    }
+    draw();
+  };
+
+  function draw(){
+    ctx.fillStyle='#00050f'; ctx.fillRect(0,0,W,H);
+    ctx.font='13px Segoe UI'; ctx.textAlign='center'; ctx.fillStyle='rgba(0,174,239,0.6)';
+    ctx.fillText('Moves: '+s.moves+'   Pairs: '+s.matched+'/8', W/2, OY-12);
+    s.cards.forEach((c,i)=>{
+      const col=i%COLS, row=Math.floor(i/COLS);
+      const x=OX+col*SZ+2, y=OY+row*SZ+2, w=SZ-4, h=SZ-4;
+      if(c.matched){
+        ctx.fillStyle='rgba(57,255,20,0.18)';
+        ctx.beginPath(); ctx.roundRect(x,y,w,h,8); ctx.fill();
+        ctx.font=`${Math.floor(SZ*0.42)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(c.v, x+w/2, y+h/2); ctx.textBaseline='alphabetic';
+      } else if(c.flipped){
+        ctx.fillStyle='rgba(0,80,180,0.6)'; ctx.beginPath(); ctx.roundRect(x,y,w,h,8); ctx.fill();
+        ctx.strokeStyle='rgba(0,174,239,0.8)'; ctx.lineWidth=2; ctx.stroke();
+        ctx.font=`${Math.floor(SZ*0.42)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillStyle='#fff'; ctx.fillText(c.v, x+w/2, y+h/2); ctx.textBaseline='alphabetic';
+      } else {
+        const g=ctx.createLinearGradient(x,y,x+w,y+h);
+        g.addColorStop(0,'#061428'); g.addColorStop(1,'#0d2444');
+        ctx.fillStyle=g; ctx.beginPath(); ctx.roundRect(x,y,w,h,8); ctx.fill();
+        ctx.strokeStyle='rgba(0,174,239,0.3)'; ctx.lineWidth=1.5; ctx.stroke();
+        ctx.font=`${Math.floor(SZ*0.4)}px Segoe UI`; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillStyle='rgba(0,174,239,0.3)'; ctx.fillText('?', x+w/2, y+h/2); ctx.textBaseline='alphabetic';
+      }
+    });
+  }
+  draw();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GAME 7 — CHECKERS (draughts)
+   ═══════════════════════════════════════════════════════════ */
+function _checkersInit(){
+  const cv=document.getElementById('arcadeGameCanvas'), ctx=cv.getContext('2d');
+  const W=cv.width, H=cv.height, N=8;
+  const SZ=Math.min(Math.floor(W/N),Math.floor(H/N));
+  const OX=Math.floor((W-N*SZ)/2), OY=Math.floor((H-N*SZ)/2);
+  // 1=player red, 2=AI dark, 3=player king, 4=AI king
+  let board=Array.from({length:N},(_,r)=>Array.from({length:N},(_,c)=>{
+    if(r<3&&(r+c)%2===1) return 2;
+    if(r>4&&(r+c)%2===1) return 1;
+    return 0;
+  }));
+  const s={board,sel:null,turn:1,score:0,redraw:draw};
+  _arcadeGameState=s; _attachGameListeners();
+
+  s.onClick=s.onTouchend=(e)=>{
+    if(s.turn!==1)return;
+    const pos=_cvXY(e);
+    const c=Math.floor((pos.x-OX)/SZ), r=Math.floor((pos.y-OY)/SZ);
+    if(c<0||c>=N||r<0||r>=N)return;
+    if(s.sel){
+      const moves=_chkMoves(s.board,s.sel.r,s.sel.c,1);
+      const mv=moves.find(m=>m.tr===r&&m.tc===c);
+      if(mv){
+        s.board[r][c]=s.board[s.sel.r][s.sel.c];
+        s.board[s.sel.r][s.sel.c]=0;
+        if(mv.cap) s.board[mv.cap.r][mv.cap.c]=0;
+        if(r===0) s.board[r][c]=3; // king
+        s.score+=mv.cap?20:5; _setScore(s.score);
+        s.sel=null; s.turn=2; draw();
+        setTimeout(()=>{ _chkAI(s); draw(); },400);
+      } else if((s.board[r][c]===1||s.board[r][c]===3)&&(r!==s.sel.r||c!==s.sel.c)){
+        s.sel={r,c};
+      } else s.sel=null;
+    } else {
+      if(s.board[r][c]===1||s.board[r][c]===3) s.sel={r,c};
+    }
+    draw();
+  };
+
+  function draw(){
+    ctx.fillStyle='#00050f'; ctx.fillRect(0,0,W,H);
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+      ctx.fillStyle=(r+c)%2===0?'#071428':'#0d2444';
+      ctx.fillRect(OX+c*SZ,OY+r*SZ,SZ,SZ);
+    }
+    if(s.sel){
+      const moves=_chkMoves(s.board,s.sel.r,s.sel.c,1);
+      moves.forEach(m=>{
+        ctx.fillStyle='rgba(57,255,20,0.22)';
+        ctx.fillRect(OX+m.tc*SZ,OY+m.tr*SZ,SZ,SZ);
+      });
+      ctx.strokeStyle='#39FF14'; ctx.lineWidth=2.5;
+      ctx.strokeRect(OX+s.sel.c*SZ+1,OY+s.sel.r*SZ+1,SZ-2,SZ-2);
+    }
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+      const v=s.board[r][c];
+      if(!v)continue;
+      const cx=OX+c*SZ+SZ/2, cy=OY+r*SZ+SZ/2, rad=SZ/2-5;
+      ctx.beginPath(); ctx.arc(cx,cy,rad,0,Math.PI*2);
+      ctx.fillStyle=v<=2?v===1?'#ff4466':'#888':v===3?'#ff88aa':'#bbb';
+      ctx.shadowColor=v===1||v===3?'#ff4466':'#aaa'; ctx.shadowBlur=6;
+      ctx.fill(); ctx.shadowBlur=0;
+      if(v===3||v===4){ctx.fillStyle='#FFD700'; ctx.font='bold '+(SZ*0.4)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('♛',cx,cy);}
+    }
+    ctx.font='13px Segoe UI'; ctx.textAlign='center'; ctx.fillStyle='rgba(0,174,239,0.6)'; ctx.textBaseline='alphabetic';
+    ctx.fillText('Score: '+s.score+'  '+(s.turn===1?'Your move':'AI thinking…'), W/2, OY-8);
+  }
+  draw();
+}
+function _chkMoves(board,r,c,player){
+  const v=board[r][c], dirs=v<=2?(v===1?[[-1,-1],[-1,1]]:[[1,-1],[1,1]]):[ [-1,-1],[-1,1],[1,-1],[1,1] ];
+  const N=board.length, moves=[];
+  dirs.forEach(([dr,dc])=>{
+    const tr=r+dr, tc=c+dc;
+    if(tr<0||tr>=N||tc<0||tc>=N)return;
+    if(!board[tr][tc]) moves.push({tr,tc,cap:null});
+    else if((player===1&&board[tr][tc]>=2)||(player===2&&board[tr][tc]%2===1)){
+      const jr=tr+dr, jc=tc+dc;
+      if(jr>=0&&jr<N&&jc>=0&&jc<N&&!board[jr][jc]) moves.push({tr:jr,tc:jc,cap:{r:tr,c:tc}});
+    }
+  });
+  return moves;
+}
+function _chkAI(s){
+  const board=s.board, N=board.length;
+  let allMoves=[];
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+    if(board[r][c]===2||board[r][c]===4){
+      _chkMoves(board,r,c,2).forEach(m=>allMoves.push({r,c,...m}));
+    }
+  }
+  if(!allMoves.length){_gameOver(s.score);return;}
+  const captures=allMoves.filter(m=>m.cap);
+  const mv=(captures.length?captures:allMoves)[Math.floor(Math.random()*(captures.length||allMoves.length))];
+  board[mv.tr][mv.tc]=board[mv.r][mv.c]; board[mv.r][mv.c]=0;
+  if(mv.cap) board[mv.cap.r][mv.cap.c]=0;
+  if(mv.tr===N-1) board[mv.tr][mv.tc]=4;
+  s.turn=1;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GAME 8 — CHESS (simplified — legal moves + AI)
+   ═══════════════════════════════════════════════════════════ */
+function _chessInit(){
+  const cv=document.getElementById('arcadeGameCanvas'), ctx=cv.getContext('2d');
+  const W=cv.width, H=cv.height, N=8;
+  const SZ=Math.min(Math.floor(W/N), Math.floor(H/N));
+  const OX=Math.floor((W-N*SZ)/2), OY=Math.floor((H-N*SZ)/2);
+  const INIT=[
+    ['br','bn','bb','bq','bk','bb','bn','br'],
+    ['bp','bp','bp','bp','bp','bp','bp','bp'],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['wp','wp','wp','wp','wp','wp','wp','wp'],
+    ['wr','wn','wb','wq','wk','wb','wn','wr'],
+  ];
+  const GLYPHS={wp:'♙',wr:'♖',wn:'♘',wb:'♗',wq:'♕',wk:'♔',bp:'♟',br:'♜',bn:'♞',bb:'♝',bq:'♛',bk:'♚'};
+  let board=INIT.map(r=>[...r]);
+  const s={board,sel:null,turn:'w',score:0,redraw:draw,moves:[]};
+  _arcadeGameState=s; _attachGameListeners();
+
+  s.onClick=s.onTouchend=(e)=>{
+    if(s.turn!=='w')return;
+    const pos=_cvXY(e);
+    const c=Math.floor((pos.x-OX)/SZ), r=Math.floor((pos.y-OY)/SZ);
+    if(c<0||c>=N||r<0||r>=N)return;
+    if(s.sel){
+      const mv=s.moves.find(m=>m.tr===r&&m.tc===c);
+      if(mv){
+        const captured=board[r][c];
+        if(captured==='bk'){s.score+=500;_setScore(s.score);_makeMove(board,s.sel.r,s.sel.c,r,c);draw();_gameOver(s.score);return;}
+        _makeMove(board,s.sel.r,s.sel.c,r,c);
+        if(r===0&&board[r][c]==='wp') board[r][c]='wq';
+        const capVal={p:10,r:50,n:30,b:30,q:90}[captured[1]]||0;
+        s.score+=capVal; _setScore(s.score);
+        s.sel=null; s.moves=[]; s.turn='b'; draw();
+        setTimeout(()=>{ _chessAI(s); draw(); },500);
+      } else {
+        s.sel=null; s.moves=[];
+        if(board[r][c]&&board[r][c][0]==='w'){ s.sel={r,c}; s.moves=_chessMoves(board,r,c,'w'); }
+      }
+    } else {
+      if(board[r][c]&&board[r][c][0]==='w'){ s.sel={r,c}; s.moves=_chessMoves(board,r,c,'w'); }
+    }
+    draw();
+  };
+
+  function draw(){
+    ctx.fillStyle='#00050f'; ctx.fillRect(0,0,W,H);
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+      ctx.fillStyle=(r+c)%2===0?'#0d2040':'#071428';
+      ctx.fillRect(OX+c*SZ,OY+r*SZ,SZ,SZ);
+    }
+    if(s.sel){
+      ctx.fillStyle='rgba(57,255,20,0.15)';
+      ctx.fillRect(OX+s.sel.c*SZ,OY+s.sel.r*SZ,SZ,SZ);
+      s.moves.forEach(m=>{
+        ctx.fillStyle=board[m.tr][m.tc]?'rgba(255,51,102,0.25)':'rgba(0,174,239,0.18)';
+        ctx.fillRect(OX+m.tc*SZ,OY+m.tr*SZ,SZ,SZ);
+      });
+    }
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+      const v=board[r][c]; if(!v)continue;
+      ctx.font=`${Math.floor(SZ*0.72)}px serif`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle=v[0]==='w'?'#ffffff':'#334466';
+      ctx.shadowColor=v[0]==='w'?'rgba(255,255,255,0.5)':'rgba(0,0,0,0.8)'; ctx.shadowBlur=4;
+      ctx.fillText(GLYPHS[v]||v, OX+c*SZ+SZ/2, OY+r*SZ+SZ/2+2);
+      ctx.shadowBlur=0;
+    }
+    ctx.font='12px Segoe UI'; ctx.textAlign='center'; ctx.fillStyle='rgba(0,174,239,0.6)'; ctx.textBaseline='alphabetic';
+    ctx.fillText('Score: '+s.score+'  '+(s.turn==='w'?'Your move (White)':'AI thinking (Black)'), W/2, OY-8);
+  }
+  draw();
+}
+function _makeMove(b,r,c,tr,tc){ b[tr][tc]=b[r][c]; b[r][c]=''; }
+function _chessMoves(board,r,c,color){
+  const v=board[r][c], N=8, opp=color==='w'?'b':'w', moves=[];
+  function add(tr,tc){ if(tr>=0&&tr<N&&tc>=0&&tc<N&&(!board[tr][tc]||board[tr][tc][0]===opp)) moves.push({tr,tc}); }
+  function slide(dr,dc){ for(let i=1;i<N;i++){ const tr=r+dr*i, tc=c+dc*i; if(tr<0||tr>=N||tc<0||tc>=N)break; if(board[tr][tc]){if(board[tr][tc][0]===opp)moves.push({tr,tc});break;} moves.push({tr,tc}); } }
+  const t=v[1];
+  if(t==='p'){
+    const d=color==='w'?-1:1;
+    if(r+d>=0&&r+d<N&&!board[r+d][c]) moves.push({tr:r+d,tc:c});
+    if((color==='w'&&r===6)||(color==='b'&&r===1))if(!board[r+d][c]&&!board[r+2*d][c])moves.push({tr:r+2*d,tc:c});
+    [-1,1].forEach(dc=>{ if(c+dc>=0&&c+dc<N&&board[r+d][c+dc]&&board[r+d][c+dc][0]===opp)moves.push({tr:r+d,tc:c+dc}); });
+  }
+  if(t==='r'||t==='q'){ [[1,0],[-1,0],[0,1],[0,-1]].forEach(([a,b])=>slide(a,b)); }
+  if(t==='b'||t==='q'){ [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([a,b])=>slide(a,b)); }
+  if(t==='n'){ [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([a,b])=>add(r+a,c+b)); }
+  if(t==='k'){ [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(([a,b])=>add(r+a,c+b)); }
+  return moves;
+}
+function _chessAI(s){
+  const board=s.board, opp='b', N=8;
+  let bestScore=-Infinity, bestMove=null;
+  const pieceVal={p:1,n:3,b:3,r:5,q:9,k:100};
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+    if(!board[r][c]||board[r][c][0]!==opp)continue;
+    _chessMoves(board,r,c,opp).forEach(m=>{
+      const cap=board[m.tr][m.tc];
+      const sc=(cap?pieceVal[cap[1]]||0:0)+(Math.random()*0.5);
+      if(sc>bestScore){bestScore=sc;bestMove={r,c,tr:m.tr,tc:m.tc};}
+    });
+  }
+  if(!bestMove){ _gameOver(s.score); return; }
+  if(board[bestMove.tr][bestMove.tc]==='wk'){s.score=-100;_setScore(s.score);_makeMove(board,bestMove.r,bestMove.c,bestMove.tr,bestMove.tc);s.redraw();_gameOver(Math.max(0,s.score));return;}
+  _makeMove(board,bestMove.r,bestMove.c,bestMove.tr,bestMove.tc);
+  if(bestMove.tr===N-1&&board[bestMove.tr][bestMove.tc]==='bp') board[bestMove.tr][bestMove.tc]='bq';
+  s.turn='w';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GAME 9 — POOL (top-down billiards)
+   ═══════════════════════════════════════════════════════════ */
+function _poolInit(){
+  const cv=document.getElementById('arcadeGameCanvas'), ctx=cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  const FRICTION=0.985, POCKET_R=18, BALL_R=10;
+  const pockets=[
+    {x:POCKET_R,y:POCKET_R},{x:W/2,y:POCKET_R/2},{x:W-POCKET_R,y:POCKET_R},
+    {x:POCKET_R,y:H-POCKET_R},{x:W/2,y:H-POCKET_R/2},{x:W-POCKET_R,y:H-POCKET_R},
+  ];
+  function mkBall(x,y,col,num){return {x,y,vx:0,vy:0,col,num,pocketed:false};}
+  const ballColors=['#fff','#FFD700','#0055cc','#ff3366','#9B59B6','#ff6600','#006600','#8B0000',
+                    '#555','#cc9900','#0099cc','#cc0066','#6600aa','#cc4400','#009900','#440000'];
+  function initBalls(){
+    const balls=[];
+    balls.push(mkBall(W*0.28,H/2,'#fff',0)); // cue
+    let num=1; const cx=W*0.65, cy=H/2, sp=BALL_R*2.1;
+    [[0],[1,2],[3,4,5],[6,7,8,9],[10,11,12,13,14]].forEach((row,ri)=>{
+      row.forEach((_, ci)=>{
+        const bx=cx+ri*sp*Math.cos(Math.PI/6), by=cy+(ci-(row.length-1)/2)*sp;
+        balls.push(mkBall(bx,by,ballColors[num],num)); num++;
+      });
+    });
+    return balls;
+  }
+  let balls=initBalls(), score=0, shots=0;
+  let aim=null; // {sx,sy} start of drag
+
+  const s={
+    onMousedown(e){const p=_cvXY(e);if(balls[0]&&!balls[0].pocketed&&_dist(p,balls[0])<30)aim={sx:p.x,sy:p.y,ex:p.x,ey:p.y};},
+    onMousemove(e){if(aim){const p=_cvXY(e);aim.ex=p.x;aim.ey=p.y;}},
+    onMouseup(e){if(aim){const p=_cvXY(e);aim.ex=p.x;aim.ey=p.y;_shoot();aim=null;}},
+    onTouchstart(e){const p=_cvXY(e);if(balls[0]&&!balls[0].pocketed&&_dist(p,balls[0])<40)aim={sx:p.x,sy:p.y,ex:p.x,ey:p.y};},
+    onTouchmove(e){if(aim){const p=_cvXY(e);aim.ex=p.x;aim.ey=p.y;}},
+    onTouchend(e){if(aim){_shoot();aim=null;}},
+  };
+  _arcadeGameState=s; _attachGameListeners();
+
+  function _dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+  function _shoot(){
+    if(!balls[0]||balls[0].pocketed)return;
+    const dx=aim.sx-aim.ex, dy=aim.sy-aim.ey;
+    const pow=Math.min(Math.hypot(dx,dy)*0.18,14);
+    balls[0].vx=dx/Math.hypot(dx,dy)*pow; balls[0].vy=dy/Math.hypot(dx,dy)*pow;
+    shots++;
+  }
+
+  function loop(){
+    _arcadeRAF=requestAnimationFrame(loop);
+    // Physics
+    balls.forEach(b=>{
+      if(b.pocketed)return;
+      b.x+=b.vx; b.y+=b.vy; b.vx*=FRICTION; b.vy*=FRICTION;
+      if(Math.abs(b.vx)<0.05) b.vx=0; if(Math.abs(b.vy)<0.05) b.vy=0;
+      // Wall bounce
+      if(b.x<BALL_R){b.x=BALL_R;b.vx*=-0.8;} if(b.x>W-BALL_R){b.x=W-BALL_R;b.vx*=-0.8;}
+      if(b.y<BALL_R){b.y=BALL_R;b.vy*=-0.8;} if(b.y>H-BALL_R){b.y=H-BALL_R;b.vy*=-0.8;}
+      // Pocket
+      pockets.forEach(p=>{if(_dist(b,p)<POCKET_R){b.pocketed=true;if(b.num>0){score+=10;_setScore(score);}}});
+    });
+    // Ball collisions
+    for(let i=0;i<balls.length;i++) for(let j=i+1;j<balls.length;j++){
+      const a=balls[i], b=balls[j]; if(a.pocketed||b.pocketed)continue;
+      const d=_dist(a,b);
+      if(d<BALL_R*2){
+        const nx=(b.x-a.x)/d, ny=(b.y-a.y)/d;
+        const dvx=a.vx-b.vx, dvy=a.vy-b.vy;
+        const imp=(dvx*nx+dvy*ny)*0.9;
+        a.vx-=imp*nx; a.vy-=imp*ny; b.vx+=imp*nx; b.vy+=imp*ny;
+        const ov=(BALL_R*2-d)/2;
+        a.x-=ov*nx; a.y-=ov*ny; b.x+=ov*nx; b.y+=ov*ny;
+      }
+    }
+    // Check end
+    const remaining=balls.filter(b=>!b.pocketed&&b.num>0).length;
+    if(!remaining){_gameOver(score+(10-shots)*5);return;}
+    // Draw
+    ctx.fillStyle='#0a3d1f'; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='#3a2000'; ctx.lineWidth=16;
+    ctx.strokeRect(8,8,W-16,H-16);
+    pockets.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,POCKET_R,0,Math.PI*2);ctx.fillStyle='#000';ctx.fill();});
+    // Aim line
+    if(aim&&balls[0]&&!balls[0].pocketed){
+      ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=1.5; ctx.setLineDash([6,4]);
+      ctx.beginPath(); ctx.moveTo(balls[0].x,balls[0].y); ctx.lineTo(aim.sx+(balls[0].x-aim.ex)*1.5,aim.sy+(balls[0].y-aim.ey)*1.5); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    balls.forEach(b=>{
+      if(b.pocketed)return;
+      ctx.beginPath(); ctx.arc(b.x,b.y,BALL_R,0,Math.PI*2);
+      ctx.fillStyle=b.col; ctx.fill();
+      if(b.num>0){ctx.font='bold 8px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=b.num<=8?'#fff':'#000';ctx.fillText(b.num,b.x,b.y);}
+    });
+    ctx.font='12px Segoe UI'; ctx.textAlign='left'; ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.textBaseline='alphabetic';
+    ctx.fillText('Pocketed: '+score/10+'/15  Shots: '+shots, 14, H-14);
+  }
+  _arcadeRAF=requestAnimationFrame(loop);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GAME 10 — BREAKOUT
+   ═══════════════════════════════════════════════════════════ */
+function _breakoutInit(){
+  const cv=document.getElementById('arcadeGameCanvas'), ctx=cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  const PAD_W=90, PAD_H=12, BALL_R=8;
+  const COLS=10, ROWS=5, BR_W=Math.floor((W-20)/COLS)-4, BR_H=18;
+  const colors=['#ff3366','#ff6600','#FFD700','#39FF14','#00AEEF'];
+  let bricks=[];
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    bricks.push({x:10+c*(BR_W+4),y:40+r*(BR_H+4),alive:true,col:colors[r]});
+  }
+  let pad={x:W/2-PAD_W/2,y:H-30}, ball={x:W/2,y:H-50,vx:4,vy:-4.5}, score=0, lives=3;
+  let mousePad=null;
+
+  const s={
+    onMousemove(e){const p=_cvXY(e);pad.x=Math.max(0,Math.min(W-PAD_W,p.x-PAD_W/2));},
+    onTouchmove(e){const p=_cvXY(e);pad.x=Math.max(0,Math.min(W-PAD_W,p.x-PAD_W/2));},
+    onKey(dir){
+      if(dir==='left')  pad.x=Math.max(0,pad.x-22);
+      if(dir==='right') pad.x=Math.min(W-PAD_W,pad.x+22);
+    }
+  };
+  _arcadeGameState=s; _attachGameListeners();
+
+  function loop(){
+    _arcadeRAF=requestAnimationFrame(loop);
+    ball.x+=ball.vx; ball.y+=ball.vy;
+    if(ball.x<=BALL_R||ball.x>=W-BALL_R) ball.vx*=-1;
+    if(ball.y<=BALL_R) ball.vy=Math.abs(ball.vy);
+    if(ball.y>H){lives--;_setScore(score);if(!lives){_gameOver(score);return;}ball={x:W/2,y:H-50,vx:4,vy:-4.5};}
+    // Paddle
+    if(ball.y+BALL_R>=pad.y&&ball.y<pad.y+PAD_H&&ball.x>=pad.x&&ball.x<=pad.x+PAD_W){
+      ball.vy=-Math.abs(ball.vy);
+      ball.vx=((ball.x-(pad.x+PAD_W/2))/(PAD_W/2))*6;
+    }
+    // Bricks
+    bricks.forEach(b=>{
+      if(!b.alive)return;
+      if(ball.x>b.x&&ball.x<b.x+BR_W&&ball.y>b.y&&ball.y<b.y+BR_H){
+        b.alive=false; score+=10; _setScore(score); ball.vy*=-1;
+      }
+    });
+    if(bricks.every(b=>!b.alive)){_gameOver(score+lives*50);return;}
+    // Draw
+    ctx.fillStyle='#00050f'; ctx.fillRect(0,0,W,H);
+    bricks.forEach(b=>{
+      if(!b.alive)return;
+      const g=ctx.createLinearGradient(b.x,b.y,b.x,b.y+BR_H);
+      g.addColorStop(0,b.col); g.addColorStop(1,b.col+'88');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.roundRect(b.x,b.y,BR_W,BR_H,4); ctx.fill();
+    });
+    // Paddle
+    const pg=ctx.createLinearGradient(pad.x,pad.y,pad.x+PAD_W,pad.y);
+    pg.addColorStop(0,'#004cb3'); pg.addColorStop(1,'#00AEEF');
+    ctx.fillStyle=pg; ctx.beginPath(); ctx.roundRect(pad.x,pad.y,PAD_W,PAD_H,6); ctx.fill();
+    // Ball
+    ctx.beginPath(); ctx.arc(ball.x,ball.y,BALL_R,0,Math.PI*2);
+    ctx.fillStyle='#fff'; ctx.shadowColor='#00AEEF'; ctx.shadowBlur=12; ctx.fill(); ctx.shadowBlur=0;
+    // HUD
+    ctx.font='13px Segoe UI'; ctx.textAlign='right'; ctx.fillStyle='rgba(0,174,239,0.7)'; ctx.textBaseline='alphabetic';
+    ctx.fillText('Score: '+score+'  Lives: '+'❤️'.repeat(lives), W-10, 22);
+  }
+  _arcadeRAF=requestAnimationFrame(loop);
+}
+
+/* ─────────────────────────────────────────────
+   PROFILE INTEGRATION
+   Adds 🕹️ Arcade section to viewed profiles
+   ───────────────────────────────────────────── */
+window._arcadeRenderProfileSection = async function(targetUid, containerEl) {
+  if (!containerEl) return;
+  const fs = _fs();
+  if (!fs) return;
+  try {
+    const { db, collection, query, where, getDocs, orderBy, limit } = fs;
+    const snap = await getDocs(
+      query(collection(db,'arcadeScores'), where('uid','==',targetUid), orderBy('best','desc'), limit(5))
+    );
+    if (snap.empty) return;
+    const records = [];
+    snap.forEach(d => records.push(d.data()));
+    const sectionDiv = document.createElement('div');
+    sectionDiv.className = 'profile-arcade-section';
+    sectionDiv.innerHTML = `
+      <div class="profile-arcade-header">
+        <span class="profile-arcade-title">🕹️ Arcade Records</span>
+        <button class="btn-challenge-game" onclick="challengeToGame('${esc(targetUid)}','${esc(_myData().displayName||'Player')}')">⚡ Challenge</button>
+      </div>
+      <div class="profile-arcade-games">
+        ${records.map(r => {
+          const gd = ARCADE_GAMES.find(x => x.id === r.gameId) || { icon:'🎮', name: r.gameId };
+          return `<div class="profile-arcade-chip">${gd.icon} ${esc(gd.name)}<span class="chip-score">${r.best.toLocaleString()}</span></div>`;
+        }).join('')}
+      </div>`;
+    containerEl.appendChild(sectionDiv);
+  } catch(e) { /* silent */ }
+};
+
+/* Hook into existing viewProfile() to inject arcade section */
+(function() {
+  const _origSwitchProfileTab = window.switchProfileTab;
+  if (_origSwitchProfileTab) {
+    window.switchProfileTab = function(tab) {
+      _origSwitchProfileTab(tab);
+      if (tab === 'wall') {
+        // Inject arcade section below wall if not already there
+        setTimeout(() => {
+          const wallContent = document.getElementById('tabContentWall');
+          if (wallContent && !wallContent.querySelector('.profile-arcade-section')) {
+            const uid = window._viewingProfileUid;
+            if (uid) window._arcadeRenderProfileSection(uid, wallContent);
+          }
+        }, 200);
+      }
+    };
+  }
+})();
+
+/* ─────────────────────────────────────────────
+   ORIENTATION CHANGE — keep game intact
+   ───────────────────────────────────────────── */
+window.addEventListener('orientationchange', () => {
+  if (!_arcadeCurrentGame) return;
+  setTimeout(() => {
+    const wrap = document.querySelector('.arcade-game-canvas-wrap');
+    const cv   = document.getElementById('arcadeGameCanvas');
+    if (!wrap || !cv) return;
+    const W = Math.min(wrap.clientWidth  || 640, 640);
+    const H = Math.min(wrap.clientHeight || 480, 480);
+    cv.width = W; cv.height = H;
+    if (_arcadeGameState && _arcadeGameState.redraw) _arcadeGameState.redraw();
+  }, 300);
+});
+
+/* Expose open function for nav item */
+window.openArcadeHub = window.openArcadeHub;
+
+})(); // end IIFE
+</script>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SHADOW NEXUS ARCADE — Modals & Game Canvas
+     ═══════════════════════════════════════════════════════════ -->
+
+<!-- ── Arcade Hub Modal ── -->
+<div id="arcadeHubModal" role="dialog" aria-modal="true" aria-label="Arcade Hub">
+<div class="arcade-hub-card">
+
+    <!-- Header -->
+    <div class="arcade-hub-header">
+        <div>
+            <div class="arcade-hub-title">🕹️ Shadow Nexus Arcade</div>
+            <div class="arcade-hub-subtitle">Play solo · Challenge friends · Climb the leaderboard</div>
+        </div>
+        <button class="arcade-hub-close" onclick="closeArcadeHub()" aria-label="Close">✕</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="arcade-hub-tabs">
+        <button class="arcade-hub-tab active" id="ahTab-games"      onclick="switchArcadeTab('games',this)">🎮 Games</button>
+        <button class="arcade-hub-tab"         id="ahTab-invites"   onclick="switchArcadeTab('invites',this)">📩 Invites</button>
+        <button class="arcade-hub-tab"         id="ahTab-stats"     onclick="switchArcadeTab('stats',this)">📊 My Stats</button>
+        <button class="arcade-hub-tab"         id="ahTab-leaderboard" onclick="switchArcadeTab('leaderboard',this)">🏆 Leaderboard</button>
+    </div>
+
+    <!-- Body content (tab panels swap in via JS) -->
+    <div class="arcade-hub-body" id="arcadeHubBody">
+
+        <!-- ── Tab: Games ── -->
+        <div id="ahPanel-games">
+            <div class="arcade-game-grid" id="arcadeGameGrid">
+                <!-- tiles injected by JS -->
+            </div>
+        </div>
+
+        <!-- ── Tab: Invites / Active Games ── -->
+        <div id="ahPanel-invites" style="display:none;">
+            <p style="font-size:12px;color:#6a90b8;margin:0 0 14px;">Game challenges sent to you and active matches.</p>
+            <div id="arcadeInvitesList"></div>
+        </div>
+
+        <!-- ── Tab: My Stats ── -->
+        <div id="ahPanel-stats" style="display:none;">
+            <div class="arcade-stats-grid" id="arcadeStatsGrid"></div>
+            <p style="font-size:12px;font-weight:700;color:#00AEEF;margin:0 0 10px;text-transform:uppercase;letter-spacing:0.6px;">Game Records</p>
+            <div id="arcadeMyRecords"></div>
+        </div>
+
+        <!-- ── Tab: Leaderboard ── -->
+        <div id="ahPanel-leaderboard" style="display:none;">
+            <div class="arcade-lb-tabs">
+                <button class="arcade-lb-tab active" id="lbTab-global"  onclick="switchLbScope('global',this)">🌍 Global</button>
+                <button class="arcade-lb-tab"         id="lbTab-friends" onclick="switchLbScope('friends',this)">👥 Friends</button>
+            </div>
+            <div class="arcade-lb-tabs" style="margin-top:-6px;">
+                <button class="arcade-lb-tab active" id="lbTab-alltime"  onclick="switchLbPeriod('alltime',this)">All-Time</button>
+                <button class="arcade-lb-tab"         id="lbTab-monthly" onclick="switchLbPeriod('monthly',this)">This Month</button>
+                <button class="arcade-lb-tab"         id="lbTab-weekly"  onclick="switchLbPeriod('weekly',this)">This Week</button>
+            </div>
+            <select class="arcade-lb-game-select" id="lbGameSelect" onchange="renderLeaderboard()">
+                <option value="all">All Games — Total Score</option>
+                <option value="snake">🐍 Snake</option>
+                <option value="tetris">🟦 Tetris</option>
+                <option value="pong">🏓 Pong</option>
+                <option value="tictactoe">⭕ Tic-Tac-Toe</option>
+                <option value="connect4">🔴 Connect Four</option>
+                <option value="memory">🃏 Memory Match</option>
+                <option value="checkers">♟ Checkers</option>
+                <option value="chess">♛ Chess</option>
+                <option value="pool">🎱 Pool</option>
+                <option value="breakout">🧱 Breakout</option>
+            </select>
+            <div id="arcadeLeaderboardList"></div>
+        </div>
+
+    </div>
+</div>
+</div>
+
+<!-- ── Arcade Game Modal (canvas + controls) ── -->
+<div id="arcadeGameModal" role="dialog" aria-modal="true" aria-label="Game">
+
+    <!-- Header bar -->
+    <div class="arcade-game-modal-header">
+        <div>
+            <div class="arcade-game-modal-title" id="agmTitle">Game</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;">
+            <span class="arcade-game-modal-score" id="agmScore"></span>
+            <button class="arcade-game-modal-close" onclick="closeArcadeGame()" aria-label="Close game">✕</button>
+        </div>
+    </div>
+
+    <!-- Canvas -->
+    <div class="arcade-game-canvas-wrap">
+        <canvas id="arcadeGameCanvas"></canvas>
+        <!-- Game over overlay -->
+        <div class="arcade-gameover-overlay" id="arcadeGameOver">
+            <div class="arcade-go-title">GAME OVER</div>
+            <div class="arcade-go-score" id="agoScore">Score: 0</div>
+            <div class="arcade-go-best"  id="agoBest">Best: 0</div>
+            <div class="arcade-go-btns">
+                <button onclick="arcadeRestartGame()" style="background:linear-gradient(135deg,#003d99,#0077dd);border-color:rgba(0,174,239,0.65);color:#fff;">▶ Play Again</button>
+                <button onclick="closeArcadeGame()" style="background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.12);color:#6a90b8;">✕ Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls bar -->
+    <div class="arcade-game-controls">
+        <!-- Desktop hint -->
+        <div id="agmDesktopHint" style="font-size:11px;color:#4a7a9a;font-family:monospace;"></div>
+        <!-- Mobile on-screen controls -->
+        <div class="arcade-mobile-controls" id="arcadeMobileControls" style="display:none;"></div>
+    </div>
+
+</div>
 
 </body>
 </html>

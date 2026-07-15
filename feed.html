@@ -179,7 +179,7 @@ body::after {
     pointer-events: none;
     z-index: 9996;
     box-shadow: 0 0 4px rgba(0,160,255,0.45);
-    animation: ashFloat var(''--ash-dur, 12s) linear var(''--ash-delay, 0s) infinite;
+    animation: ashFloat var(--ash-dur, 12s) linear var(--ash-delay, 0s) infinite;
     will-change: transform, opacity;
 }
 .ash-particle.green {
@@ -584,8 +584,7 @@ input:focus, textarea:focus, select:focus {
     text-shadow: 0 0 8px rgba(0,160,255,0.4);
 }
 .post-author-link:hover { text-decoration: underline; color: #00d4ff; }
-.post-expiry { font-size: 10px; color: #3a5a7a; background: rgba(0,20,50,0.5); padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
-.post-expiry.expiry-soon { color: #ffaa44; background: rgba(255,170,68,0.1); border: 1px solid rgba(255,170,68,0.25); }
+.post-expiry { font-size: 10px; color: #3a5a7a; white-space: nowrap; }
 
 .action-row { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
 .react-btn {
@@ -1755,12 +1754,12 @@ img.post-media-preview::before {
     width: 38px; height: 38px; border-radius: 50%;
     background: #0B1F3A; background-size: cover; background-position: center;
     cursor: pointer; transition: opacity 0.15s;
+    border: 2px solid rgba(0,174,239,0.38);
+    position: relative; flex-shrink: 0;
 }
 .chat-header-avatar:hover { opacity: 0.8; }
 .chat-header-name { font-size: 14px; font-weight: bold; color: #eee; }
-.chat-header-name:hover { color: #00AEEF; text-decoration: underline; }    border: 2px solid rgba(0,174,239,0.38);
-    position: relative; flex-shrink: 0;
-}
+.chat-header-name:hover { color: #00AEEF; text-decoration: underline; }
 .chat-header-online {
     width: 10px; height: 10px; border-radius: 50%;
     background: #555; border: 2px solid var(--bg-card);
@@ -3482,6 +3481,7 @@ body::after {
      so logged-in users go straight to the feed with zero login flash,
      and logged-out users see the login page appear cleanly. -->
 <style> body.snx-auth-pending { visibility: hidden; } </style>
+</head>
 
 <body class="snx-auth-pending">
 
@@ -3562,7 +3562,7 @@ body::after {
         <h2 class="eclipse-title" style="font-size:24px; margin-bottom:6px; letter-spacing:2px;">SHADOW NEXUS SOCIAL</h2>
         <p style="color:#7aaac8; font-size:12px; margin:0 0 22px; line-height:1.5;">Where we can come and connect in the safe space,<br>no judgment. Stay legendary. 🌑🔥</p>
 
-        <input id="userEmail" placeholder="✉ Your email address" style="margin-bottom:10px;" autocomplete="username">
+        <input type="email" id="userEmail" placeholder="✉ Your email address" style="margin-bottom:10px;" autocomplete="username">
         <input id="userPass" type="password" placeholder="🔒 Password" autocomplete="current-password">
 
         <div style="margin-top:18px; display:flex; gap:10px; justify-content:center;">
@@ -3585,7 +3585,7 @@ body::after {
     <div style="background:#060d1e; border:1px solid rgba(0,140,255,0.4); border-radius:16px; width:100%; max-width:400px; padding:28px 24px; box-sizing:border-box; position:relative; box-shadow:0 0 60px rgba(0,100,255,0.2); animation:deleteModalIn 0.22s cubic-bezier(0.34,1.56,0.64,1) both;">
         <h3 style="margin:0 0 10px; color:#00ccff; font-size:17px; text-shadow:0 0 12px rgba(0,180,255,0.5);">🔑 Reset Password</h3>
         <p style="font-size:13px; color:#a0b8cc; line-height:1.6; margin:0 0 16px;">Enter your email address and we'll send you a link to reset your password.</p>
-        <input id="forgotEmailInput" placeholder="✉ Your email address" autocomplete="email" style="margin:0 0 16px; border-color:rgba(0,140,255,0.4);">
+        <input type="email" id="forgotEmailInput" placeholder="✉ Your email address" autocomplete="email" style="margin:0 0 16px; border-color:rgba(0,140,255,0.4);">
         <div id="forgotMsg" style="font-size:12px; min-height:18px; margin-bottom:12px; color:#00cc88; display:none;"></div>
         <div style="display:flex; gap:10px;">
             <button onclick="closeForgotPasswordModal()" style="flex:1; padding:10px; border-radius:8px; font-size:13px; font-weight:700; border-color:rgba(255,255,255,0.18); color:#778; background:transparent;">Cancel</button>
@@ -3723,7 +3723,7 @@ body::after {
             <!-- ── Tab: Info ── -->
             <div class="ep-tab-pane active" id="ep-pane-info">
                 <label>Display Name</label>
-                <input id="editUsername" placeholder="Your name">
+                <input type="text" id="editUsername" placeholder="Your name">
 
                 <label>Bio</label>
                 <textarea id="editBio" rows="2" placeholder="Tell people about yourself…" style="resize:vertical;"></textarea>
@@ -3736,7 +3736,7 @@ body::after {
                     <button class="snx-upload-clear" id="editAvatarClear" style="display:none;" onclick="clearAvatarUpload()" title="Remove">✕</button>
                 </div>
                 <div class="snx-upload-progress" id="editAvatarProgress"><div class="snx-upload-progress-bar" id="editAvatarProgressBar"></div></div>
-                <input id="editAvatar" placeholder="Or paste image URL…" style="margin-top:6px;">
+                <input type="url" id="editAvatar" placeholder="Or paste image URL…" style="margin-top:6px;">
 
                 <label>Cover Photo</label>
                 <input type="file" id="editBannerFile" accept="image/*" style="display:none;" onchange="handleBannerPick(this)">
@@ -3746,7 +3746,7 @@ body::after {
                     <button class="snx-upload-clear" id="editBannerClear" style="display:none;" onclick="clearBannerUpload()" title="Remove">✕</button>
                 </div>
                 <div class="snx-upload-progress" id="editBannerProgress"><div class="snx-upload-progress-bar" id="editBannerProgressBar"></div></div>
-                <input id="editBanner" placeholder="Or paste cover image URL…" style="margin-top:6px;">
+                <input type="url" id="editBanner" placeholder="Or paste cover image URL…" style="margin-top:6px;">
 
                 <label>Wall Privacy</label>
                 <select id="editPrivacy">
@@ -3790,7 +3790,7 @@ body::after {
                 <!-- Custom status -->
                 <div id="moodPane-status" class="mood-pane">
                     <label style="margin-top:10px;">Custom Status Line</label>
-                    <input id="moodCustomStatus" maxlength="40" placeholder="e.g. 🔥 Building something epic…" oninput="updateStatusPreview()">
+                    <input type="text" id="moodCustomStatus" maxlength="40" placeholder="e.g. 🔥 Building something epic…" oninput="updateStatusPreview()">
                     <div style="margin-top:8px;font-size:11px;color:#3a5a7a;">Preview: <span id="moodStatusPreview" class="mood-preview-chip"></span></div>
                 </div>
 
@@ -3820,7 +3820,7 @@ body::after {
                 <label>Background Color</label>
                 <div style="display:flex;gap:8px;align-items:center;">
                     <input type="color" id="profileBgColor" value="#0d2444" oninput="updateStylePreview()" style="width:44px;height:36px;padding:2px;border-radius:6px;cursor:pointer;">
-                    <input id="profileBgColorHex" placeholder="#0d2444" maxlength="20" oninput="syncColorFromHex()" style="flex:1;">
+                    <input type="text" id="profileBgColorHex" placeholder="#0d2444" maxlength="20" oninput="syncColorFromHex()" style="flex:1;">
                 </div>
 
                 <label>Background Gradient</label>
@@ -3835,7 +3835,7 @@ body::after {
                 <label>Gradient Second Color</label>
                 <div style="display:flex;gap:8px;align-items:center;">
                     <input type="color" id="profileBgColor2" value="#071428" oninput="updateStylePreview()" style="width:44px;height:36px;padding:2px;border-radius:6px;cursor:pointer;">
-                    <input id="profileBgColor2Hex" placeholder="#071428" maxlength="20" oninput="syncColor2FromHex()" style="flex:1;">
+                    <input type="text" id="profileBgColor2Hex" placeholder="#071428" maxlength="20" oninput="syncColor2FromHex()" style="flex:1;">
                 </div>
 
                 <label>Font Family</label>
@@ -3852,7 +3852,7 @@ body::after {
                 <label>Name Color</label>
                 <div style="display:flex;gap:8px;align-items:center;">
                     <input type="color" id="profileNameColor" value="#e0f0ff" oninput="updateStylePreview()" style="width:44px;height:36px;padding:2px;border-radius:6px;cursor:pointer;">
-                    <input id="profileNameColorHex" placeholder="#e0f0ff" maxlength="20" oninput="syncNameColorFromHex()" style="flex:1;">
+                    <input type="text" id="profileNameColorHex" placeholder="#e0f0ff" maxlength="20" oninput="syncNameColorFromHex()" style="flex:1;">
                 </div>
 
                 <label>Card Border Style</label>
@@ -3954,8 +3954,17 @@ body::after {
 
     <!-- ── Profile tabs ── -->
     <div class="profile-tabs">
+        <button class="tab-btn" id="tabPostsLink" onclick="switchProfileTab('posts')">⚡ Posts</button>
         <button class="tab-btn active" id="tabWallLink" onclick="switchProfileTab('wall')">📝 Wall</button>
         <button class="tab-btn" id="tabMessagesLink" onclick="switchProfileTab('messages')" style="display:none;">💬 Message</button>
+    </div>
+
+    <!-- Posts tab -->
+    <div id="tabContentPosts" style="display:none;">
+        <div id="profilePostFeed"></div>
+        <div id="profilePostLoadMore" style="text-align:center;padding:12px 0;display:none;">
+            <button onclick="loadMoreProfilePosts()" style="border-radius:20px;padding:7px 22px;font-size:13px;">Load more</button>
+        </div>
     </div>
 
     <!-- Wall tab -->
@@ -3963,7 +3972,7 @@ body::after {
         <div class="section-card">
             <div id="wallPosts"></div>
             <div id="wallInputRow" style="display:flex;gap:8px;margin-top:10px;align-items:center;">
-                <input id="wallInput" placeholder="Write on this wall…" style="flex:1;margin:0;" maxlength="300">
+                <input type="text" id="wallInput" placeholder="Write on this wall…" style="flex:1;margin:0;" maxlength="300">
                 <button id="btnWallSubmit" style="flex-shrink:0;">Post</button>
             </div>
         </div>
@@ -4210,7 +4219,7 @@ body::after {
     <h2 class="eclipse-title">🔍 Find Your People</h2>
     <div class="section-card">
         <div class="search-bar-row">
-            <input id="searchInput" placeholder="Search the Nexus by name or handle…" autocomplete="off">
+            <input type="search" id="searchInput" placeholder="Search the Nexus by name or handle…" autocomplete="off">
             <button onclick="runSearch()" style="border-radius:8px;">Search</button>
         </div>
         <div id="searchResults"><div class="search-empty">Type a name and press Search</div></div>
@@ -4452,7 +4461,7 @@ body::after {
             <li>Your friend connections</li>
         </ul>
         <label for="deleteConfirmInput">Type <strong style="color:#ff4466">DELETE</strong> to confirm:</label>
-        <input id="deleteConfirmInput" placeholder="Type DELETE here" autocomplete="off" style="border-color:rgba(255,51,80,0.4);">
+        <input type="text" id="deleteConfirmInput" placeholder="Type DELETE here" autocomplete="off" style="border-color:rgba(255,51,80,0.4);">
         <div class="delete-modal-actions">
             <button class="btn-cancel-delete" onclick="closeDeleteAccountModal()">Cancel</button>
             <button class="btn-confirm-delete" onclick="confirmDeleteAccount()">Delete Forever</button>
@@ -4477,7 +4486,7 @@ body::after {
         <!-- Display name -->
         <div class="storm-card">
             <h3>👤 Your Display Name</h3>
-            <input class="storm-input" id="stormDisplayName" placeholder="Your shadow name (e.g. NightBloom, EmberKnight)…" maxlength="24">
+            <input type="text" class="storm-input" id="stormDisplayName" placeholder="Your shadow name (e.g. NightBloom, EmberKnight)…" maxlength="24">
         </div>
 
         <!-- Public lobby -->
@@ -4494,7 +4503,7 @@ body::after {
         <!-- Private room -->
         <div class="storm-card">
             <h3>🔒 Private Room</h3>
-            <input class="storm-input" id="stormRoomCode" placeholder="Enter room code…" maxlength="20" style="text-transform:uppercase;">
+            <input type="text" class="storm-input" id="stormRoomCode" placeholder="Enter room code…" maxlength="20" style="text-transform:uppercase;">
             <button class="storm-btn" onclick="stormJoinPrivate()">
                 💀 Join Private Room
             </button>
@@ -4628,7 +4637,7 @@ body::after {
 <div class="admin-tab-content" id="adminTab-users">
     <div class="section-card">
         <div class="admin-search-row">
-            <input id="adminSearchInput" placeholder="🔍 Search by name or @handle…" autocomplete="off" oninput="adminDebouncedSearch()">
+            <input type="search" id="adminSearchInput" placeholder="🔍 Search by name or @handle…" autocomplete="off" oninput="adminDebouncedSearch()">
             <select id="adminUserFilter" onchange="renderAdminPanel()" style="margin:0;width:auto;min-width:130px;font-size:12px;padding:6px 10px;">
                 <option value="all">All Users</option>
                 <option value="online">Online Now</option>
@@ -4681,7 +4690,7 @@ body::after {
             <option value="bug">Report a Bug</option>
             <option value="appeal">Appeal / Other</option>
         </select>
-        <input id="reportTarget" placeholder="Username or post ID (if applicable)" style="margin-bottom:8px;">
+        <input type="text" id="reportTarget" placeholder="Username or post ID (if applicable)" style="margin-bottom:8px;">
         <textarea id="reportBody" rows="3" placeholder="Describe the issue…" style="resize:vertical;margin-bottom:10px;"></textarea>
         <button onclick="submitReport()" style="width:100%;padding:10px;border-radius:10px;background:linear-gradient(135deg,#660022,#cc0044);border-color:rgba(255,51,102,0.6);color:#fff;">🚨 Submit Report</button>
     </div>
@@ -4717,11 +4726,11 @@ body::after {
         <h3 style="margin:0 0 12px;font-size:13px;color:#00d4ff;text-transform:uppercase;letter-spacing:0.8px;">🎨 Theme & Appearance</h3>
         <div class="settings-row">
             <div class="settings-label">App Name<small>Displayed in header and title</small></div>
-            <input id="siteSettingAppName" value="Shadow Nexus Social" style="margin:0;width:180px;" onchange="adminSaveSetting('appName',this.value)">
+            <input type="text" id="siteSettingAppName" value="Shadow Nexus Social" style="margin:0;width:180px;" onchange="adminSaveSetting('appName',this.value)">
         </div>
         <div class="settings-row" style="border-bottom:none;">
             <div class="settings-label">Community Rules URL<small>Link shown in onboarding</small></div>
-            <input id="siteSettingRulesUrl" placeholder="https://…" style="margin:0;width:180px;" onchange="adminSaveSetting('rulesUrl',this.value)">
+            <input type="url" id="siteSettingRulesUrl" placeholder="https://…" style="margin:0;width:180px;" onchange="adminSaveSetting('rulesUrl',this.value)">
         </div>
     </div>
     <div class="section-card">
@@ -4897,7 +4906,7 @@ body::after {
   let activeChatTargetUid = null;
   let activeChatUnsubscribe = null;   // DM page — active chat snapshot
   let activeChatStatusUnsub = null;   // DM page — partner presence snapshot
-  let scrollLimit = 8;
+  let scrollLimit = 20;
   let totalUnread = 0;
   let feedUnsubscribe      = null;    // timeline feed
   let presenceUnsubscribe  = null;    // all-users presence strip
@@ -5101,11 +5110,12 @@ body::after {
               if (adminNavBtn) adminNavBtn.style.display = (window._snxRole === 'founder' || window._snxRole === 'admin') ? 'flex' : 'none';
           } catch(_) {}
           document.body.classList.remove('snx-auth-pending');
+          scrollLimit = 20;       // reset feed page counter on each login
           navTo('feed');          initTimelineStream();
           presenceUnsubscribe = initPresenceStrip();
           inboxUnsubscribe    = initInboxMonitor();
           notifUnsubscribe    = initNotificationsMonitor();
-          scheduleExpiredPostCleanup();
+          // scheduleExpiredPostCleanup() removed — posts are permanent until deleted
           // Check if user has earned the OG badge (first 100 users, 50+ days old account)
           checkOGBadgeEligibility(user.uid);
           // Start push notifications (requests permission if not yet granted)
@@ -5121,6 +5131,7 @@ body::after {
           if (userDataUnsubscribe) { userDataUnsubscribe(); userDataUnsubscribe = null; }
           if (activeChatUnsubscribe) { activeChatUnsubscribe(); activeChatUnsubscribe = null; }
           if (activeChatStatusUnsub) { activeChatStatusUnsub(); activeChatStatusUnsub = null; }
+          if (_profilePostsUnsub)    { _profilePostsUnsub();    _profilePostsUnsub    = null; }
           if (typeof window._teardownActiveChat === 'function') window._teardownActiveChat();
           if (typeof window.closeProfileChat    === 'function') window.closeProfileChat();
           document.getElementById("menuButton").style.display = "none";
@@ -5367,7 +5378,7 @@ body::after {
   }
 
   /* TIMELINE DYNAMIC TIMELINE STREAM ENGINE WITH MEDIA INTERPRETATION */
-  const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  const TTL_MS = 0; // posts never expire — only removed by user/moderator action
 
   function _snxDebug(msg) {
       const bar = document.getElementById('snx-debug-bar');
@@ -5377,32 +5388,31 @@ body::after {
   }
 
   function initTimelineStream() {
-      // Tear down any existing listener before (re)subscribing with a new limit
+      // Tear down any existing listener before (re)subscribing
       if (feedUnsubscribe) { feedUnsubscribe(); feedUnsubscribe = null; }
 
       _snxDebug('Connecting to Firestore posts…');
-      const qElements = collection(db, "posts");
+      // Query ALL posts — no expiry filter. Posts are permanent until manually deleted.
+      const qElements = query(collection(db, "posts"), orderBy("timestamp", "desc"));
       feedUnsubscribe = onSnapshot(qElements, (snapshot) => {
           try {
           const container = document.getElementById("feedPosts");
           const now = Date.now();
 
-          // Collect ALL docs — track expired separately for diagnostics
+          // Collect ALL docs — no TTL, no expiry, permanent until deleted
           const allDocs = [];
-          const validDocs = [];
           snapshot.forEach(pDoc => {
               const post = pDoc.data();
               const ts = typeof post.timestamp === 'number' ? post.timestamp
                        : post.timestamp?.toMillis ? post.timestamp.toMillis()
                        : 0;
               allDocs.push({ pDoc, ts });
-              if (ts && (now - ts) > TTL_MS) return;
-              validDocs.push({ pDoc, ts });
           });
-          validDocs.sort((a, b) => b.ts - a.ts);
+          // Firestore already orders by timestamp desc; sort locally as safety net
+          allDocs.sort((a, b) => b.ts - a.ts);
 
-          // Apply scroll limit after sorting
-          const limitedDocs = validDocs.slice(0, scrollLimit);
+          // Apply scroll limit after sorting (pagination)
+          const limitedDocs = allDocs.slice(0, scrollLimit);
 
           // Collect the set of post IDs
           const incomingIds = new Set(limitedDocs.map(v => v.pDoc.id));
@@ -5418,11 +5428,8 @@ body::after {
 
           // Empty feed state — show diagnostics
           if (incomingIds.size === 0) {
-              const expiredCount = allDocs.length - validDocs.length;
               if (allDocs.length === 0) {
                   _snxDebug('Firestore returned 0 posts — either no posts exist yet, or Firestore rules are blocking reads.');
-              } else if (expiredCount > 0) {
-                  _snxDebug('Firestore has ' + allDocs.length + ' post(s) but all are filtered as expired. Timestamps may be wrong (got: ' + allDocs[0].ts + ')');
               }
               container.innerHTML = `
                 <div style="text-align:center;padding:48px 20px;color:#3a5a7a;">
@@ -5442,13 +5449,17 @@ body::after {
 
               const isLiked = post.likedBy?.includes(currentUser.uid);
               const isOwner = post.uid === currentUser.uid;
-              const ageMs   = ts ? now - ts : 0;
-              const hoursLeft = Math.max(0, Math.floor((TTL_MS - ageMs) / 3600000));
-              const ageLabel = hoursLeft === 0
-                  ? '<span class="post-expiry expiry-soon">⏳ &lt;1h left</span>'
-                  : hoursLeft <= 6
-                  ? `<span class="post-expiry expiry-soon">⏳ ${hoursLeft}h left</span>`
-                  : `<span class="post-expiry">⏳ ${hoursLeft}h left</span>`;
+              // Show a human-readable post age instead of a countdown timer
+              const ageMs = ts ? now - ts : 0;
+              const ageMins  = Math.floor(ageMs / 60000);
+              const ageHours = Math.floor(ageMs / 3600000);
+              const ageDays  = Math.floor(ageMs / 86400000);
+              const ageLabel = ts === 0 ? '' :
+                  ageMins  < 1    ? '<span class="post-expiry">just now</span>' :
+                  ageMins  < 60   ? `<span class="post-expiry">${ageMins}m ago</span>` :
+                  ageHours < 24   ? `<span class="post-expiry">${ageHours}h ago</span>` :
+                  ageDays  < 7    ? `<span class="post-expiry">${ageDays}d ago</span>` :
+                  `<span class="post-expiry">${new Date(ts).toLocaleDateString()}</span>`;
 
               let mediaHTML = '';
               if (post.mediaUrl) {
@@ -6012,7 +6023,7 @@ service cloud.firestore {
           if (typeof window._snxResetTagStrip === 'function') window._snxResetTagStrip();
           const counter = document.getElementById("postCharCounter");
           if (counter) { counter.textContent = "500 characters left"; counter.className = "post-char-counter"; }
-          toastNotification("⚡ Post published! Auto-deletes in 24 hours.");
+          toastNotification("⚡ Post published!");
       } catch(e) {
           console.error('[Post] Failed:', e);
           toastNotification("Failed to post: " + (e.message || e.code || 'unknown error'));
@@ -6359,25 +6370,10 @@ service cloud.firestore {
       }
   });
 
-  /* ── Scheduled 24h expired-post cleanup ──
-     Runs once on login. Queries all posts with createdAt older than 24h
-     and batch-deletes them. Falls back to `timestamp` for legacy posts. */
-  async function scheduleExpiredPostCleanup() {
-      const cutoff = Date.now() - TTL_MS;
-      try {
-          const expired = await getDocs(
-              query(collection(db, "posts"), where("createdAt", "<", cutoff))
-          );
-          if (expired.empty) return;
-          const batch = writeBatch(db);
-          expired.forEach(d => batch.delete(d.ref));
-          await batch.commit();
-          console.log(`[TTL] Cleaned up ${expired.size} expired post(s).`);
-      } catch (e) {
-          // Silently fail — cleanup is best-effort
-          console.warn("[TTL] Cleanup skipped:", e.message);
-      }
-  }
+  /* scheduleExpiredPostCleanup() removed — posts are permanent until
+     the author deletes them or a moderator/founder removes them for
+     violating community rules. Only Stories (a separate feature) should
+     expire after 24 hours. */
 
   /* ═══════════════════════════════════════════════════════════
      SEARCH
@@ -6870,6 +6866,7 @@ service cloud.firestore {
 
   window.viewProfile = async function(uid) {
       activeProfileUid = uid;
+      window._snxActiveProfileUid = uid;  // expose to global scripts
       show('profile');
       // Highlight Profile nav item without closing sidebar
       document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-nav'));
@@ -8732,6 +8729,114 @@ service cloud.firestore {
       if (hStatus) hStatus.textContent = 'Select a conversation';
   };
 
+ /* ── Profile Posts Tab ──
+    Loads the viewed user's timeline posts from Firestore and renders
+    them in the Posts tab. Posts are permanent — no 24h expiry.
+ ── */
+ let _profilePostsUid     = null;   // which user's posts are currently loaded
+ let _profilePostsLimit   = 10;     // current page size
+ let _profilePostsUnsub   = null;   // active onSnapshot unsubscribe
+
+ window.renderProfilePosts = function(uid, reset) {
+     if (!uid) return;
+     if (_profilePostsUnsub) { _profilePostsUnsub(); _profilePostsUnsub = null; }
+     if (reset || _profilePostsUid !== uid) { _profilePostsLimit = 10; _profilePostsUid = uid; }
+
+     const container  = document.getElementById('profilePostFeed');
+     const loadMoreBtn = document.getElementById('profilePostLoadMore');
+     if (!container) return;
+     container.innerHTML = '<div style="text-align:center;padding:28px;color:#3a5a7a;font-size:13px;">Loading posts…</div>';
+
+     const q = query(
+         collection(db, 'posts'),
+         where('uid', '==', uid),
+         orderBy('timestamp', 'desc')
+     );
+
+     _profilePostsUnsub = onSnapshot(q, (snap) => {
+         const allPosts = [];
+         snap.forEach(d => {
+             const p = d.data();
+             if (!p.isRepost) {
+                 const ts = typeof p.timestamp === 'number' ? p.timestamp
+                          : p.timestamp?.toMillis ? p.timestamp.toMillis() : 0;
+                 allPosts.push({ id: d.id, data: p, ts });
+             }
+         });
+         allPosts.sort((a, b) => b.ts - a.ts);
+
+         const shown = allPosts.slice(0, _profilePostsLimit);
+         container.innerHTML = '';
+
+         if (shown.length === 0) {
+             container.innerHTML = '<div style="text-align:center;padding:32px 20px;color:#334;font-size:13px;">No posts yet.</div>';
+             if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+             return;
+         }
+
+         const now = Date.now();
+         shown.forEach(({ id, data: p, ts }) => {
+             const ageMs    = ts ? now - ts : 0;
+             const ageMins  = Math.floor(ageMs / 60000);
+             const ageHours = Math.floor(ageMs / 3600000);
+             const ageDays  = Math.floor(ageMs / 86400000);
+             const ageLabel = ts === 0 ? '' :
+                 ageMins  < 1  ? 'just now' :
+                 ageMins  < 60 ? `${ageMins}m ago` :
+                 ageHours < 24 ? `${ageHours}h ago` :
+                 ageDays  < 7  ? `${ageDays}d ago` :
+                 new Date(ts).toLocaleDateString();
+
+             const isOwner = currentUser && p.uid === currentUser.uid;
+             const isLiked = p.likedBy?.includes(currentUser?.uid);
+
+             let mediaHTML = '';
+             if (p.mediaUrl) {
+                 let mu = p.mediaUrl
+                     .replace('https://pub-e5efe8c515324a8ab89ca15c5fa731dd.r2.dev/', 'https://yellow-term-11e6.nthntjrn.workers.dev/')
+                     .replace('https://pub-1cb8318faddb49f0b2c91fbd098c271f.r2.dev/', 'https://yellow-term-11e6.nthntjrn.workers.dev/');
+                 const ext = mu.split('?')[0].split('.').pop().toLowerCase();
+                 const isAudio = ['mp3','ogg','wav','aac','flac','m4a','opus'].includes(ext) || mu.includes('/audio/');
+                 const isVideo = ['mp4','webm','mov','avi','mkv','m4v'].includes(ext)  || mu.includes('/video/');
+                 if (isAudio) {
+                     mediaHTML = `<audio src="${mu}" controls preload="metadata" style="width:100%;margin-top:8px;border-radius:8px;"></audio>`;
+                 } else if (isVideo) {
+                     mediaHTML = `<video src="${mu}" controls playsinline preload="metadata" style="width:100%;max-height:260px;border-radius:10px;margin-top:8px;" onerror="this.style.display='none'"></video>`;
+                 } else {
+                     mediaHTML = `<img src="${mu}" alt="photo" onclick="openMediaViewer('image','${mu}')" style="max-width:100%;max-height:260px;border-radius:10px;margin-top:8px;cursor:pointer;" onerror="this.style.display='none'">`;
+                 }
+             }
+
+             const card = document.createElement('div');
+             card.className = 'postBox';
+             card.id = `profile-post-${id}`;
+             card.innerHTML = `
+                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
+                     <span style="font-size:12px;color:#3a6a9a;">${escFeed(ageLabel)}</span>
+                 </div>
+                 <p style="margin:6px 0 10px;">${renderPostText(p.text)}</p>
+                 ${mediaHTML}
+                 <div class="action-row" style="margin-top:8px;">
+                     <button class="react-btn ${isLiked ? 'liked' : ''}" onclick="processPostReaction('${id}','like',this)">❤️ <span class="like-count">${p.likes || 0}</span></button>
+                     <button class="react-btn" onclick="sharePostItem('${id}')">🔗 Share</button>
+                     ${isOwner ? `<button class="react-btn btn-del-post" onclick="window.deleteTimelinePost('${id}')">🗑️ Delete</button>` : ''}
+                 </div>`;
+             container.appendChild(card);
+         });
+
+         if (loadMoreBtn) {
+             loadMoreBtn.style.display = allPosts.length > _profilePostsLimit ? 'block' : 'none';
+         }
+     }, () => {
+         if (container) container.innerHTML = '<div style="padding:20px;color:#ff8899;font-size:13px;">⚠️ Could not load posts.</div>';
+     });
+ };
+
+ window.loadMoreProfilePosts = function() {
+     _profilePostsLimit += 10;
+     window.renderProfilePosts(_profilePostsUid, false);
+ };
+
 </script>
 
 <script>
@@ -8834,11 +8939,16 @@ function toastNotification(msg) {
 }
 function switchProfileTab(t) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    ['tabContentWall','tabContentMessages'].forEach(id => {
+    ['tabContentPosts','tabContentWall','tabContentMessages'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
-    if (t === 'wall') {
+    if (t === 'posts') {
+        const tl = document.getElementById('tabPostsLink');
+        if (tl) tl.classList.add('active');
+        document.getElementById('tabContentPosts').style.display = 'block';
+        if (typeof window.renderProfilePosts === 'function') window.renderProfilePosts(window._snxActiveProfileUid, true);
+    } else if (t === 'wall') {
         document.getElementById('tabWallLink').classList.add('active');
         document.getElementById('tabContentWall').style.display = 'block';
     } else if (t === 'messages') {

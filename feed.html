@@ -3867,13 +3867,18 @@ body::after {
 
                 <!-- Live preview -->
                 <label style="margin-top:14px;">Live Preview</label>
-                <div id="profileStylePreview" class="profile-style-preview">
-                    <div class="psp-avatar">👤</div>
-                    <div>
-                        <div class="psp-name" id="pspName">Your Name</div>
-                        <div class="psp-handle">@handle</div>
-                        <div class="psp-bio">Your bio goes here…</div>
+                <div id="profileStylePreview" class="profile-style-preview" style="flex-direction:column;align-items:stretch;padding:14px;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+                        <div class="psp-avatar">👤</div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                                <div class="psp-name" id="pspName">Your Name</div>
+                                <span id="pspMoodChip" class="post-mood-chip" style="display:none;"></span>
+                            </div>
+                            <div class="psp-handle">@handle</div>
+                        </div>
                     </div>
+                    <div class="psp-bio">Your bio goes here…</div>
                 </div>
             </div>
 
@@ -5588,7 +5593,7 @@ body::after {
                         <div style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:80%;">
                             <div class="post-author-avatar" style="${avatarStyle}" onclick="viewProfile('${authorUid}')" title="View profile">${authorAvatar ? '' : escFeed(avatarInitial)}</div>
                             <span style="display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap;">
-                                <b class="post-author-link" onclick="viewProfile('${authorUid}')">${escFeed(authorName)} (@${escFeed(authorHandle)})</b>${primaryBadges}${post.authorMood ? `<span class="post-mood-chip">${escFeed(post.authorMood)}</span>` : ''}
+                                <b class="post-author-link" onclick="viewProfile('${authorUid}')">${escFeed(authorName)} (@${escFeed(authorHandle)})</b>${primaryBadges}${post.authorMood ? `<span class="post-mood-chip${post.authorMoodFmt === 'sticker' ? ' mood-sticker-display' : ''}">${escFeed(post.authorMood)}</span>` : ''}
                             </span>
                         </div>
                         <div style="display:flex;align-items:center;gap:6px;">
@@ -5995,7 +6000,8 @@ service cloud.firestore {
               authorAvatar: userData.avatar || '',
               authorBadges: userData.badges || [],
               authorRole:   userData.role   || 'member',
-              authorMood:   userData.mood   || '',
+              authorMood:    userData.mood    || '',
+              authorMoodFmt: userData.moodFmt || 'emoji',
               text,
               mediaUrl:  mediaUrlsRaw[0] || '',
               mediaUrls: mediaUrlsRaw,
@@ -6192,8 +6198,10 @@ service cloud.firestore {
           uid:            currentUser.uid,
           authorName:     userData.displayName,
           authorHandle:   userData.username,
-          authorBadges:   userData.badges || [],
-          authorRole:     userData.role   || 'member',
+          authorBadges:   userData.badges   || [],
+          authorRole:     userData.role     || 'member',
+          authorMood:     userData.mood     || '',
+          authorMoodFmt:  userData.moodFmt  || 'emoji',
           text:           orig.text,
           mediaUrl:       orig.mediaUrl || '',
           timestamp:      now,
@@ -9007,6 +9015,7 @@ function initMoodPicker(currentMood, currentFmt) {
                 document.getElementById('editMoodFmt').value = 'emoji';
                 const prev = document.getElementById('moodEmojiPreview');
                 if (prev) prev.textContent = em;
+                updateStylePreview();
             };
             emojiGrid.appendChild(btn);
         });
@@ -9028,6 +9037,7 @@ function initMoodPicker(currentMood, currentFmt) {
                 document.getElementById('editMoodFmt').value = 'sticker';
                 const prev = document.getElementById('moodStickerPreview');
                 if (prev) prev.textContent = st;
+                updateStylePreview();
             };
             stickerGrid.appendChild(btn);
         });
@@ -9062,6 +9072,7 @@ function updateStatusPreview() {
     document.getElementById('editMoodFmt').value = 'status';
     const prev = document.getElementById('moodStatusPreview');
     if (prev) prev.textContent = val;
+    updateStylePreview();
 }
 
 function clearMoodSelection() {
@@ -9075,6 +9086,7 @@ function clearMoodSelection() {
     });
     const si = document.getElementById('moodCustomStatus');
     if (si) si.value = '';
+    updateStylePreview();   // remove chip from style preview card
     toastNotification('Mood removed. Save your profile to apply.');
 }
 
@@ -9130,25 +9142,40 @@ function updateStylePreview() {
     const pName   = document.getElementById('pspName');
     if (!preview) return;
 
-    let bgStyle = bg;
+    // Background
     if (grad !== 'none') {
-        if (grad === 'radial') bgStyle = `radial-gradient(ellipse at center, ${bg} 0%, ${bg2} 100%)`;
-        else bgStyle = `linear-gradient(${grad}, ${bg} 0%, ${bg2} 100%)`;
-        preview.style.background = bgStyle;
+        if (grad === 'radial') preview.style.background = `radial-gradient(ellipse at center, ${bg} 0%, ${bg2} 100%)`;
+        else preview.style.background = `linear-gradient(${grad}, ${bg} 0%, ${bg2} 100%)`;
     } else {
         preview.style.background = bg;
     }
-    if (font) preview.style.fontFamily = font;
-    else preview.style.fontFamily = '';
+    preview.style.fontFamily = font || '';
     if (pName) pName.style.color = nameC;
 
     // Border
     preview.className = 'profile-style-preview';
+    preview.style.flexDirection = 'column';
+    preview.style.alignItems    = 'stretch';
+    preview.style.padding       = '14px';
     if (border === 'neon-green')  preview.classList.add('profile-border-neon-green');
     else if (border === 'neon-pink') preview.classList.add('profile-border-neon-pink');
     else if (border === 'gold')   preview.classList.add('profile-border-gold');
     else if (border === 'rainbow')preview.classList.add('profile-border-rainbow');
     else if (border === 'none')   preview.classList.add('profile-border-none');
+
+    // Mood chip in preview card
+    const moodVal  = document.getElementById('editMoodValue')?.value || '';
+    const moodFmt  = document.getElementById('editMoodFmt')?.value   || 'emoji';
+    const moodChip = document.getElementById('pspMoodChip');
+    if (moodChip) {
+        if (moodVal) {
+            moodChip.textContent = moodVal;
+            moodChip.style.display = '';
+            moodChip.className = 'post-mood-chip' + (moodFmt === 'sticker' ? ' mood-sticker-display' : '');
+        } else {
+            moodChip.style.display = 'none';
+        }
+    }
 
     // Also sync hex inputs
     const bgHex = document.getElementById('profileBgColorHex');
@@ -9195,56 +9222,122 @@ function applyProfileStyles(p) {
     else if (p.profileBorderStyle === 'rainbow')header.classList.add('profile-border-rainbow');
     else if (p.profileBorderStyle === 'none')   header.classList.add('profile-border-none');
 
-    // Custom CSS — sandboxed via <style> scoped to #profile
+    // Custom CSS — re-scoped to .profile-header so rules can't bleed into the feed
     const styleTag = document.getElementById('profileCustomCSSTag');
     if (styleTag) {
-        if (p.profileCustomCSS) {
-            styleTag.textContent = '#profile { ' + sanitizeProfileCSS(p.profileCustomCSS) + ' }';
-            // Re-scope all rules to #profile so they can't escape
-            styleTag.textContent = rescopeCSS(p.profileCustomCSS, '#profile');
-        } else {
-            styleTag.textContent = '';
-        }
+        styleTag.textContent = p.profileCustomCSS
+            ? rescopeCSS(p.profileCustomCSS, '#profile .profile-header')
+            : '';
     }
 }
 
 // ── CSS Sanitizer — strips dangerous properties and values ──
 function sanitizeProfileCSS(css) {
     if (!css) return '';
-    // Block dangerous stuff
     const blocked = /expression\s*\(|javascript\s*:|url\s*\(|@import|behavior\s*:|moz-binding|<script|<\/script/gi;
     return css.replace(blocked, '/* blocked */');
 }
 
-// Re-scope all CSS rules to a parent selector so nothing escapes the profile page
+// Re-scope every selector in a CSS string to a given parent scope.
+// Safely skips @-rules (media, keyframes, supports, etc.) so they are
+// neither mangled nor injected into the page scope.
 function rescopeCSS(css, scope) {
     if (!css) return '';
     const safe = sanitizeProfileCSS(css);
-    // Parse rules naively — prepend scope to each selector block
-    return safe.replace(/([^{}]+)\{([^{}]*)\}/g, (_, selector, rules) => {
-        const scoped = selector.trim().split(',').map(s => `${scope} ${s.trim()}`).join(', ');
-        return `${scoped} { ${rules} }`;
-    });
+    const out = [];
+    let i = 0;
+    while (i < safe.length) {
+        // Skip whitespace
+        while (i < safe.length && /\s/.test(safe[i])) i++;
+        if (i >= safe.length) break;
+
+        // @-rule — find matching brace pair and emit as-is (dropped for safety)
+        if (safe[i] === '@') {
+            // Skip the whole @-rule block or statement entirely (security: no @keyframes leakage)
+            const semiPos = safe.indexOf(';', i);
+            const bracePos = safe.indexOf('{', i);
+            if (bracePos !== -1 && (semiPos === -1 || bracePos < semiPos)) {
+                // Block @-rule — skip balanced braces
+                let depth = 0, j = bracePos;
+                while (j < safe.length) {
+                    if (safe[j] === '{') depth++;
+                    else if (safe[j] === '}') { depth--; if (depth === 0) { i = j + 1; break; } }
+                    j++;
+                }
+                if (depth !== 0) break; // malformed — abort
+            } else {
+                // Statement @-rule (e.g. @charset) — skip to semicolon
+                i = semiPos !== -1 ? semiPos + 1 : safe.length;
+            }
+            continue;
+        }
+
+        // Regular rule — find selector and rule block
+        const braceOpen = safe.indexOf('{', i);
+        if (braceOpen === -1) break;
+        const selector = safe.slice(i, braceOpen).trim();
+        // Find closing brace (single-level only — no nested rules in custom CSS)
+        const braceClose = safe.indexOf('}', braceOpen);
+        if (braceClose === -1) break;
+        const rules = safe.slice(braceOpen + 1, braceClose).trim();
+        // Prepend scope to every comma-separated selector token
+        const scoped = selector.split(',')
+            .map(s => s.trim())
+            .filter(Boolean)
+            .map(s => `${scope} ${s}`)
+            .join(', ');
+        if (scoped && rules) out.push(`${scoped} { ${rules} }`);
+        i = braceClose + 1;
+    }
+    return out.join('\n');
 }
 
 // ── CSS Sandbox iframe preview ──
 function updateCSSPreview() {
-    const css = document.getElementById('profileCustomCSS')?.value || '';
+    const css   = document.getElementById('profileCustomCSS')?.value || '';
     const frame = document.getElementById('cssPreviewFrame');
     if (!frame) return;
-    const safe = rescopeCSS(css, '.profile-header');
-    const html = `<!DOCTYPE html><html><head><style>
-        body{margin:0;background:#0a1830;font-family:'Segoe UI',sans-serif;color:#e0f0ff;}
-        .profile-header{background:#0d2444;border-radius:12px;padding:20px;margin:12px;border:1px solid rgba(0,120,255,0.3);}
-        .profile-display-name{font-size:18px;font-weight:800;color:#e0f0ff;margin:0 0 4px;}
+    // Re-scope to .profile-header to match live page behaviour
+    const safe  = rescopeCSS(css, '.profile-header');
+    const html  = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+        *{box-sizing:border-box;}
+        body{margin:0;padding:8px;background:#071428;font-family:'Segoe UI',Arial,sans-serif;color:#e0f0ff;}
+        .profile-header{
+            background:#0d2444;border-radius:12px;padding:16px 20px;
+            border:1px solid rgba(0,120,255,0.3);overflow:hidden;
+        }
+        .ph-top{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+        .ph-avatar{
+            width:52px;height:52px;border-radius:50%;
+            background:#0B1F3A;border:2px solid rgba(0,174,239,0.6);
+            display:flex;align-items:center;justify-content:center;
+            font-size:22px;flex-shrink:0;
+        }
+        .ph-info{flex:1;min-width:0;}
+        .profile-display-name{font-size:16px;font-weight:800;color:#e0f0ff;margin:0 0 2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+        .mood-chip{font-size:12px;background:rgba(0,255,136,0.12);border:1px solid rgba(0,255,136,0.3);color:#00ff88;border-radius:20px;padding:1px 7px;white-space:nowrap;}
         .profile-handle-text{font-size:12px;color:#3a6a9a;}
-        .profile-bio-text{font-size:12px;color:#8ab0cc;margin:6px 0;}
+        .profile-bio-text{font-size:12px;color:#8ab0cc;margin:6px 0 0;line-height:1.5;}
+        .badge-row{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;}
+        .badge{display:inline-flex;align-items:center;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;text-transform:uppercase;background:linear-gradient(135deg,#002255,#004499);border:1px solid rgba(0,160,255,0.5);color:#88ccff;}
         ${safe}
     </style></head><body>
         <div class="profile-header">
-            <div class="profile-display-name">Your Name</div>
-            <div class="profile-handle-text">@yourhandle</div>
-            <div class="profile-bio-text">Your bio goes here. This is a preview of your custom CSS.</div>
+            <div class="ph-top">
+                <div class="ph-avatar">👤</div>
+                <div class="ph-info">
+                    <div class="profile-display-name">
+                        Your Name
+                        <span class="mood-chip">✨ Mood</span>
+                    </div>
+                    <div class="profile-handle-text">@yourhandle</div>
+                </div>
+            </div>
+            <div class="profile-bio-text">Your bio goes here. This is a live preview of your custom CSS applied to the profile card.</div>
+            <div class="badge-row">
+                <span class="badge">✅ Verified</span>
+                <span class="badge" style="background:linear-gradient(135deg,#5a3800,#b87200);border-color:rgba(255,200,50,0.8);color:#ffe566;">👑 Founder</span>
+            </div>
         </div>
     </body></html>`;
     frame.srcdoc = html;

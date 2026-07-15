@@ -4537,6 +4537,34 @@ body.arcade-open { overflow:hidden; touch-action:none; }
     min-width:48px; min-height:48px; display:flex; align-items:center; justify-content:center;
     touch-action:manipulation;
 }
+/* ── Fullscreen toggle button ── */
+.arcade-fullscreen-btn {
+    background:none; border:1px solid rgba(0,174,239,0.35); color:#00AEEF;
+    font-size:18px; cursor:pointer; padding:4px 10px; border-radius:8px; line-height:1;
+    min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center;
+    touch-action:manipulation; transition:border-color 0.15s, background 0.15s;
+    user-select:none; -webkit-user-select:none;
+}
+.arcade-fullscreen-btn:hover {
+    border-color:rgba(0,174,239,0.75); background:rgba(0,174,239,0.08);
+}
+.arcade-fullscreen-btn:active { transform:scale(0.92); }
+/* When native fullscreen is active, hide body decorations */
+:-webkit-full-screen .ash-particle,
+:-webkit-full-screen body::before,
+:-webkit-full-screen body::after,
+:fullscreen .ash-particle { display:none !important; }
+/* iOS Safari PWA fullscreen fallback: hide decorations via class */
+body.arcade-fs-ios .ash-particle { display:none !important; }
+body.arcade-fs-ios body::before,
+body.arcade-fs-ios body::after { display:none !important; }
+/* In iOS PWA fullscreen fallback the modal covers everything; respect safe-area */
+#arcadeGameModal.arcade-fs-ios-active {
+    position:fixed; inset:0;
+    padding-top:env(safe-area-inset-top);
+    padding-bottom:env(safe-area-inset-bottom);
+    z-index:99999;
+}
 .arcade-game-canvas-wrap {
     width:100%; flex:1; min-height:0;
     display:flex; align-items:center; justify-content:center;
@@ -4593,9 +4621,14 @@ body.arcade-open { overflow:hidden; touch-action:none; }
     background:rgba(0,100,30,0.7); border-color:rgba(57,255,20,0.85); color:#39FF14;
     box-shadow:0 3px 12px rgba(57,255,20,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
 }
-/* Hide on-screen controls on desktop */
+/* Hide on-screen controls on desktop — UNLESS we're in fullscreen on a touch device */
 @media (min-width:769px) {
     .arcade-mobile-controls { display:none !important; }
+}
+@media (min-width:769px) and (pointer:coarse) {
+    /* Touch-capable desktop/tablet in fullscreen — show controls */
+    #arcadeGameModal:-webkit-full-screen .arcade-mobile-controls,
+    #arcadeGameModal:fullscreen           .arcade-mobile-controls { display:flex !important; }
 }
 /* Always show on mobile */
 @media (max-width:768px) {
@@ -15027,6 +15060,13 @@ window.launchArcadeGame = function(gameId) {
 window.closeArcadeGame = function() {
   if (_arcadeRAF) { cancelAnimationFrame(_arcadeRAF); _arcadeRAF = null; }
   _removeGameListeners();
+  // Exit any active fullscreen before closing
+  if (_arcadeFsIOS) {
+    _arcadeApplyIosFallback(document.getElementById('arcadeGameModal'), false);
+  } else if (document.fullscreenElement || document.webkitFullscreenElement) {
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if (exit) exit.call(document).catch(() => {});
+  }
   const modal = document.getElementById('arcadeGameModal');
   if (modal) {
     modal.classList.remove('open');
@@ -15037,6 +15077,8 @@ window.closeArcadeGame = function() {
   document.body.classList.remove('arcade-open');
   _arcadeCurrentGame = null;
   window.removeEventListener('resize', _arcadeHandleResize);
+  // Reset fullscreen button appearance
+  _updateFsBtn();
   // Rebuild hub grid to refresh best scores
   _buildGameGrid();
 };
@@ -15047,6 +15089,123 @@ window.arcadeRestartGame = function() {
   _removeGameListeners();
   launchArcadeGame(_arcadeCurrentGame);
 };
+
+/* ─────────────────────────────────────────────
+   FULLSCREEN — cross-browser + iOS PWA fallback
+   ─────────────────────────────────────────────
+   Strategy:
+     1. Use the native Fullscreen API where available (Chrome, Firefox, Edge, Safari 16.4+).
+     2. On iOS Safari / WKWebView the API is unavailable; fall back to an "arcade-fs-ios-active"
+        class that sets the modal to position:fixed inset:0 z-index:99999 and locks the viewport,
+        giving the closest thing to fullscreen without the API.
+   Score / game state is NEVER reset when entering or leaving fullscreen.
+   ─────────────────────────────────────────────── */
+let _arcadeFsIOS = false;  // true when the iOS fallback is active
+
+/* Detect whether the native Fullscreen API is available */
+function _nativeFsAvailable() {
+  const el = document.documentElement;
+  return !!(
+    el.requestFullscreen ||
+    el.webkitRequestFullscreen ||
+    el.mozRequestFullScreen  ||
+    el.msRequestFullscreen
+  );
+}
+
+function _isFullscreen() {
+  return !!(
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement  ||
+    document.msFullscreenElement
+  ) || _arcadeFsIOS;
+}
+
+function _updateFsBtn() {
+  const btn = document.getElementById('arcadeFsBtn');
+  if (!btn) return;
+  if (_isFullscreen()) {
+    btn.textContent = '⛶';           // same icon; tooltip changes
+    btn.setAttribute('title', 'Exit fullscreen');
+    btn.setAttribute('aria-label', 'Exit fullscreen');
+    btn.style.color = '#39FF14';
+  } else {
+    btn.textContent = '⛶';
+    btn.setAttribute('title', 'Fullscreen');
+    btn.setAttribute('aria-label', 'Toggle fullscreen');
+    btn.style.color = '';
+  }
+}
+
+/* Enter fullscreen — prefers the modal element so the game is truly full-screen */
+function _arcadeEnterFs() {
+  const modal = document.getElementById('arcadeGameModal');
+  if (!modal) return;
+
+  if (_nativeFsAvailable()) {
+    const el = modal;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen ||
+                el.mozRequestFullScreen || el.msRequestFullscreen;
+    if (req) {
+      req.call(el).catch(() => {
+        /* API available but request was rejected (e.g. not from a user gesture on some browsers)
+           — fall back to the iOS overlay approach */
+        _arcadeApplyIosFallback(modal, true);
+      });
+      return;
+    }
+  }
+
+  /* No native API — iOS Safari / old browsers */
+  _arcadeApplyIosFallback(modal, true);
+}
+
+/* Exit fullscreen */
+function _arcadeExitFs() {
+  if (_arcadeFsIOS) {
+    _arcadeApplyIosFallback(document.getElementById('arcadeGameModal'), false);
+    return;
+  }
+  const exit = document.exitFullscreen || document.webkitExitFullscreen ||
+               document.mozCancelFullScreen || document.msExitFullscreen;
+  if (exit) exit.call(document).catch(() => {});
+}
+
+/* iOS / fallback: toggle an overlay class instead of the native API */
+function _arcadeApplyIosFallback(modal, on) {
+  _arcadeFsIOS = on;
+  if (on) {
+    modal.classList.add('arcade-fs-ios-active');
+    document.body.classList.add('arcade-fs-ios');
+    // Scroll to top so the modal covers the full viewport
+    window.scrollTo(0, 0);
+  } else {
+    modal.classList.remove('arcade-fs-ios-active');
+    document.body.classList.remove('arcade-fs-ios');
+  }
+  _updateFsBtn();
+  // Trigger canvas resize after the layout settles
+  setTimeout(() => _arcadeHandleResize(), 80);
+}
+
+/* Public toggle — called by the button */
+window.arcadeToggleFullscreen = function() {
+  if (_isFullscreen()) _arcadeExitFs();
+  else                 _arcadeEnterFs();
+};
+
+/* Listen for native fullscreen changes (browser-driven exits via ESC etc.) */
+function _onFsChange() {
+  _updateFsBtn();
+  // Resize canvas to match new dimensions
+  setTimeout(() => _arcadeHandleResize(), 80);
+}
+
+document.addEventListener('fullscreenchange',       _onFsChange);
+document.addEventListener('webkitfullscreenchange', _onFsChange);
+document.addEventListener('mozfullscreenchange',    _onFsChange);
+document.addEventListener('MSFullscreenChange',     _onFsChange);
 
 /* Debounce timer for resize — avoids multiple re-inits during a single orientation change */
 let _arcadeResizeTimer = null;
@@ -16656,8 +16815,9 @@ window.openArcadeHub = window.openArcadeHub;
         <div>
             <div class="arcade-game-modal-title" id="agmTitle">Game</div>
         </div>
-        <div style="display:flex;align-items:center;gap:14px;">
+        <div style="display:flex;align-items:center;gap:10px;">
             <span class="arcade-game-modal-score" id="agmScore"></span>
+            <button class="arcade-fullscreen-btn" id="arcadeFsBtn" onclick="arcadeToggleFullscreen()" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button>
             <button class="arcade-game-modal-close" onclick="closeArcadeGame()" aria-label="Close game">✕</button>
         </div>
     </div>

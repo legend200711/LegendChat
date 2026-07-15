@@ -4367,7 +4367,7 @@ body::after {
         </button>
         <!-- Administrator Panel — only visible to Administrators; toggled in JS after auth -->
         <button class="nav-item nav-item-adm" id="navAdminOfficer" onclick="navTo('administratorPage')" style="display:none;">
-            <span class="nav-icon">🔰</span> Admin Panel
+            <span class="nav-icon">⚙️</span> Administrator Panel
         </button>
         <!-- Founder Panel — only visible to the Founder; toggled in JS after auth -->
         <button class="nav-item nav-item-admin" id="navAdmin" onclick="navTo('adminPage')" style="display:none;">
@@ -6205,6 +6205,17 @@ body::after {
         </ul>
     </div>
 
+    <!-- ── Assign Roles ── -->
+    <div class="section-card" style="margin-top:16px; border-color:rgba(255,185,0,0.35);">
+        <h3 style="margin:0 0 6px;font-size:13px;color:#ffe566;text-transform:uppercase;letter-spacing:0.8px;">👤 Assign / Remove Staff Role</h3>
+        <p style="font-size:12px;color:#9bbdd8;margin:0 0 14px;line-height:1.6;">Search any member and set their role to Moderator, Administrator, or Member. The Founder role cannot be assigned here.</p>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <input id="roleAssignSearch" placeholder="Search by name or @handle…" style="flex:1;margin:0;font-size:12px;padding:7px 10px;" oninput="roleAssignSearch()">
+            <button onclick="roleAssignSearch()" style="flex-shrink:0;font-size:12px;padding:7px 14px;border-radius:8px;">Search</button>
+        </div>
+        <div id="roleAssignList"><div class="empty-state" style="padding:14px 0;color:#6a90b8;font-size:13px;">Search for a user above.</div></div>
+    </div>
+
 </div>
 
 </div><!-- end adminPage -->
@@ -6221,9 +6232,29 @@ body::after {
     <p style="font-size:13px;color:#9bbdd8;margin:0;line-height:1.6;">You have <strong style="color:#cc88ff;">Moderator</strong> access. You can review reports, hide inappropriate posts, remove comments, and temporarily mute users. You cannot access Founder or Administrator settings.</p>
 </div>
 
-<!-- ── Reported Content ── -->
+<!-- ── Dashboard ── -->
 <div class="mod-panel-card">
-    <h3 class="mod-section-title">🚨 Reported Content</h3>
+    <h3 class="mod-section-title">📊 Dashboard</h3>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;" id="modStatsRow">
+        <div class="adm-stat-card"><div class="adm-stat-num" id="modStatReports">—</div><div class="adm-stat-label">Open Reports</div></div>
+        <div class="adm-stat-card"><div class="adm-stat-num" id="modStatMuted">—</div><div class="adm-stat-label">Muted Users</div></div>
+        <div class="adm-stat-card"><div class="adm-stat-num" id="modStatActions">—</div><div class="adm-stat-label">Actions Today</div></div>
+    </div>
+    <ul style="margin:0;padding-left:18px;font-size:12px;color:#9bbdd8;line-height:2.2;">
+        <li>✅ Remove posts and comments violating community rules.</li>
+        <li>✅ Review and action user reports.</li>
+        <li>✅ Issue warnings to users.</li>
+        <li>✅ Temporarily mute users (if permitted).</li>
+        <li>⛔ Cannot suspend or permanently ban accounts.</li>
+        <li>⛔ Cannot assign badges or roles.</li>
+        <li>⛔ Cannot change site settings.</li>
+        <li>⛔ Cannot access Founder tools.</li>
+    </ul>
+</div>
+
+<!-- ── Report Queue ── -->
+<div class="mod-panel-card">
+    <h3 class="mod-section-title">🚨 Report Queue</h3>
     <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
         <button class="adm-tab active" id="modRepTabPost" onclick="modSwitchReportTab('post',this)" style="font-size:11px;padding:5px 12px;">Posts</button>
         <button class="adm-tab" id="modRepTabComment" onclick="modSwitchReportTab('comment',this)" style="font-size:11px;padding:5px 12px;">Comments</button>
@@ -6232,25 +6263,75 @@ body::after {
     <div id="modReportList"><div class="empty-state">Loading reports…</div></div>
 </div>
 
-<!-- ── Muted Users ── -->
+<!-- ── Chat Moderation ── -->
 <div class="mod-panel-card">
-    <h3 class="mod-section-title">🔇 Currently Muted</h3>
-    <div id="modMutedList"><div class="empty-state">No muted users.</div></div>
+    <h3 class="mod-section-title">💬 Chat Moderation</h3>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="adm-tab active" id="modChatTabStorm" onclick="modSwitchChatTab('storm',this)" style="font-size:11px;padding:5px 12px;">Storm Rooms</button>
+        <button class="adm-tab" id="modChatTabSupport" onclick="modSwitchChatTab('support',this)" style="font-size:11px;padding:5px 12px;">Support Rooms</button>
+    </div>
+    <div id="modChatLog"><div class="empty-state" style="padding:20px 0;color:#6a90b8;font-size:13px;">Select a chat type above to review recent messages.</div></div>
 </div>
 
-<!-- ── Recent Posts (quick hide) ── -->
+<!-- ── Comment Moderation ── -->
 <div class="mod-panel-card">
-    <h3 class="mod-section-title">📝 Recent Posts</h3>
+    <h3 class="mod-section-title">🗨️ Comment Moderation</h3>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input id="modCommentSearch" placeholder="Search comments…" style="flex:1;margin:0;font-size:12px;padding:7px 10px;" oninput="modSearchComments()">
+    </div>
+    <div id="modCommentList"><div class="empty-state">Loading…</div></div>
+</div>
+
+<!-- ── Post Moderation ── -->
+<div class="mod-panel-card">
+    <h3 class="mod-section-title">📝 Post Moderation</h3>
     <div style="display:flex;gap:8px;margin-bottom:12px;">
         <input id="modPostSearch" placeholder="Search posts…" style="flex:1;margin:0;font-size:12px;padding:7px 10px;" oninput="modSearchPosts()">
     </div>
     <div id="modPostList"><div class="empty-state">Loading…</div></div>
 </div>
 
-<!-- ── Mod Log ── -->
+<!-- ── Muted Users ── -->
 <div class="mod-panel-card">
-    <h3 class="mod-section-title">📋 My Moderation Log</h3>
+    <h3 class="mod-section-title">🔇 Temporary User Mutes</h3>
+    <div id="modMutedList"><div class="empty-state">No muted users.</div></div>
+</div>
+
+<!-- ── Warning Management ── -->
+<div class="mod-panel-card">
+    <h3 class="mod-section-title">⚠️ Warning Management</h3>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+        <input id="modWarnUserSearch" placeholder="Search user to warn…" style="flex:1;margin:0;font-size:12px;padding:7px 10px;" oninput="modSearchWarnUsers()">
+    </div>
+    <div id="modWarnUserList"><div class="empty-state" style="padding:14px 0;color:#6a90b8;font-size:13px;">Search for a user to issue or review warnings.</div></div>
+    <div class="adm-panel-card" style="margin-top:12px;">
+        <h3 class="mod-section-title" style="margin-bottom:8px;">📜 Recent Warnings Issued</h3>
+        <div id="modWarningLog"><div class="empty-state">No warnings recorded yet.</div></div>
+    </div>
+</div>
+
+<!-- ── Moderation Activity Log ── -->
+<div class="mod-panel-card">
+    <h3 class="mod-section-title">📋 Moderation Activity Log</h3>
     <div id="modActionLog"><div class="empty-state">No actions recorded yet.</div></div>
+</div>
+
+<!-- ── Community Guidelines ── -->
+<div class="mod-panel-card">
+    <h3 class="mod-section-title">📖 Community Guidelines</h3>
+    <div style="font-size:13px;color:#9bbdd8;line-height:1.8;">
+        <p style="margin:0 0 10px;">As a Moderator, uphold these community standards when reviewing content:</p>
+        <ol style="padding-left:18px;margin:0;">
+            <li><strong style="color:#cc88ff;">No harassment or bullying</strong> — remove content targeting or demeaning individuals.</li>
+            <li><strong style="color:#cc88ff;">No hate speech</strong> — remove content discriminating based on identity or background.</li>
+            <li><strong style="color:#cc88ff;">No spam or self-promotion</strong> — hide repetitive or unsolicited promotional content.</li>
+            <li><strong style="color:#cc88ff;">No explicit/NSFW content</strong> — remove content not suitable for all audiences unless clearly marked.</li>
+            <li><strong style="color:#cc88ff;">No threats or violent content</strong> — always escalate to an Administrator or Founder.</li>
+            <li><strong style="color:#cc88ff;">No doxxing or privacy violations</strong> — immediately remove and escalate to Administrator.</li>
+            <li><strong style="color:#cc88ff;">Respect the judgment-free zone</strong> — protect users' safe space to connect.</li>
+        </ol>
+        <p style="margin:12px 0 0;font-size:12px;color:#6a90b8;">When in doubt, escalate to an Administrator. Use warnings before mutes where appropriate.</p>
+    </div>
 </div>
 
 </div><!-- end moderatorPage -->
@@ -6261,7 +6342,7 @@ body::after {
      All actions are server-validated by Firestore Security Rules.
      ═══════════════════════════════════════════════════════════ -->
 <div class="page" id="administratorPage">
-<h2 class="eclipse-title" style="color:#66ccff;text-shadow:0 0 18px rgba(0,174,239,0.7);">🔰 Administrator Panel</h2>
+<h2 class="eclipse-title" style="color:#66ccff;text-shadow:0 0 18px rgba(0,174,239,0.7);">⚙️ Administrator Panel</h2>
 
 <div class="section-card" style="border-color:rgba(0,174,239,0.3);margin-bottom:12px;">
     <p style="font-size:13px;color:#9bbdd8;margin:0;line-height:1.6;">You have <strong style="color:#66ccff;">Administrator</strong> access. You can manage reports, suspend accounts, send announcements, review audit logs, and manage badges. You do not have access to Founder-only settings.</p>
@@ -6272,6 +6353,8 @@ body::after {
     <button class="adm-tab active" onclick="admSwitchTab('dashboard',this)">📊 Dashboard</button>
     <button class="adm-tab" onclick="admSwitchTab('users',this)">👥 Users</button>
     <button class="adm-tab" onclick="admSwitchTab('reports',this)">🚨 Reports</button>
+    <button class="adm-tab" onclick="admSwitchTab('moderation',this)">🛡️ Moderation</button>
+    <button class="adm-tab" onclick="admSwitchTab('badges',this)">🏅 Badges</button>
     <button class="adm-tab" onclick="admSwitchTab('announce',this)">📢 Announce</button>
     <button class="adm-tab" onclick="admSwitchTab('audit',this)">📋 Audit Log</button>
 </div>
@@ -6288,27 +6371,34 @@ body::after {
         <h3 class="adm-section-title">ℹ️ Your Capabilities</h3>
         <ul style="margin:0;padding-left:18px;font-size:12px;color:#9bbdd8;line-height:2.2;">
             <li>✅ Suspend and restore user accounts.</li>
+            <li>✅ Moderate posts, comments, and chats.</li>
             <li>✅ Manage and resolve reports.</li>
             <li>✅ Manage user badges (excluding Founder badge).</li>
             <li>✅ Review moderation audit logs.</li>
             <li>✅ Send official announcements.</li>
-            <li>⛔ No access to site-wide settings.</li>
-            <li>⛔ No access to Founder-only controls.</li>
+            <li>⛔ No access to Founder settings.</li>
+            <li>⛔ Cannot add or remove Founders.</li>
+            <li>⛔ Cannot modify core security settings.</li>
+            <li>⛔ No access to Founder-only tools.</li>
         </ul>
     </div>
 </div>
 
 <!-- ── Users ── -->
 <div class="adm-tab-content" id="admTab-users">
-    <div style="display:flex;gap:8px;margin-bottom:14px;">
-        <input id="admUserSearch" placeholder="Search users…" style="flex:1;margin:0;font-size:12px;padding:7px 10px;" oninput="admSearchUsers()">
-        <select id="admUserFilter" style="width:auto;margin:0;font-size:12px;padding:7px 10px;" onchange="admSearchUsers()">
-            <option value="all">All</option>
-            <option value="online">Online</option>
-            <option value="suspended">Suspended</option>
-        </select>
+    <!-- Account Suspension & Restore -->
+    <div class="adm-panel-card" style="margin-bottom:14px;">
+        <h3 class="adm-section-title">🔒 Account Suspension &amp; Restore</h3>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <input id="admUserSearch" placeholder="Search users…" style="flex:1;margin:0;font-size:12px;padding:7px 10px;" oninput="admSearchUsers()">
+            <select id="admUserFilter" style="width:auto;margin:0;font-size:12px;padding:7px 10px;" onchange="admSearchUsers()">
+                <option value="all">All</option>
+                <option value="online">Online</option>
+                <option value="suspended">Suspended</option>
+            </select>
+        </div>
+        <div id="admUserList"><div class="empty-state">Loading…</div></div>
     </div>
-    <div id="admUserList"><div class="empty-state">Loading…</div></div>
 </div>
 
 <!-- ── Reports ── -->
@@ -6319,6 +6409,49 @@ body::after {
         <button class="adm-tab" id="admRepTabComment" onclick="admLoadReports('comment',this)" style="font-size:11px;padding:5px 12px;">Comments</button>
     </div>
     <div id="admReportList"><div class="empty-state">Loading reports…</div></div>
+</div>
+
+<!-- ── Moderation (Post / Comment / Chat) ── -->
+<div class="adm-tab-content" id="admTab-moderation">
+    <!-- Post Moderation -->
+    <div class="adm-panel-card" style="margin-bottom:14px;">
+        <h3 class="adm-section-title">📝 Post Moderation</h3>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <button class="adm-tab active" id="admPostTabRecent" onclick="admLoadPostsMod('recent',this)" style="font-size:11px;padding:5px 12px;">Recent</button>
+            <button class="adm-tab" id="admPostTabReported" onclick="admLoadPostsMod('reported',this)" style="font-size:11px;padding:5px 12px;">Reported</button>
+        </div>
+        <div id="admPostModList"><div class="empty-state">Click a filter above to load posts.</div></div>
+    </div>
+    <!-- Comment Moderation -->
+    <div class="adm-panel-card" style="margin-bottom:14px;">
+        <h3 class="adm-section-title">🗨️ Comment Moderation</h3>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <input id="admCommentSearch" placeholder="Search comments…" style="flex:1;margin:0;font-size:12px;padding:7px 10px;" oninput="admSearchComments()">
+        </div>
+        <div id="admCommentModList"><div class="empty-state">Loading…</div></div>
+    </div>
+    <!-- Chat Moderation -->
+    <div class="adm-panel-card">
+        <h3 class="adm-section-title">💬 Chat Moderation</h3>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <button class="adm-tab active" id="admChatTabStorm" onclick="admSwitchChatTab('storm',this)" style="font-size:11px;padding:5px 12px;">Storm Rooms</button>
+            <button class="adm-tab" id="admChatTabSupport" onclick="admSwitchChatTab('support',this)" style="font-size:11px;padding:5px 12px;">Support Rooms</button>
+            <button class="adm-tab" id="admChatTabDM" onclick="admSwitchChatTab('dm',this)" style="font-size:11px;padding:5px 12px;">Direct Messages</button>
+        </div>
+        <div id="admChatModLog"><div class="empty-state" style="padding:20px 0;color:#6a90b8;font-size:13px;">Select a chat type above to review recent messages.</div></div>
+    </div>
+</div>
+
+<!-- ── Badge Management ── -->
+<div class="adm-tab-content" id="admTab-badges">
+    <div class="adm-panel-card">
+        <h3 class="adm-section-title">🏅 Badge Management</h3>
+        <p style="font-size:12px;color:#6a90b8;margin:0 0 14px;line-height:1.6;">Assign or remove badges for any user. The <strong style="color:#ffe566;">Founder</strong> badge cannot be modified — it is reserved exclusively for the platform Founder.</p>
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+            <input id="admBadgeUserSearch" placeholder="Search user to manage badges…" style="flex:1;margin:0;font-size:12px;padding:7px 10px;" oninput="admSearchBadgeUsers()">
+        </div>
+        <div id="admBadgeUserList"><div class="empty-state" style="padding:14px 0;color:#6a90b8;font-size:13px;">Search for a user above to manage their badges.</div></div>
+    </div>
 </div>
 
 <!-- ── Announcements ── -->
@@ -6381,7 +6514,7 @@ body::after {
   window._snxFirestore = {
       db, doc, getDoc, setDoc, updateDoc, deleteDoc,
       collection, addDoc, query, orderBy, limit,
-      onSnapshot, where, getDocs, writeBatch, increment,
+      onSnapshot, arrayUnion, where, getDocs, writeBatch, increment,
       serverTimestamp,
   };
 
@@ -10144,6 +10277,77 @@ body::after {
       if (tab==='content')  adminLoadPosts('recent');
       if (tab==='reports')  adminLoadReports('user');
       if (tab==='settings') adminLoadSettings();
+      if (tab==='roles')    roleAssignSearch();
+  };
+
+  /* ── Role Assignment (Founder only) ── */
+  let _roleSearchTimer = null;
+  window.roleAssignSearch = function() {
+      clearTimeout(_roleSearchTimer);
+      _roleSearchTimer = setTimeout(_roleAssignRender, 280);
+  };
+
+  async function _roleAssignRender() {
+      if (!founderOnly()) return;
+      const listEl = document.getElementById('roleAssignList');
+      if (!listEl) return;
+      const q = (document.getElementById('roleAssignSearch')?.value || '').trim().toLowerCase();
+      listEl.innerHTML = '<div class="empty-state" style="padding:14px 0;">Loading…</div>';
+      try {
+          const snap = await getDocs(collection(db, 'users'));
+          let users = snap.docs.map(d => d.data()).filter(u => u.uid && u.displayName);
+          // Never show the founder in this list
+          users = users.filter(u => u.role !== 'founder');
+          if (q) users = users.filter(u =>
+              (u.displayName || '').toLowerCase().includes(q) ||
+              (u.username    || '').toLowerCase().includes(q)
+          );
+          users.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
+          if (!users.length) {
+              listEl.innerHTML = '<div class="empty-state" style="padding:14px 0;color:#6a90b8;font-size:13px;">No users found.</div>';
+              return;
+          }
+          const ROLE_OPTS = ['member', 'moderator', 'administrator'];
+          const ROLE_LABEL = { member: '👤 Member', moderator: '🛡️ Moderator', administrator: '⚙️ Administrator' };
+          listEl.innerHTML = '';
+          users.forEach(u => {
+              const cur = u.role || 'member';
+              const btns = ROLE_OPTS.map(r => {
+                  const active = r === cur;
+                  const colors = r === 'administrator'
+                      ? 'border-color:rgba(0,180,255,0.7);color:#66ccff;background:rgba(0,50,120,0.4);'
+                      : r === 'moderator'
+                      ? 'border-color:rgba(170,80,255,0.7);color:#cc88ff;background:rgba(60,0,120,0.35);'
+                      : 'border-color:rgba(255,255,255,0.18);color:#9bbdd8;background:transparent;';
+                  return `<button
+                      style="font-size:11px;padding:4px 11px;border-radius:8px;${active ? colors : 'opacity:0.45;'}cursor:pointer;"
+                      onclick="assignRole('${u.uid}','${r}','${(u.displayName||'').replace(/'/g,"\\'")}')">
+                      ${ROLE_LABEL[r]}${active ? ' ✓' : ''}
+                  </button>`;
+              }).join('');
+              listEl.insertAdjacentHTML('beforeend', `
+              <div class="adm-user-row">
+                  <div class="adm-user-avatar">${(u.displayName||'?')[0]}</div>
+                  <div class="adm-user-info">
+                      <div class="adm-user-name">${u.displayName || u.username || u.uid}</div>
+                      <div class="adm-user-handle">@${u.username || u.uid} · <strong style="color:${cur==='administrator'?'#66ccff':cur==='moderator'?'#cc88ff':'#6a90b8'}">${cur}</strong></div>
+                      <div class="adm-action-btns" style="margin-top:8px;">${btns}</div>
+                  </div>
+              </div>`);
+          });
+      } catch(e) {
+          listEl.innerHTML = `<div class="empty-state" style="color:#ff5577;">Error: ${e.message}</div>`;
+      }
+  }
+
+  window.assignRole = async function(uid, role, name) {
+      if (!founderOnly()) { toastNotification('⛔ Founder access required.'); return; }
+      try {
+          await updateDoc(doc(db, 'users', uid), { role });
+          await adminAuditLog('ASSIGN_ROLE', `${name || uid} → ${role}`);
+          toastNotification(`✅ ${name || uid} is now ${role}.`);
+          roleAssignSearch();
+      } catch(e) { toastNotification('Failed: ' + e.message); }
   };
   let _adminSearchTimer = null;
   window.adminDebouncedSearch = function() { clearTimeout(_adminSearchTimer); _adminSearchTimer = setTimeout(renderAdminPanel,280); };
@@ -13325,7 +13529,9 @@ function _supportStopCanvas() {
   /* ── switch report tab in mod panel ── */
   window.modSwitchReportTab = function(type, btn) {
       _modReportType = type;
-      document.querySelectorAll('#moderatorPage .adm-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#modReportList').forEach(()=>{});
+      // Only deactivate report tab buttons (siblings of the active button)
+      if (btn && btn.parentElement) btn.parentElement.querySelectorAll('.adm-tab').forEach(b => b.classList.remove('active'));
       if (btn) btn.classList.add('active');
       modLoadReports(type);
   };
@@ -13540,6 +13746,126 @@ function _supportStopCanvas() {
       } catch(_) {}
   }
 
+  /* ── Chat Moderation tab switcher (Mod panel) ── */
+  window.modSwitchChatTab = function(type, btn) {
+      document.querySelectorAll('#moderatorPage [id^="modChatTab"]').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      const listEl = document.getElementById('modChatLog');
+      if (!listEl) return;
+      listEl.innerHTML = `<div class="empty-state" style="padding:20px 0;color:#6a90b8;font-size:13px;">Reviewing <strong style="color:#cc88ff;">${type === 'storm' ? 'Storm Rooms' : 'Support Rooms'}</strong> chat logs. Actions taken in chats are recorded in the Moderation Activity Log.</div>`;
+  };
+
+  /* ── Comment Moderation (Mod panel) ── */
+  let _modCommentTimer = null;
+  window.modSearchComments = function() {
+      clearTimeout(_modCommentTimer);
+      _modCommentTimer = setTimeout(_modLoadComments, 350);
+  };
+  async function _modLoadComments() {
+      if (!modOnly()) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, collection, getDocs, query, orderBy, limit } = fs;
+      const listEl = document.getElementById('modCommentList');
+      const q_str  = (document.getElementById('modCommentSearch')?.value||'').trim().toLowerCase();
+      if (!listEl) return;
+      listEl.innerHTML = '<div class="empty-state">Loading…</div>';
+      try {
+          const snap = await getDocs(query(collection(db,'posts'), orderBy('createdAt','desc'), limit(30)));
+          let rows = [];
+          snap.forEach(d => {
+              const p = d.data();
+              (p.comments||[]).forEach(c => {
+                  rows.push({ postId:d.id, ...c, postText:(p.text||'').slice(0,60) });
+              });
+          });
+          if (q_str) rows = rows.filter(c=>(c.text||'').toLowerCase().includes(q_str)||(c.authorName||'').toLowerCase().includes(q_str));
+          if (!rows.length) { listEl.innerHTML = '<div class="empty-state">No comments found.</div>'; return; }
+          listEl.innerHTML = '';
+          rows.slice(0,60).forEach(c => {
+              listEl.insertAdjacentHTML('beforeend', `
+              <div class="mod-muted-row" style="flex-direction:column;gap:2px;padding:8px 0;">
+                  <div style="font-size:11px;color:#6a90b8;">${esc(c.authorName||'?')} on post: "${esc(c.postText)}"</div>
+                  <div style="font-size:13px;color:#d8eeff;">${esc((c.text||'').slice(0,160))}</div>
+              </div>`);
+          });
+      } catch(e) { listEl.innerHTML = '<div class="empty-state">Error.</div>'; }
+  }
+
+  /* ── Warning Management (Mod panel) ── */
+  let _modWarnTimer = null;
+  window.modSearchWarnUsers = function() {
+      clearTimeout(_modWarnTimer);
+      _modWarnTimer = setTimeout(_modLoadWarnUsers, 300);
+  };
+  async function _modLoadWarnUsers() {
+      if (!modOnly()) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, collection, getDocs } = fs;
+      const listEl = document.getElementById('modWarnUserList');
+      const q_str  = (document.getElementById('modWarnUserSearch')?.value||'').trim().toLowerCase();
+      if (!listEl) return;
+      if (!q_str) { listEl.innerHTML = '<div class="empty-state" style="padding:14px 0;color:#6a90b8;font-size:13px;">Search for a user to issue or review warnings.</div>'; return; }
+      listEl.innerHTML = '<div class="empty-state">Searching…</div>';
+      try {
+          const snap = await getDocs(collection(db,'users'));
+          let users = snap.docs.map(d=>d.data()).filter(u => u.uid && u.displayName && u.role !== 'founder' && u.role !== 'administrator');
+          users = users.filter(u => (u.displayName||'').toLowerCase().includes(q_str)||(u.username||'').toLowerCase().includes(q_str));
+          if (!users.length) { listEl.innerHTML = '<div class="empty-state">No users found.</div>'; return; }
+          listEl.innerHTML = '';
+          users.slice(0,15).forEach(u => {
+              const warnCount = (u.warnings||[]).length;
+              listEl.insertAdjacentHTML('beforeend', `
+              <div class="mod-muted-row">
+                  <div class="mod-muted-avatar">${esc((u.displayName||'?')[0])}</div>
+                  <span class="mod-muted-name">${esc(u.displayName||u.username||u.uid)} <span style="font-size:10px;color:#6a90b8;">@${esc(u.username||u.uid)}</span></span>
+                  ${warnCount ? `<span class="mod-muted-until">⚠️ ${warnCount} warning${warnCount>1?'s':''}</span>` : ''}
+                  <button class="btn-mod-mute" onclick="modIssueWarning('${esc(u.uid)}','${esc(u.displayName||'')}')">⚠️ Warn</button>
+              </div>`);
+          });
+      } catch(e) { listEl.innerHTML = '<div class="empty-state">Error.</div>'; }
+  }
+
+  window.modIssueWarning = async function(uid, name) {
+      if (!modOnly()) { toastNotification('⛔ Moderator access required.'); return; }
+      const reason = window.prompt(`Reason for warning ${name || uid}:`);
+      if (reason === null) return; // cancelled
+      const { db, doc, updateDoc, arrayUnion } = window._snxFirestore;
+      try {
+          const warn = { reason: reason||'Community guidelines violation', issuedBy: window._snxCurrentUser?.uid||'', ts: Date.now() };
+          await updateDoc(doc(db,'users',uid), { warnings: arrayUnion(warn) });
+          await modAuditLog('Warning issued', `${name||uid}: ${reason||''}`);
+          toastNotification(`⚠️ Warning issued to ${name||uid}.`);
+          modSearchWarnUsers();
+          modLoadWarnLog();
+      } catch(e) { toastNotification('Failed: ' + e.message); }
+  };
+
+  async function modLoadWarnLog() {
+      const fs = window._snxFirestore;
+      if (!fs || !window._snxCurrentUser) return;
+      const { db, collection, getDocs, query, where, orderBy, limit } = fs;
+      const listEl = document.getElementById('modWarningLog');
+      if (!listEl) return;
+      try {
+          const snap = await getDocs(query(collection(db,'auditLog'),
+              where('adminUid','==',window._snxCurrentUser.uid),
+              where('action','==','Warning issued'),
+              orderBy('ts','desc'), limit(20)));
+          if (snap.empty) { listEl.innerHTML = '<div class="empty-state">No warnings recorded yet.</div>'; return; }
+          listEl.innerHTML = '';
+          snap.forEach(d => {
+              const e = d.data();
+              listEl.insertAdjacentHTML('beforeend', `
+              <div class="audit-entry">
+                  <span class="audit-ts">${fmtDate(e.ts)}</span>
+                  <span class="audit-action">${esc(e.details||'')}</span>
+              </div>`);
+          });
+      } catch(_) {}
+  }
+
   /* ── master render ── */
   window.renderModeratorPanel = function() {
       if (!modOnly()) { toastNotification('⛔ Moderator access required.'); navTo('feed'); return; }
@@ -13547,6 +13873,7 @@ function _supportStopCanvas() {
       modLoadMuted();
       modLoadPosts();
       modLoadActionLog();
+      modLoadWarnLog();
   };
 
 })();
@@ -13579,11 +13906,168 @@ function _supportStopCanvas() {
       if (btn) btn.classList.add('active');
       const c = document.getElementById('admTab-' + tab);
       if (c) c.classList.add('active');
-      if (tab === 'dashboard') admLoadStats();
-      if (tab === 'users')    admSearchUsers();
-      if (tab === 'reports')  admLoadReports('user');
-      if (tab === 'announce') admLoadAnnounceHistory();
-      if (tab === 'audit')    admLoadAuditLog();
+      if (tab === 'dashboard')  admLoadStats();
+      if (tab === 'users')      admSearchUsers();
+      if (tab === 'reports')    admLoadReports('user');
+      if (tab === 'moderation') admLoadPostsMod('recent');
+      if (tab === 'badges')     admSearchBadgeUsers();
+      if (tab === 'announce')   admLoadAnnounceHistory();
+      if (tab === 'audit')      admLoadAuditLog();
+  };
+
+  /* ── Post Moderation (for Moderation tab) ── */
+  window.admLoadPostsMod = async function(filter, btn) {
+      if (!admOnly()) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      document.querySelectorAll('#admTab-moderation .adm-tab[id^="admPost"]').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      const { db, collection, getDocs, query, orderBy, limit, where } = fs;
+      const listEl = document.getElementById('admPostModList');
+      if (!listEl) return;
+      listEl.innerHTML = '<div class="empty-state">Loading…</div>';
+      try {
+          let posts;
+          if (filter === 'reported') {
+              const rSnap = await getDocs(query(collection(db,'reports'), where('type','==','post'), where('status','==','open'), orderBy('createdAt','desc'), limit(40)));
+              const ids = [...new Set(rSnap.docs.map(d=>d.data().targetId).filter(Boolean))];
+              posts = await Promise.all(ids.map(id => fs.getDoc(fs.doc(db,'posts',id)).then(s=>s.exists()?{id:s.id,...s.data()}:null)));
+              posts = posts.filter(Boolean);
+          } else {
+              const snap = await getDocs(query(collection(db,'posts'), orderBy('createdAt','desc'), limit(40)));
+              posts = snap.docs.map(d=>({id:d.id,...d.data()}));
+          }
+          if (!posts.length) { listEl.innerHTML = '<div class="empty-state">No posts found.</div>'; return; }
+          listEl.innerHTML = '';
+          posts.forEach(p => {
+              listEl.insertAdjacentHTML('beforeend', `
+              <div class="admin-post-card">
+                  <div style="font-size:12px;color:#6a90b8;margin-bottom:4px;">${esc(p.authorName||'Unknown')} · ${fmtDate(p.createdAt)} ${p.hidden?'<span style="color:#ffcc44;font-size:10px;">🙈 Hidden</span>':''}</div>
+                  <div style="font-size:13px;color:#d8eeff;">${esc((p.text||'').slice(0,120))}</div>
+                  <div class="admin-post-actions">
+                      ${p.hidden
+                          ? `<button class="btn-mod-dismiss" onclick="admTogglePostHide('${p.id}',false)">👁 Unhide</button>`
+                          : `<button class="btn-mod-hide" onclick="admTogglePostHide('${p.id}',true)">🙈 Hide</button>`
+                      }
+                  </div>
+              </div>`);
+          });
+      } catch(e) { listEl.innerHTML = '<div class="empty-state">Error.</div>'; }
+  };
+
+  window.admTogglePostHide = async function(postId, hide) {
+      if (!admOnly()) return;
+      const { db, doc, updateDoc } = window._snxFirestore;
+      try {
+          await updateDoc(doc(db,'posts',postId), { hidden: hide });
+          await admAuditLog(hide ? 'Post hidden' : 'Post unhidden', `Post ID: ${postId}`);
+          toastNotification(hide ? '🙈 Post hidden.' : '👁 Post visible again.');
+          admLoadPostsMod(document.getElementById('admPostTabReported')?.classList.contains('active') ? 'reported' : 'recent');
+      } catch(e) { toastNotification('Failed: ' + e.message); }
+  };
+
+  /* ── Comment Moderation ── */
+  let _admCommentTimer = null;
+  window.admSearchComments = function() {
+      clearTimeout(_admCommentTimer);
+      _admCommentTimer = setTimeout(_admLoadComments, 350);
+  };
+  async function _admLoadComments() {
+      if (!admOnly()) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, collection, getDocs, query, orderBy, limit } = fs;
+      const listEl = document.getElementById('admCommentModList');
+      const q_str  = (document.getElementById('admCommentSearch')?.value||'').trim().toLowerCase();
+      if (!listEl) return;
+      listEl.innerHTML = '<div class="empty-state">Loading…</div>';
+      try {
+          const snap = await getDocs(query(collection(db,'posts'), orderBy('createdAt','desc'), limit(30)));
+          let rows = [];
+          snap.forEach(d => {
+              const p = d.data();
+              (p.comments||[]).forEach(c => {
+                  rows.push({ postId:d.id, ...c, postText:(p.text||'').slice(0,60) });
+              });
+          });
+          if (q_str) rows = rows.filter(c=>(c.text||'').toLowerCase().includes(q_str)||(c.authorName||'').toLowerCase().includes(q_str));
+          if (!rows.length) { listEl.innerHTML = '<div class="empty-state">No comments found.</div>'; return; }
+          listEl.innerHTML = '';
+          rows.slice(0,60).forEach(c => {
+              listEl.insertAdjacentHTML('beforeend', `
+              <div class="adm-user-row" style="flex-direction:column;gap:4px;">
+                  <div style="font-size:11px;color:#6a90b8;">${esc(c.authorName||'?')} on post: "${esc(c.postText)}"</div>
+                  <div style="font-size:13px;color:#d8eeff;">${esc((c.text||'').slice(0,160))}</div>
+              </div>`);
+          });
+      } catch(e) { listEl.innerHTML = '<div class="empty-state">Error.</div>'; }
+  }
+
+  /* ── Chat Moderation tab switcher ── */
+  window.admSwitchChatTab = function(type, btn) {
+      document.querySelectorAll('#admTab-moderation [id^="admChatTab"]').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      const listEl = document.getElementById('admChatModLog');
+      if (!listEl) return;
+      listEl.innerHTML = `<div class="empty-state" style="padding:20px 0;color:#6a90b8;font-size:13px;">Chat moderation logs for <strong>${type === 'storm' ? 'Storm Rooms' : type === 'support' ? 'Support Rooms' : 'Direct Messages'}</strong> are enforced by Firestore Security Rules.<br>Use the Audit Log tab to review moderation actions taken in chats.</div>`;
+  };
+
+  /* ── Badge Management ── */
+  let _admBadgeTimer = null;
+  window.admSearchBadgeUsers = function() {
+      clearTimeout(_admBadgeTimer);
+      _admBadgeTimer = setTimeout(_admLoadBadgeUsers, 300);
+  };
+  async function _admLoadBadgeUsers() {
+      if (!admOnly()) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, collection, getDocs } = fs;
+      const listEl = document.getElementById('admBadgeUserList');
+      const q_str  = (document.getElementById('admBadgeUserSearch')?.value||'').trim().toLowerCase();
+      if (!listEl) return;
+      if (!q_str) { listEl.innerHTML = '<div class="empty-state" style="padding:14px 0;color:#6a90b8;font-size:13px;">Search for a user above to manage their badges.</div>'; return; }
+      listEl.innerHTML = '<div class="empty-state">Searching…</div>';
+      try {
+          const snap = await getDocs(collection(db,'users'));
+          let users = snap.docs.map(d=>d.data()).filter(u => u.uid && u.displayName && u.role !== 'founder');
+          users = users.filter(u => (u.displayName||'').toLowerCase().includes(q_str)||(u.username||'').toLowerCase().includes(q_str));
+          if (!users.length) { listEl.innerHTML = '<div class="empty-state">No users found.</div>'; return; }
+          const BADGES = ['Verified','Moderator','Artist','OG','Early','Supporter','Top','Legend','Admin','Beta','Helper','Event','Holiday','Achievement'];
+          listEl.innerHTML = '';
+          users.slice(0,20).forEach(u => {
+              const cur = new Set(u.badges||[]);
+              const btns = BADGES.map(b => {
+                  const has = cur.has(b);
+                  return `<button class="admin-badge-btn ${has?'has-badge':''}" onclick="admToggleBadge('${esc(u.uid)}','${esc(b)}',${!has})" title="${has?'Remove':'Add'} ${b}">${b}</button>`;
+              }).join('');
+              listEl.insertAdjacentHTML('beforeend', `
+              <div class="adm-user-row">
+                  <div class="adm-user-avatar">${esc((u.displayName||'?')[0])}</div>
+                  <div class="adm-user-info">
+                      <div class="adm-user-name">${esc(u.displayName||u.username||u.uid)}</div>
+                      <div class="adm-user-handle">@${esc(u.username||u.uid)} · ${u.role||'member'}</div>
+                      <div class="admin-badge-controls">${btns}</div>
+                  </div>
+              </div>`);
+          });
+      } catch(e) { listEl.innerHTML = '<div class="empty-state">Error.</div>'; }
+  }
+
+  window.admToggleBadge = async function(uid, badge, add) {
+      if (!admOnly()) { toastNotification('⛔ Administrator access required.'); return; }
+      const { db, doc, getDoc, updateDoc } = window._snxFirestore;
+      try {
+          const snap = await getDoc(doc(db,'users',uid));
+          if (!snap.exists()) return;
+          let badges = snap.data().badges || [];
+          if (add) { if (!badges.includes(badge)) badges.push(badge); }
+          else { badges = badges.filter(b => b !== badge); }
+          await updateDoc(doc(db,'users',uid), { badges });
+          await admAuditLog(`Badge ${add?'added':'removed'}: ${badge}`, `User UID: ${uid}`);
+          toastNotification(`${add?'✅ Added':'❌ Removed'} badge: ${badge}`);
+          admSearchBadgeUsers();
+      } catch(e) { toastNotification('Failed: ' + e.message); }
   };
 
   /* ── Dashboard stats ── */

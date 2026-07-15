@@ -2251,6 +2251,104 @@ img.post-media-preview::before {
    ════════════════════════════════════════════ */
 
 /* Wolf/storm atmospheric canvas */
+/* ════════════════════════════════════════════
+   RETRO ARCADE — profile embedded games
+   ════════════════════════════════════════════ */
+.arcade-section { margin-top: 14px; }
+.arcade-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; flex-wrap: wrap; gap: 6px;
+}
+.arcade-title { font-size: 15px; font-weight: 800; color: #00AEEF; letter-spacing: 0.5px; }
+.arcade-tabs {
+    display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none;
+    border-bottom: 1px solid rgba(0,80,160,0.2); margin-bottom: 10px;
+}
+.arcade-tabs::-webkit-scrollbar { display: none; }
+.arcade-tab {
+    background: none; border: none; color: #4a6a8a; padding: 8px 14px;
+    cursor: pointer; font-weight: 600; font-size: 13px; white-space: nowrap;
+    flex-shrink: 0; transition: color 0.15s; border-bottom: 2px solid transparent;
+    touch-action: manipulation;
+}
+.arcade-tab:hover { color: #8ab0cc; }
+.arcade-tab.active { color: #00ff88; border-bottom-color: #00ff88; text-shadow: 0 0 8px rgba(0,255,136,0.4); }
+.arcade-game-wrap {
+    position: relative; border-radius: 12px; overflow: hidden;
+    border: 1px solid rgba(0,80,180,0.3); background: #000010;
+    width: 100%;
+}
+.arcade-game-frame {
+    width: 100%; height: 320px; border: none; display: block;
+    background: #000010;
+}
+@media (max-width: 480px) { .arcade-game-frame { height: 260px; } }
+.arcade-overlay {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; background: rgba(0,5,20,0.88); backdrop-filter: blur(4px);
+    transition: opacity 0.2s; z-index: 2;
+}
+.arcade-overlay.hidden { opacity: 0; pointer-events: none; }
+.arcade-play-btn {
+    font-size: 36px; cursor: pointer; background: none; border: none;
+    filter: drop-shadow(0 0 12px rgba(0,174,239,0.7));
+    transition: transform 0.15s; padding: 0;
+}
+.arcade-play-btn:hover { transform: scale(1.12); }
+.arcade-overlay-label { font-size: 13px; color: #6a90b8; }
+.arcade-score-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 12px; background: rgba(7,20,42,0.9);
+    border-top: 1px solid rgba(0,80,160,0.2); font-size: 12px; flex-wrap: wrap; gap: 4px;
+}
+.arcade-score-live { color: #00AEEF; font-weight: 700; font-family: monospace; }
+.arcade-score-best { color: #3a6a9a; font-family: monospace; }
+.arcade-challenge-btn {
+    background: rgba(0,174,239,0.1); border: 1px solid rgba(0,174,239,0.4);
+    color: #00AEEF; font-size: 11px; padding: 3px 10px; border-radius: 10px;
+    cursor: pointer; font-weight: 600; transition: all 0.15s;
+}
+.arcade-challenge-btn:hover { background: rgba(0,174,239,0.22); box-shadow: 0 0 8px rgba(0,174,239,0.3); }
+.arcade-scoreboard { margin-top: 10px; }
+.arcade-scoreboard-title { font-size: 11px; color: #3a6a9a; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+.arcade-sb-row {
+    display: flex; align-items: center; gap: 8px; padding: 5px 0;
+    border-bottom: 1px solid rgba(0,50,100,0.18); font-size: 12px;
+}
+.arcade-sb-row:last-child { border-bottom: none; }
+.arcade-sb-rank { width: 20px; color: #3a6a9a; font-weight: 700; font-family: monospace; flex-shrink: 0; }
+.arcade-sb-rank.gold   { color: #ffcc44; text-shadow: 0 0 8px rgba(255,200,50,0.6); }
+.arcade-sb-rank.silver { color: #aab8cc; }
+.arcade-sb-rank.bronze { color: #cc8844; }
+.arcade-sb-avatar {
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    background: #0B1F3A; background-size: cover; background-position: center;
+    border: 1px solid rgba(0,174,239,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: #00AEEF;
+}
+.arcade-sb-name { flex: 1; color: #c0d8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.arcade-sb-name:hover { color: #00AEEF; text-decoration: underline; }
+.arcade-sb-score { color: #00ff88; font-weight: 700; font-family: monospace; flex-shrink: 0; }
+.arcade-sb-empty { font-size: 11px; color: #334; padding: 8px 0; text-align: center; }
+.arcade-challenge-modal {
+    display: none; position: fixed; inset: 0; z-index: 9000;
+    background: rgba(0,3,15,0.86); align-items: center; justify-content: center;
+    padding: 16px; box-sizing: border-box; backdrop-filter: blur(6px);
+}
+.arcade-challenge-modal.open { display: flex; }
+.arcade-challenge-inner {
+    background: #060d1e; border: 1px solid rgba(0,174,239,0.4);
+    border-radius: 16px; padding: 24px; max-width: 360px; width: 100%;
+    box-shadow: 0 0 60px rgba(0,100,255,0.25);
+    animation: deleteModalIn 0.22s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.arcade-challenge-inner h3 { margin: 0 0 8px; color: #00AEEF; font-size: 15px; }
+.arcade-challenge-inner p { font-size: 12px; color: #6a90b8; margin: 0 0 14px; }
+.arcade-challenge-actions { display: flex; gap: 8px; margin-top: 16px; }
+.arcade-challenge-actions button { flex: 1; padding: 9px; border-radius: 8px; font-size: 13px; }
+
 #storm-canvas {
     position: fixed; inset: 0; width: 100vw; height: 100vh;
     pointer-events: none; z-index: 0; display: none;
@@ -3785,21 +3883,49 @@ body::after {
         </div>
     </div>
 
-    <!-- ── Mini-Game ── -->
-    <div class="section-card">
-        <h3 style="margin:0 0 6px;">🎮 Mini-Game</h3>
-        <p style="font-size:12px; color:#888; margin:0 0 10px;">Tap the game area, click, or press <kbd style="background:#111;border:1px solid #444;padding:1px 5px;border-radius:3px;">Space</kbd> to jump.</p>
-        <button onclick="triggerGameEngine()">▶ Play</button>
-        <div id="game-container">
-            <div id="game-ground"></div>
-            <div id="game-score">Score: 0</div>
-            <div id="game-best">Best: 0</div>
-            <div id="game-player"></div>
-            <div id="game-hint">TAP or SPACE to jump</div>
-            <div id="game-over-msg">
-                <div class="go-title">GAME OVER</div>
-                <div class="go-sub" id="goScoreText">Score: 0</div>
-                <div class="go-sub">Tap or press Space to restart</div>
+    <!-- ── Retro Arcade ── -->
+    <div class="section-card arcade-section" id="profileArcadeSection">
+        <div class="arcade-header">
+            <span class="arcade-title">🕹️ Retro Arcade</span>
+            <button class="arcade-challenge-btn" id="arcadeChallengeBtn" onclick="openArcadeChallenge()" style="display:none;">⚔️ Challenge</button>
+        </div>
+        <div class="arcade-tabs">
+            <button class="arcade-tab active" onclick="switchArcadeGame('runner',this)">🏃 Runner</button>
+            <button class="arcade-tab" onclick="switchArcadeGame('breakout',this)">🧱 Breakout</button>
+            <button class="arcade-tab" onclick="switchArcadeGame('memory',this)">🧠 Memory</button>
+            <button class="arcade-tab" onclick="switchArcadeGame('reaction',this)">⚡ Reaction</button>
+        </div>
+        <div class="arcade-game-wrap">
+            <iframe id="arcadeGameFrame" class="arcade-game-frame" sandbox="allow-scripts allow-same-origin" title="Arcade Game"></iframe>
+            <div class="arcade-overlay" id="arcadeOverlay">
+                <button class="arcade-play-btn" onclick="startArcadeGame()">▶️</button>
+                <span class="arcade-overlay-label" id="arcadeOverlayLabel">Tap to play</span>
+            </div>
+        </div>
+        <div class="arcade-score-bar">
+            <span class="arcade-score-live" id="arcadeScoreLive">Score: —</span>
+            <span class="arcade-score-best" id="arcadeScoreBest">Best: —</span>
+        </div>
+        <div class="arcade-scoreboard">
+            <div class="arcade-scoreboard-title">🏆 Leaderboard — <span id="arcadeLbGame">Runner</span></div>
+            <div id="arcadeLeaderboard"><div class="arcade-sb-empty">No scores yet — be the first!</div></div>
+        </div>
+    </div>
+
+    <div class="arcade-challenge-modal" id="arcadeChallengeModal">
+        <div class="arcade-challenge-inner">
+            <h3>⚔️ Challenge <span id="challengeTargetName">them</span></h3>
+            <p>Pick a game and send a challenge. They'll see your score to beat in their notifications.</p>
+            <label style="font-size:12px;color:#4a7a9a;display:block;margin-bottom:6px;">Game</label>
+            <select id="challengeGameSelect" style="margin:0 0 4px;">
+                <option value="runner">🏃 Runner</option>
+                <option value="breakout">🧱 Breakout</option>
+                <option value="memory">🧠 Memory</option>
+                <option value="reaction">⚡ Reaction</option>
+            </select>
+            <div class="arcade-challenge-actions">
+                <button onclick="closeArcadeChallenge()" style="border-color:rgba(255,255,255,0.15);color:#778;">Cancel</button>
+                <button onclick="sendArcadeChallenge()" style="background:rgba(0,174,239,0.15);border-color:rgba(0,174,239,0.6);color:#00AEEF;">⚔️ Send Challenge</button>
             </div>
         </div>
     </div>
@@ -6374,6 +6500,10 @@ body::after {
               icon = '📢';
               text = `<b>Admin</b>: ${escFeed(n.body || 'New announcement')}`;
               navFn = `navTo('notificationsPage')`;
+          } else if (n.type === 'arcadeChallenge') {
+              icon = '🕹️';
+              text = `<b>${escFeed(n.fromName)}</b> challenged you to beat <b>${n.score}</b> in <b>${escFeed(n.gameName||'')}</b>!`;
+              navFn = `viewProfile('${n.fromUid}')`;
           }
 
           if (!text) return; // skip unknown types
@@ -6777,6 +6907,7 @@ body::after {
               wallBox.appendChild(div);
           });
       });
+      if (typeof initProfileArcade === 'function') initProfileArcade(uid, isSelf);
   };
 
   document.getElementById("btnSaveProfile").onclick = async () => {
@@ -8868,103 +8999,141 @@ document.addEventListener("click", (e) => {
     if(picker && !picker.contains(e.target) && e.target !== btn) closeEmojiPicker();
 });
 
-/* ═══ MINI-GAME ENGINE ═══
-   Player: fixed left 40–62px, height 22px, jumps via `bottom` CSS transition.
-   Obstacles: spawn at right edge with random height, move left each tick.
-   Collision: horizontal + vertical overlap → game over. Tap/Space to restart.
-*/
-let gameInterval = null, score = 0, bestScore = 0, isJumping = false, gameRunning = false;
+/* ═══════════════════════════════════════════════════════════
+   RETRO ARCADE ENGINE — 4 sandboxed iframe games
+   ═══════════════════════════════════════════════════════════ */
+const ARCADE_GAMES = {
+runner: `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#000015;overflow:hidden;touch-action:none;user-select:none;}canvas{display:block;}</style></head><body><canvas id="c"></canvas><script>const c=document.getElementById('c'),ctx=c.getContext('2d');function resize(){c.width=c.parentElement?c.parentElement.offsetWidth:window.innerWidth;c.height=window.innerHeight<400?240:300;}resize();window.addEventListener('resize',resize);let score=0,best=0,running=false,jumping=false,yVel=0,py,px=60,pw=20,ph=20,gnd,obstacles=[],raf,frameCount=0;const BG='#000015',GC='rgba(0,174,239,0.25)',PC='#00AEEF',OC='#ff3366';function reset(){score=0;jumping=false;yVel=0;obstacles=[];frameCount=0;gnd=c.height-30;py=gnd-ph;running=true;loop();}function loop(){raf=requestAnimationFrame(loop);frameCount++;ctx.fillStyle=BG;ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle=GC;ctx.fillRect(0,gnd+ph,c.width,4);if(jumping||py<gnd-ph){yVel+=0.7;py+=yVel;if(py>=gnd-ph){py=gnd-ph;yVel=0;jumping=false;}}if(frameCount%Math.max(40,100-Math.floor(score/200))==0){const oh=20+Math.random()*30|0;obstacles.push({x:c.width,w:14,h:oh,y:gnd-oh+ph});}const speed=3+score/400;for(let i=obstacles.length-1;i>=0;i--){const o=obstacles[i];o.x-=speed;if(o.x+o.w<0){obstacles.splice(i,1);continue;}ctx.fillStyle=OC;ctx.fillRect(o.x,o.y,o.w,o.h);if(o.x<px+pw-4&&o.x+o.w>px+4&&o.y<py+ph-4&&o.y+o.h>py+4){running=false;cancelAnimationFrame(raf);if(score>best)best=score;parent.postMessage({type:'score',value:score,best:best},'*');drawOver();return;}}ctx.fillStyle=PC;ctx.shadowColor=PC;ctx.shadowBlur=10;ctx.fillRect(px,py,pw,ph);ctx.shadowBlur=0;score++;ctx.fillStyle='rgba(0,174,239,0.8)';ctx.font='bold 12px monospace';ctx.fillText('Score: '+score,8,18);ctx.fillStyle='#334';ctx.fillText('Best: '+best,8,32);}function drawOver(){ctx.fillStyle='rgba(0,0,20,0.7)';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#ff3366';ctx.font='bold 18px monospace';ctx.textAlign='center';ctx.fillText('GAME OVER',c.width/2,c.height/2-20);ctx.fillStyle='rgba(0,174,239,0.8)';ctx.font='12px monospace';ctx.fillText('Score: '+score+'  Best: '+best,c.width/2,c.height/2+4);ctx.fillStyle='#556';ctx.fillText('Tap or Space to restart',c.width/2,c.height/2+22);ctx.textAlign='left';}function jump(){if(!running){reset();return;}if(!jumping&&py>=gnd-ph){jumping=true;yVel=-13;}}document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();jump();}});document.addEventListener('touchstart',e=>{e.preventDefault();jump();},{passive:false});document.addEventListener('click',jump);drawOver();<\/script></body></html>`,
+breakout: `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#000015;overflow:hidden;touch-action:none;user-select:none;}canvas{display:block;}</style></head><body><canvas id="c"></canvas><script>const c=document.getElementById('c'),ctx=c.getContext('2d');function resize(){c.width=c.parentElement?c.parentElement.offsetWidth:window.innerWidth;c.height=window.innerHeight<400?240:300;init();}let bricks=[],ball,pad,score=0,best=0,lives=3,running=false,raf;const ROWS=4,COLS=8,BC=['#ff3366','#ff8844','#ffcc44','#00AEEF'];function init(){const bw=Math.floor((c.width-24)/(COLS+0.5)),bh=18;bricks=[];for(let r=0;r<ROWS;r++)for(let cc=0;cc<COLS;cc++)bricks.push({x:12+cc*(bw+4),y:40+r*(bh+4),w:bw,h:bh,alive:true,row:r});ball={x:c.width/2,y:c.height-70,vx:3*(Math.random()<.5?1:-1),vy:-4,r:6};pad={x:c.width/2-40,y:c.height-22,w:80,h:10};score=0;lives=3;running=false;}resize();window.addEventListener('resize',resize);function loop(){raf=requestAnimationFrame(loop);ctx.fillStyle='#000015';ctx.fillRect(0,0,c.width,c.height);bricks.forEach(b=>{if(!b.alive)return;ctx.fillStyle=BC[b.row%BC.length];ctx.shadowColor=BC[b.row%BC.length];ctx.shadowBlur=6;ctx.fillRect(b.x,b.y,b.w,b.h);});ctx.shadowBlur=0;ball.x+=ball.vx;ball.y+=ball.vy;if(ball.x-ball.r<0||ball.x+ball.r>c.width)ball.vx*=-1;if(ball.y-ball.r<0)ball.vy*=-1;if(ball.y+ball.r>pad.y&&ball.x>pad.x&&ball.x<pad.x+pad.w){ball.vy=-Math.abs(ball.vy);ball.vx+=((ball.x-(pad.x+pad.w/2))/pad.w)*3;}if(ball.y>c.height+20){lives--;if(lives<=0){running=false;cancelAnimationFrame(raf);if(score>best)best=score;parent.postMessage({type:'score',value:score,best:best},'*');drawOver();return;}ball.x=c.width/2;ball.y=c.height-70;ball.vx=3*(Math.random()<.5?1:-1);ball.vy=-4;}for(let i=0;i<bricks.length;i++){const b=bricks[i];if(!b.alive)continue;if(ball.x+ball.r>b.x&&ball.x-ball.r<b.x+b.w&&ball.y+ball.r>b.y&&ball.y-ball.r<b.y+b.h){b.alive=false;ball.vy*=-1;score+=10;}}if(bricks.every(b=>!b.alive)){score+=100;init();ball.vy=-5;}ctx.fillStyle='#00AEEF';ctx.shadowColor='#00AEEF';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='rgba(0,174,239,0.5)';ctx.fillRect(pad.x,pad.y,pad.w,pad.h);ctx.fillStyle='rgba(0,174,239,0.8)';ctx.font='bold 12px monospace';ctx.fillText('Score: '+score,8,18);ctx.fillStyle='#334';ctx.fillText('Lives: '+lives+'  Best: '+best,8,32);}function drawOver(){ctx.fillStyle='rgba(0,0,20,0.7)';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#ff3366';ctx.font='bold 18px monospace';ctx.textAlign='center';ctx.fillText('GAME OVER',c.width/2,c.height/2-20);ctx.fillStyle='rgba(0,174,239,0.8)';ctx.font='12px monospace';ctx.fillText('Score: '+score+'  Best: '+best,c.width/2,c.height/2+4);ctx.fillStyle='#556';ctx.fillText('Tap to restart',c.width/2,c.height/2+22);ctx.textAlign='left';}function movePad(e){const rect=c.getBoundingClientRect();const cx=(e.touches?e.touches[0].clientX:e.clientX)-rect.left;pad.x=Math.max(0,Math.min(c.width-pad.w,cx-pad.w/2));}c.addEventListener('mousemove',movePad);c.addEventListener('touchmove',e=>{e.preventDefault();movePad(e);},{passive:false});c.addEventListener('click',()=>{if(!running){running=true;loop();}});c.addEventListener('touchend',()=>{if(!running){running=true;loop();}});drawOver();<\/script></body></html>`,
+memory: `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#000015;overflow:hidden;font-family:monospace;touch-action:manipulation;}#g{display:grid;gap:6px;padding:10px;}</style></head><body><div style="padding:6px 10px;display:flex;justify-content:space-between;font-size:12px;color:rgba(0,174,239,0.8);"><span id="info">Tap to start</span><span id="sc">Score: 0  Best: 0</span></div><div id="g"></div><script>const EMOJIS=['🔥','💎','⚡','🌙','👑','🦋','🚀','🎮','💀','🌊','🎯','🌑'];let cards=[],flipped=[],matched=0,canFlip=true,score=0,best=0,moves=0,pairs;function calcGrid(){const w=window.innerWidth||320;const cols=w<380?4:6;return{cols,rows:4,pairs:cols*2};}function build(){const{cols,pairs:p}=calcGrid();pairs=p;const g=document.getElementById('g');g.style.gridTemplateColumns='repeat('+cols+',1fr)';const pool=EMOJIS.slice(0,p);const deck=[...pool,...pool].sort(()=>Math.random()-0.5);cards=[];matched=0;moves=0;canFlip=true;flipped=[];score=0;g.innerHTML='';deck.forEach((em,i)=>{const d=document.createElement('div');d.style.cssText='aspect-ratio:1;background:#0a1830;border:1px solid rgba(0,80,160,0.4);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:background .15s;';d.dataset.em=em;d.dataset.revealed='false';d.addEventListener('click',()=>flip(d,i));g.appendChild(d);cards.push(d);});document.getElementById('info').textContent='Find '+pairs+' pairs!';}function flip(d,i){if(!canFlip||d.dataset.revealed==='true'||flipped.length===2)return;d.textContent=d.dataset.em;d.style.background='rgba(0,174,239,0.15)';d.style.borderColor='rgba(0,174,239,0.55)';d.dataset.revealed='true';flipped.push(d);if(flipped.length===2){canFlip=false;moves++;if(flipped[0].dataset.em===flipped[1].dataset.em){matched++;score+=10;flipped[0].style.borderColor='rgba(0,255,136,0.6)';flipped[1].style.borderColor='rgba(0,255,136,0.6)';flipped=[];canFlip=true;if(matched===pairs){score+=50;if(score>best)best=score;parent.postMessage({type:'score',value:score,best:best},'*');document.getElementById('info').textContent='🎉 Complete! Tap to play again';setTimeout(build,1800);}}else{setTimeout(()=>{flipped.forEach(f=>{f.textContent='';f.style.background='#0a1830';f.style.borderColor='rgba(0,80,160,0.4)';f.dataset.revealed='false';});flipped=[];canFlip=true;},800);}document.getElementById('sc').textContent='Score: '+score+'  Best: '+best;}}build();<\/script></body></html>`,
+reaction: `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#000015;overflow:hidden;touch-action:manipulation;}#arena{display:grid;gap:6px;padding:10px;}</style></head><body><div style="padding:6px 10px;display:flex;justify-content:space-between;font-size:12px;color:rgba(0,174,239,0.8);"><span id="info">Tap the glowing cells!</span><span id="sc">Score: 0  Best: 0</span></div><div id="arena"></div><script>let cells=[],active=[],score=0,best=0,lives=5,running=false,speed=900,timers=[],round=0;function calcCols(){return window.innerWidth<380?4:6;}function build(){const cols=calcCols();const rows=4;const a=document.getElementById('arena');a.style.gridTemplateColumns='repeat('+cols+',1fr)';a.innerHTML='';cells=[];for(let i=0;i<cols*rows;i++){const d=document.createElement('div');d.style.cssText='aspect-ratio:1;background:#0a1830;border:1px solid rgba(0,80,160,0.3);border-radius:8px;cursor:pointer;transition:background .1s,border-color .1s;';d.addEventListener('click',()=>tap(i));a.appendChild(d);cells.push(d);}}function tap(i){if(!running)return;const idx=active.indexOf(i);if(idx>=0){score+=10;active.splice(idx,1);cells[i].style.background='rgba(0,255,136,0.3)';cells[i].style.borderColor='rgba(0,255,136,0.7)';setTimeout(()=>{if(cells[i]){cells[i].style.background='#0a1830';cells[i].style.borderColor='rgba(0,80,160,0.3)';}},200);}else{lives--;if(lives<=0){stop();return;}cells[i].style.background='rgba(255,51,102,0.25)';setTimeout(()=>{if(cells[i])cells[i].style.background='#0a1830';},200);}document.getElementById('sc').textContent='Score: '+score+'  Best: '+best;document.getElementById('info').textContent='Lives: '+lives;}function activate(i){if(!cells[i])return;cells[i].style.background='rgba(0,174,239,0.4)';cells[i].style.borderColor='rgba(0,174,239,0.9)';active.push(i);const t=setTimeout(()=>{if(active.includes(i)){active.splice(active.indexOf(i),1);lives--;if(cells[i]){cells[i].style.background='#0a1830';cells[i].style.borderColor='rgba(0,80,160,0.3)';}document.getElementById('info').textContent='Lives: '+lives;if(lives<=0)stop();}},speed);timers.push(t);}function spawnRound(){const n=Math.min(1+Math.floor(round/3),4);const available=[...cells.keys()].filter(i=>!active.includes(i));const picks=available.sort(()=>Math.random()-0.5).slice(0,n);picks.forEach(activate);round++;speed=Math.max(400,speed-15);const t=setTimeout(spawnRound,600);timers.push(t);}function stop(){running=false;timers.forEach(clearTimeout);timers=[];active=[];if(score>best)best=score;parent.postMessage({type:'score',value:score,best:best},'*');cells.forEach(c=>{c.style.background='#0a1830';c.style.borderColor='rgba(0,80,160,0.3)';});document.getElementById('info').textContent='Game over! Score: '+score+'. Tap to play again.';document.getElementById('sc').textContent='Score: '+score+'  Best: '+best;}function start(){score=0;lives=5;round=0;speed=900;active=[];timers.forEach(clearTimeout);timers=[];cells.forEach(c=>{c.style.background='#0a1830';c.style.borderColor='rgba(0,80,160,0.3)';});running=true;spawnRound();document.getElementById('info').textContent='Lives: '+lives;}document.getElementById('arena').addEventListener('click',e=>{if(!running&&e.target===e.currentTarget)start();});build();document.getElementById('info').textContent='Tap a cell to start';<\/script></body></html>`
+};
 
-function triggerGameEngine() {
-    const box = document.getElementById("game-container");
-    box.style.display = "block";
-    // Reset state
-    score = 0;
-    isJumping = false;
-    document.getElementById("game-score").textContent  = "Score: 0";
-    document.getElementById("game-best").textContent   = "Best: " + bestScore;
-    document.getElementById("game-hint").style.display = "block";
-    document.getElementById("game-over-msg").style.display = "none";
-    document.getElementById("game-player").style.bottom = "2px";
-    document.querySelectorAll(".game-obstacle").forEach(o => o.remove());
-    if(gameInterval) { clearInterval(gameInterval); gameInterval = null; }
-    gameRunning = true;
+let _arcadeCurrentGame = 'runner';
+let _arcadeActiveProfileUid = null;
+let _arcadeBestScores = {};
+let _arcadeCurrentScore = 0;
 
-    const boxWidth = box.offsetWidth || 400;
-
-    gameInterval = setInterval(() => {
-        if (!gameRunning) return;
-        score++;
-        document.getElementById("game-score").textContent = "Score: " + score;
-
-        // Spawn obstacle with variable height for increasing difficulty
-        if (Math.random() > 0.96) {
-            const obs = document.createElement("div");
-            obs.className = "game-obstacle";
-            obs.style.height = (20 + Math.floor(Math.random() * 26)) + "px"; // 20–45px
-            obs.style.left   = boxWidth + "px";
-            box.appendChild(obs);
-        }
-
-        // Move obstacles left + collision detection
-        document.querySelectorAll(".game-obstacle").forEach(o => {
-            let x = parseFloat(o.style.left);
-            x -= 5;
-            o.style.left = x + "px";
-            if (x < -20) { o.remove(); return; }
-
-            const playerLeft = 40, playerRight = 62;
-            const hOverlap = (x + 18) > (playerLeft + 3) && x < (playerRight - 3);
-            if (!hOverlap) return;
-
-            // Vertical check: player `bottom` vs obstacle height (obstacle sits at ground=2px)
-            const playerBottom = parseFloat(document.getElementById("game-player").style.bottom) || 2;
-            const obsH = o.offsetHeight || 30;
-            const vOverlap = playerBottom < (obsH + 2);
-
-            if (vOverlap) {
-                gameRunning = false;
-                clearInterval(gameInterval); gameInterval = null;
-                if(score > bestScore) bestScore = score;
-                document.getElementById("game-best").textContent      = "Best: " + bestScore;
-                document.getElementById("goScoreText").textContent    = "Score: " + score;
-                document.getElementById("game-over-msg").style.display = "flex";
-                document.getElementById("game-hint").style.display    = "none";
-            }
-        });
-    }, 30);
+function switchArcadeGame(key, btn) {
+    _arcadeCurrentGame = key;
+    document.querySelectorAll('.arcade-tab').forEach(t => t.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const lbGame = document.getElementById('arcadeLbGame');
+    if (lbGame) lbGame.textContent = { runner:'Runner', breakout:'Breakout', memory:'Memory Match', reaction:'Reaction Grid' }[key] || key;
+    const frame = document.getElementById('arcadeGameFrame');
+    if (frame) frame.srcdoc = '';
+    const overlay = document.getElementById('arcadeOverlay');
+    if (overlay) overlay.classList.remove('hidden');
+    const scoreLive = document.getElementById('arcadeScoreLive');
+    if (scoreLive) scoreLive.textContent = 'Score: —';
+    const scoreBest = document.getElementById('arcadeScoreBest');
+    if (scoreBest) scoreBest.textContent = 'Best: ' + (_arcadeBestScores[key] ?? '—');
+    _arcadeCurrentScore = 0;
+    if (_arcadeActiveProfileUid) loadArcadeLeaderboard(_arcadeActiveProfileUid, key);
 }
 
-function jump() {
-    if (!gameRunning) {
-        // Restart from game-over screen
-        triggerGameEngine();
-        return;
+function startArcadeGame() {
+    const frame = document.getElementById('arcadeGameFrame');
+    if (!frame) return;
+    const overlay = document.getElementById('arcadeOverlay');
+    if (overlay) overlay.classList.add('hidden');
+    frame.srcdoc = ARCADE_GAMES[_arcadeCurrentGame] || ARCADE_GAMES.runner;
+    document.getElementById('arcadeScoreLive').textContent = 'Score: 0';
+}
+
+window.addEventListener('message', (e) => {
+    if (!e.data || e.data.type !== 'score') return;
+    const val = e.data.value || 0;
+    const best = e.data.best || val;
+    _arcadeCurrentScore = val;
+    const scoreLive = document.getElementById('arcadeScoreLive');
+    if (scoreLive) scoreLive.textContent = 'Score: ' + val;
+    if (!_arcadeBestScores[_arcadeCurrentGame] || val > _arcadeBestScores[_arcadeCurrentGame]) {
+        _arcadeBestScores[_arcadeCurrentGame] = val;
     }
-    if (isJumping) return;
-    isJumping = true;
-    const p   = document.getElementById("game-player");
-    const box = document.getElementById("game-container");
-    const jumpH = Math.round((box.offsetHeight || 180) * 0.52);
-    p.style.bottom = jumpH + "px";
-    setTimeout(() => {
-        p.style.bottom = "2px";
-        setTimeout(() => { isJumping = false; }, 80); // wait for transition to land
-    }, 380);
-}
-
-window.addEventListener("keydown", (e) => {
-    if (e.code === "Space") { e.preventDefault(); jump(); }
+    const scoreBest = document.getElementById('arcadeScoreBest');
+    if (scoreBest) scoreBest.textContent = 'Best: ' + best;
+    if (typeof currentUser !== 'undefined' && currentUser && typeof db !== 'undefined') {
+        saveArcadeScore(_arcadeCurrentGame, val);
+    }
 });
 
-// Touch: passive:false is required to be able to call preventDefault (blocks page scroll)
-document.getElementById("game-container").addEventListener("touchstart", (e) => {
-    e.preventDefault();
-    jump();
-}, { passive: false });
+async function saveArcadeScore(gameKey, value) {
+    try {
+        if (!currentUser || value <= 0) return;
+        const userRef = doc(db, 'users', currentUser.uid);
+        const snap = await getDoc(userRef);
+        if (!snap.exists()) return;
+        const existing = snap.data().arcadeScores || {};
+        if ((existing[gameKey] || 0) >= value) return;
+        await updateDoc(userRef, { [`arcadeScores.${gameKey}`]: value });
+        if (_arcadeActiveProfileUid) loadArcadeLeaderboard(_arcadeActiveProfileUid, gameKey);
+    } catch(_) {}
+}
 
-document.getElementById("game-container").addEventListener("click", () => {
-    jump();
+async function loadArcadeLeaderboard(profileUid, gameKey) {
+    const box = document.getElementById('arcadeLeaderboard');
+    if (!box) return;
+    try {
+        const ownerSnap = await getDoc(doc(db, 'users', profileUid));
+        if (!ownerSnap.exists()) return;
+        const ownerData = ownerSnap.data();
+        const pool = [profileUid, ...(ownerData.friends || [])];
+        const uids = [...new Set(pool)].slice(0, 10);
+        const snaps = await Promise.all(uids.map(u => getDoc(doc(db, 'users', u))));
+        const rows = snaps
+            .filter(s => s.exists())
+            .map(s => { const d = s.data(); return { uid: s.id, name: d.displayName || d.username || '?', avatar: d.avatar || '', score: (d.arcadeScores || {})[gameKey] || 0 }; })
+            .filter(r => r.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 8);
+        if (!rows.length) { box.innerHTML = '<div class="arcade-sb-empty">No scores yet — be the first!</div>'; return; }
+        box.innerHTML = rows.map((r, i) => {
+            const rankCls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+            const avStyle = r.avatar ? `background-image:url('${escFeed(r.avatar)}')` : '';
+            const avInit  = (r.name[0] || '?').toUpperCase();
+            return `<div class="arcade-sb-row"><span class="arcade-sb-rank ${rankCls}">${medal}</span><div class="arcade-sb-avatar" style="${avStyle}">${r.avatar ? '' : escFeed(avInit)}</div><span class="arcade-sb-name" onclick="viewProfile('${escFeed(r.uid)}')">${escFeed(r.name)}</span><span class="arcade-sb-score">${r.score}</span></div>`;
+        }).join('');
+    } catch(e) { box.innerHTML = '<div class="arcade-sb-empty">Leaderboard unavailable.</div>'; }
+}
+
+function initProfileArcade(profileUid, isSelf) {
+    _arcadeActiveProfileUid = profileUid;
+    const challengeBtn = document.getElementById('arcadeChallengeBtn');
+    if (challengeBtn) challengeBtn.style.display = isSelf ? 'none' : '';
+    const firstTab = document.querySelector('.arcade-tab');
+    if (firstTab) switchArcadeGame('runner', firstTab);
+    if (isSelf && typeof userData !== 'undefined' && userData.arcadeScores) {
+        Object.assign(_arcadeBestScores, userData.arcadeScores);
+        const sb = document.getElementById('arcadeScoreBest');
+        if (sb && _arcadeBestScores['runner']) sb.textContent = 'Best: ' + _arcadeBestScores['runner'];
+    }
+}
+
+let _arcadeChallengeTargetUid = null;
+function openArcadeChallenge() {
+    _arcadeChallengeTargetUid = _arcadeActiveProfileUid;
+    const nameEl = document.getElementById('challengeTargetName');
+    if (nameEl) { const n = document.getElementById('profileName')?.textContent || 'them'; nameEl.textContent = n; }
+    document.getElementById('arcadeChallengeModal').classList.add('open');
+}
+function closeArcadeChallenge() {
+    document.getElementById('arcadeChallengeModal').classList.remove('open');
+}
+async function sendArcadeChallenge() {
+    if (!_arcadeChallengeTargetUid || typeof currentUser === 'undefined' || !currentUser) return;
+    const gameKey = document.getElementById('challengeGameSelect').value;
+    const myScore = (_arcadeBestScores[gameKey] || 0);
+    const gameName = { runner:'Runner', breakout:'Breakout', memory:'Memory Match', reaction:'Reaction Grid' }[gameKey] || gameKey;
+    try {
+        await pushNotification(_arcadeChallengeTargetUid, { type:'arcadeChallenge', fromUid:currentUser.uid, fromName:userData.displayName, fromAvatar:userData.avatar||'', game:gameKey, gameName, score:myScore, body:`${userData.displayName} challenged you to beat ${myScore} in ${gameName}! 🕹️` });
+        closeArcadeChallenge();
+        toastNotification(`⚔️ Challenge sent! Your best in ${gameName}: ${myScore}`);
+    } catch(e) { toastNotification('Could not send challenge.'); }
+}
+document.getElementById('arcadeChallengeModal').addEventListener('click', function(e) {
+    if (e.target === this) closeArcadeChallenge();
 });
 
 /* ═══════════════════════════════════════════════════

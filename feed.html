@@ -1996,6 +1996,73 @@ img.post-media-preview::before {
     color: #ff88aa;
 }
 .profile-family-invite-btn:hover { background: rgba(255,51,102,0.14); border-color: rgba(255,51,102,0.55); }
+
+/* ── Add Family button states on profile ── */
+#btnAddFamilyAction {
+    min-width: 110px;
+    border-color: rgba(255,51,102,0.5);
+    color: #ff88aa;
+    transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+#btnAddFamilyAction:hover:not(:disabled) {
+    background: rgba(255,51,102,0.14);
+    color: #ffaabb;
+    border-color: rgba(255,51,102,0.75);
+    box-shadow: 0 0 14px rgba(255,51,102,0.3);
+}
+#btnAddFamilyAction.fam-pending {
+    border-color: rgba(255,170,0,0.4) !important;
+    color: #ffcc66 !important;
+    background: rgba(255,170,0,0.06) !important;
+    cursor: default !important;
+}
+#btnAddFamilyAction.fam-already {
+    border-color: rgba(255,51,102,0.35) !important;
+    color: #ff88aa !important;
+    background: rgba(255,51,102,0.08) !important;
+    cursor: default !important;
+}
+
+/* ── Family Request Confirmation Modal ── */
+#familyReqModal {
+    display: none; position: fixed; inset: 0; z-index: 7800;
+    background: rgba(0,3,15,0.86); align-items: center; justify-content: center;
+    padding: 20px; box-sizing: border-box; backdrop-filter: blur(6px);
+}
+#familyReqModal.open { display: flex; }
+.fam-req-inner {
+    background: #060d1e; border: 1px solid rgba(255,51,102,0.4);
+    border-radius: 16px; padding: 24px 22px; max-width: 340px; width: 100%;
+    text-align: center; box-shadow: 0 0 50px rgba(255,30,80,0.18);
+    animation: deleteModalIn 0.2s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.fam-req-icon  { font-size: 36px; margin-bottom: 10px; }
+.fam-req-title { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+.fam-req-body  { font-size: 13px; color: #9bbdd8; line-height: 1.6; margin-bottom: 6px; }
+.fam-req-name  { font-size: 14px; font-weight: 700; color: #ffaabb; margin-bottom: 16px; }
+.fam-req-msg-wrap { margin-bottom: 16px; text-align: left; }
+.fam-req-msg-wrap label { font-size: 11px; color: #6a90b8; display: block; margin-bottom: 4px; }
+.fam-req-msg-wrap textarea {
+    width: 100%; padding: 8px 10px; font-size: 12px; border-radius: 8px;
+    background: rgba(0,10,30,0.9); border: 1px solid rgba(255,51,102,0.3);
+    color: #e0f0ff; resize: none; box-sizing: border-box; font-family: inherit;
+}
+.fam-req-msg-wrap textarea:focus {
+    outline: none; border-color: rgba(255,51,102,0.65);
+    box-shadow: 0 0 8px rgba(255,51,102,0.2);
+}
+.fam-req-btns { display: flex; gap: 10px; justify-content: center; }
+.fam-req-btns button { flex: 1; padding: 10px; font-size: 13px; border-radius: 10px; }
+.fam-req-send {
+    background: linear-gradient(135deg,#66001a,#cc0033) !important;
+    border-color: rgba(255,51,102,0.7) !important; color: #fff !important;
+    box-shadow: 0 0 14px rgba(255,30,80,0.35) !important;
+}
+.fam-req-send:hover { background: linear-gradient(135deg,#880022,#ee0044) !important; }
+.fam-req-cancel {
+    background: rgba(255,255,255,0.04) !important;
+    border-color: rgba(255,255,255,0.12) !important; color: #6a90b8 !important;
+}
 .profile-fl-card {
     display: flex; align-items: center; gap: 10px;
     padding: 7px 0; border-bottom: 1px solid rgba(0,40,90,0.4);
@@ -4268,6 +4335,26 @@ body::after {
 </div>
 
 <!-- ═══════════════════════════════════════════
+     FAMILY REQUEST CONFIRMATION MODAL
+     ═══════════════════════════════════════════ -->
+<div id="familyReqModal" role="dialog" aria-modal="true">
+    <div class="fam-req-inner">
+        <div class="fam-req-icon">❤️</div>
+        <div class="fam-req-title">Send Family Request</div>
+        <div class="fam-req-body">Do you want to send a Family request to</div>
+        <div class="fam-req-name" id="familyReqTargetName">this user</div>
+        <div class="fam-req-msg-wrap">
+            <label for="familyReqMsg">Optional message (visible to recipient)</label>
+            <textarea id="familyReqMsg" rows="2" maxlength="160" placeholder="Add a personal note… (optional)"></textarea>
+        </div>
+        <div class="fam-req-btns">
+            <button class="fam-req-send" id="familyReqSendBtn">❤️ Send Request</button>
+            <button class="fam-req-cancel" onclick="closeFamilyReqModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
      PROFILE CHAT MODAL
      Full-screen overlay chat window — appears when "Message"
      is clicked on any user's profile. Uses the same Firestore
@@ -4571,6 +4658,18 @@ body::after {
 
         <div class="settings-section">
             <h4>❤️ Family &amp; Friends Privacy</h4>
+            <div class="settings-row">
+                <div class="settings-label">
+                    Who can send me Family requests?
+                    <small>Controls who can tap "Add Family" on your profile</small>
+                </div>
+                <select id="privSendFamilyRequests" onchange="savePrivacySetting('sendFamilyRequests', this.value)">
+                    <option value="everyone">Everyone</option>
+                    <option value="friends">Friends only</option>
+                    <option value="followers">Followers only</option>
+                    <option value="nobody">No one</option>
+                </select>
+            </div>
             <div class="settings-row">
                 <div class="settings-label">
                     Who can see my Family list?
@@ -5395,8 +5494,9 @@ body::after {
               sel('privMessage',      ps.message);
               sel('privFindMe',       ps.findMe);
               sel('privWall',         ps.wall || userData.privacy);
-              sel('privFamilyList',   ps.familyList  || 'public');
-              sel('privFriendsList',  ps.friendsList || 'public');
+              sel('privFamilyList',          ps.familyList         || 'public');
+              sel('privFriendsList',         ps.friendsList        || 'public');
+              sel('privSendFamilyRequests',  ps.sendFamilyRequests || 'everyone');
               sel('privTagging',      ps.tagging      || 'everyone');
           });
 
@@ -6713,33 +6813,62 @@ body::after {
   };
 
   /* ═══════════════════════════════════════════════════════════
-     FAMILY INVITE SYSTEM — invite-based approval flow
+     FAMILY REQUEST SYSTEM — confirmation modal + approval flow
      ═══════════════════════════════════════════════════════════ */
 
-  window.sendFamilyInvite = async function(targetUid) {
+  /* ── Confirmation Modal helpers ── */
+  window.openFamilyReqModal = function(targetUid, targetName) {
+      const modal = document.getElementById('familyReqModal');
+      if (!modal) return;
+      const nameEl = document.getElementById('familyReqTargetName');
+      if (nameEl) nameEl.textContent = targetName;
+      const msgEl = document.getElementById('familyReqMsg');
+      if (msgEl) msgEl.value = '';
+      const sendBtn = document.getElementById('familyReqSendBtn');
+      if (sendBtn) {
+          sendBtn.onclick = async () => {
+              const msg = (document.getElementById('familyReqMsg')?.value || '').trim();
+              closeFamilyReqModal();
+              await sendFamilyInvite(targetUid, msg);
+          };
+      }
+      modal.classList.add('open');
+  };
+  window.closeFamilyReqModal = function() {
+      const modal = document.getElementById('familyReqModal');
+      if (modal) modal.classList.remove('open');
+  };
+
+  window.sendFamilyInvite = async function(targetUid, optionalMsg) {
       if (!currentUser) return;
       const mySnap = await getDoc(doc(db,"users",currentUser.uid));
       const md = mySnap.data();
       if ((md.family||[]).includes(targetUid)) { toastNotification("Already family members."); return; }
-      if ((md.familyInvitesSent||[]).includes(targetUid)) { toastNotification("Family invitation already sent."); return; }
+      if ((md.familyInvitesSent||[]).includes(targetUid)) { toastNotification("Family request already sent."); return; }
       await updateDoc(doc(db,"users",currentUser.uid), { familyInvitesSent: arrayUnion(targetUid) });
       await updateDoc(doc(db,"users",targetUid), {
           familyInvitesReceived: arrayUnion({
               fromUid: currentUser.uid, fromName: md.displayName||md.username||'Someone',
-              fromAvatar: md.avatar||'', ts: Date.now()
+              fromAvatar: md.avatar||'', message: optionalMsg||'', ts: Date.now()
           }),
           notifications: arrayUnion({
               id: Date.now()+Math.random().toString(36), type:'familyInvite',
               fromUid: currentUser.uid, fromName: md.displayName||md.username||'Someone',
-              fromAvatar: md.avatar||'', ts: Date.now(), read: false
+              fromAvatar: md.avatar||'', message: optionalMsg||'', ts: Date.now(), read: false
           })
       });
       sendPushToUser(targetUid, {
-          title: '❤️ Family Invitation',
-          body:  `${md.displayName||'Someone'} invited you to join their Family`,
+          title: '❤️ Family Request',
+          body:  `${md.displayName||'Someone'} sent you a Family request`,
           type:  'familyInvite', url: '/'
       }).catch(()=>{});
-      toastNotification("Family invitation sent! ❤️");
+      toastNotification("Family request sent. ❤️");
+      // Update button state immediately
+      const btn = document.getElementById("btnAddFamilyAction");
+      if (btn && btn.style.display !== "none") {
+          btn.textContent = "⏳ Pending"; btn.className = "fam-pending";
+          btn.disabled = true;
+      }
       renderFriendsPage();
   };
 
@@ -6747,12 +6876,14 @@ body::after {
       if (!currentUser) return;
       const [myS, thS] = await Promise.all([getDoc(doc(db,"users",currentUser.uid)), getDoc(doc(db,"users",fromUid))]);
       const md = myS.data(), td = thS.data();
+      const myName = md.displayName||md.username||'Someone';
+      const theirName = td.displayName||td.username||'Someone';
       await updateDoc(doc(db,"users",currentUser.uid), {
           family: arrayUnion(fromUid),
           familyInvitesReceived: (md.familyInvitesReceived||[]).filter(x=>x.fromUid!==fromUid),
           notifications: arrayUnion({
               id: Date.now()+Math.random().toString(36), type:'familyAccepted',
-              fromUid, fromName: td.displayName||td.username||'Someone', fromAvatar:td.avatar||'',
+              fromUid, fromName: theirName, fromAvatar:td.avatar||'',
               ts: Date.now(), read: false
           })
       });
@@ -6761,33 +6892,40 @@ body::after {
           familyInvitesSent: (td.familyInvitesSent||[]).filter(x=>x!==currentUser.uid),
           notifications: arrayUnion({
               id: Date.now()+Math.random().toString(36), type:'familyAccepted',
-              fromUid: currentUser.uid, fromName: md.displayName||md.username||'Someone',
+              fromUid: currentUser.uid, fromName: myName,
               fromAvatar: md.avatar||'', ts: Date.now(), read: false
           })
       });
       sendPushToUser(fromUid, {
-          title: '✅ Family Request Accepted',
-          body:  `${md.displayName||'Someone'} accepted your family invitation`,
+          title: '❤️ Family Request Accepted',
+          body:  `You and @${md.username||myName} are now Family on Shadow Nexus Social`,
           type:  'familyAccepted', url: '/'
       }).catch(()=>{});
-      toastNotification(`Now family! ❤️`);
+      toastNotification(`You and @${td.username||theirName} are now Family! ❤️`);
       renderFriendsPage();
   };
 
   window.declineFamilyRequest = async function(fromUid) {
       if (!currentUser) return;
       const [myS, thS] = await Promise.all([getDoc(doc(db,"users",currentUser.uid)), getDoc(doc(db,"users",fromUid))]);
+      const md = myS.data();
       await updateDoc(doc(db,"users",currentUser.uid), {
-          familyInvitesReceived: (myS.data().familyInvitesReceived||[]).filter(x=>x.fromUid!==fromUid)
+          familyInvitesReceived: (md.familyInvitesReceived||[]).filter(x=>x.fromUid!==fromUid)
       });
       await updateDoc(doc(db,"users",fromUid), {
-          familyInvitesSent: (thS.data().familyInvitesSent||[]).filter(x=>x!==currentUser.uid)
+          familyInvitesSent: (thS.data().familyInvitesSent||[]).filter(x=>x!==currentUser.uid),
+          // optional decline notification to sender
+          notifications: arrayUnion({
+              id: Date.now()+Math.random().toString(36), type:'familyDeclined',
+              fromUid: currentUser.uid, fromName: md.displayName||md.username||'Someone',
+              fromAvatar: md.avatar||'', ts: Date.now(), read: false
+          })
       });
-      toastNotification("Family invitation declined."); renderFriendsPage();
+      toastNotification("Family request declined."); renderFriendsPage();
   };
 
   window.blockFamilyInviter = async function(fromUid) {
-      if (!currentUser || !confirm("Block this user? They won't be able to send you invitations.")) return;
+      if (!currentUser || !confirm("Block this user? They won't be able to send you Family requests.")) return;
       const [myS, thS] = await Promise.all([getDoc(doc(db,"users",currentUser.uid)), getDoc(doc(db,"users",fromUid))]);
       await updateDoc(doc(db,"users",currentUser.uid), {
           familyInvitesReceived: (myS.data().familyInvitesReceived||[]).filter(x=>x.fromUid!==fromUid),
@@ -6801,8 +6939,12 @@ body::after {
 
   window.removeFamilyMember = async function(fUid) {
       if (!currentUser || !confirm("Remove this person from your Family list?")) return;
-      const snap = await getDoc(doc(db,"users",currentUser.uid));
-      await updateDoc(doc(db,"users",currentUser.uid), { family:(snap.data().family||[]).filter(x=>x!==fUid) });
+      // Bilateral removal — deletes the relationship on both sides
+      const [myS, thS] = await Promise.all([getDoc(doc(db,"users",currentUser.uid)), getDoc(doc(db,"users",fUid))]);
+      await updateDoc(doc(db,"users",currentUser.uid), { family:(myS.data().family||[]).filter(x=>x!==fUid) });
+      if (thS.exists()) {
+          await updateDoc(doc(db,"users",fUid), { family:(thS.data().family||[]).filter(x=>x!==currentUser.uid) });
+      }
       toastNotification("Removed from Family list.");
       if (typeof snxLoadFamilySection === 'function') snxLoadFamilySection(currentUser.uid, true);
       renderFriendsPage();
@@ -6851,16 +6993,17 @@ body::after {
       if (famInvitesReceived.length) {
           const pendingHeader = document.createElement('div');
           pendingHeader.style.cssText='font-size:11px;color:#ff88aa;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;padding:6px 0 4px;margin-bottom:4px;border-bottom:1px solid rgba(255,51,102,0.2);';
-          pendingHeader.textContent='⏳ Pending Invitations';
+          pendingHeader.textContent='⏳ Pending Family Requests';
           fbox.appendChild(pendingHeader);
           famInvitesReceived.forEach(inv => {
               const row = document.createElement('div'); row.className='fam-invite-card';
               const avStyle = inv.fromAvatar ? `background-image:url('${inv.fromAvatar}');background-size:cover;background-position:center;` : 'display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:bold;color:#00AEEF;background:#0B1F3A;';
+              const msgSnippet = inv.message ? `<div style="font-size:11px;color:#8ab0cc;margin-top:2px;font-style:italic;">"${escFeed(inv.message)}"</div>` : '';
               row.innerHTML=`<div class="friend-avatar" style="${avStyle}" onclick="viewProfile('${inv.fromUid}')">${!inv.fromAvatar?escFeed((inv.fromName||'?')[0].toUpperCase()):''}</div>
-                <div class="friend-meta"><div class="friend-name" onclick="viewProfile('${inv.fromUid}')">${escFeed(inv.fromName)}<span class="fam-invite-pending-label">❤️ Invited You</span></div></div>
+                <div class="friend-meta"><div class="friend-name" onclick="viewProfile('${inv.fromUid}')">${escFeed(inv.fromName)}<span class="fam-invite-pending-label">❤️ Family Request</span></div>${msgSnippet}</div>
                 <div class="fam-invite-actions">
-                  <button class="btn-accept" onclick="approveFamilyRequest('${inv.fromUid}')">✓ Approve</button>
-                  <button class="btn-decline" onclick="declineFamilyRequest('${inv.fromUid}')">✕ Decline</button>
+                  <button class="btn-accept" onclick="approveFamilyRequest('${inv.fromUid}')">❤️ Accept</button>
+                  <button class="btn-decline" onclick="declineFamilyRequest('${inv.fromUid}')">❌ Decline</button>
                   <button class="btn-decline" style="font-size:10px;" onclick="blockFamilyInviter('${inv.fromUid}')">🚫 Block</button>
                 </div>`;
               fbox.appendChild(row);
@@ -6886,7 +7029,7 @@ body::after {
           });
       }
       if (!famDocs.length && !famInvitesReceived.length) {
-          fbox.innerHTML='<div class="empty-state">No family members yet.<br><span style="font-size:12px;color:#3a5a7a;">Send a Family Invitation from a friend\'s profile.</span></div>';
+          fbox.innerHTML='<div class="empty-state">No family members yet.<br><span style="font-size:12px;color:#3a5a7a;">Tap ❤️ Add Family on someone\'s profile to send a request.</span></div>';
       }
       updateFriendBadges(received.length);
   }
@@ -7018,16 +7161,21 @@ body::after {
               navFn = `viewProfile('${n.fromUid}')`;
           } else if (n.type === 'familyInvite') {
               icon = '❤️';
-              text = `<b>${escFeed(n.fromName)}</b> sent you a Family invitation.`;
-              actHtml = `<div class="notif-actions">
-                  <button class="btn-accept" onclick="event.stopPropagation();approveFamilyRequest('${n.fromUid}');markNotifRead(${origIdx})">✓ Approve</button>
-                  <button class="btn-decline" onclick="event.stopPropagation();declineFamilyRequest('${n.fromUid}');markNotifRead(${origIdx})">✕ Decline</button>
+              text = `<b>${escFeed(n.fromName)}</b> sent you a Family request.`;
+              const msgLine = n.message ? `<div style="font-size:11px;color:#8ab0cc;margin:3px 0 2px;font-style:italic;">"${escFeed(n.message)}"</div>` : '';
+              actHtml = `${msgLine}<div class="notif-actions">
+                  <button class="btn-accept" onclick="event.stopPropagation();approveFamilyRequest('${n.fromUid}');markNotifRead(${origIdx})">❤️ Accept</button>
+                  <button class="btn-decline" onclick="event.stopPropagation();declineFamilyRequest('${n.fromUid}');markNotifRead(${origIdx})">❌ Decline</button>
                   <button class="btn-decline" style="font-size:10px;" onclick="event.stopPropagation();blockFamilyInviter('${n.fromUid}');markNotifRead(${origIdx})">🚫 Block</button>
               </div>`;
-              navFn = `navTo('friends');switchFriendsTab('family')`;
+              navFn = `navTo('friendsPage');switchFriendsTab('family')`;
           } else if (n.type === 'familyAccepted') {
               icon = '❤️';
-              text = `<b>${escFeed(n.fromName)}</b> accepted your Family invitation.`;
+              text = `You and <b>${escFeed(n.fromName)}</b> are now Family on Shadow Nexus Social. ❤️`;
+              navFn = `viewProfile('${n.fromUid}')`;
+          } else if (n.type === 'familyDeclined') {
+              icon = '💔';
+              text = `<b>${escFeed(n.fromName)}</b> declined your Family request.`;
               navFn = `viewProfile('${n.fromUid}')`;
           } else if (n.type === 'like') {
               icon = '❤️';
@@ -7393,6 +7541,37 @@ body::after {
               addFriendBtn.textContent = "🦋 Add Friend"; addFriendBtn.className = "";
               addFriendBtn.disabled = false; addFriendBtn.style.display = "";
               addFriendBtn.onclick = () => sendFriendRequest(uid);
+          }
+
+          // Add Family button (injected once)
+          let addFamilyBtn = document.getElementById("btnAddFamilyAction");
+          if (!addFamilyBtn) {
+              addFamilyBtn = document.createElement("button");
+              addFamilyBtn.id = "btnAddFamilyAction";
+              const refBtn = document.getElementById("btnAddFriendAction") || document.getElementById("btnEditProfile");
+              if (refBtn) refBtn.insertAdjacentElement('afterend', addFamilyBtn);
+          }
+          const myFamily    = userData?.family || [];
+          const sentFamReq  = userData?.familyInvitesSent || [];
+          const inFamilyPS  = p.privacySettings?.sendFamilyRequests || 'everyone';
+          const isFollowerOf = (p.followers||[]).includes(currentUser.uid);
+          const canSendFam  = inFamilyPS === 'everyone' ||
+                              (inFamilyPS === 'friends'   && isFriend) ||
+                              (inFamilyPS === 'followers' && isFollowerOf);
+          if (isSelf) {
+              addFamilyBtn.style.display = "none";
+          } else if (myFamily.includes(uid)) {
+              addFamilyBtn.textContent = "❤️ Family"; addFamilyBtn.className = "fam-already";
+              addFamilyBtn.disabled = true; addFamilyBtn.style.display = "";
+          } else if (sentFamReq.includes(uid)) {
+              addFamilyBtn.textContent = "⏳ Pending"; addFamilyBtn.className = "fam-pending";
+              addFamilyBtn.disabled = true; addFamilyBtn.style.display = "";
+          } else if (!canSendFam) {
+              addFamilyBtn.style.display = "none";
+          } else {
+              addFamilyBtn.textContent = "❤️ Add Family"; addFamilyBtn.className = "";
+              addFamilyBtn.disabled = false; addFamilyBtn.style.display = "";
+              addFamilyBtn.onclick = () => openFamilyReqModal(uid, p.displayName || p.username || 'this user');
           }
 
           // Message button + tab

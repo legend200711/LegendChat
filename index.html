@@ -2074,6 +2074,73 @@ img.post-media-preview::before {
     color: #ff88aa;
 }
 .profile-family-invite-btn:hover { background: rgba(255,51,102,0.14); border-color: rgba(255,51,102,0.55); }
+
+/* ── Add Family button states on profile ── */
+#btnAddFamilyAction {
+    min-width: 110px;
+    border-color: rgba(255,51,102,0.5);
+    color: #ff88aa;
+    transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+#btnAddFamilyAction:hover:not(:disabled) {
+    background: rgba(255,51,102,0.14);
+    color: #ffaabb;
+    border-color: rgba(255,51,102,0.75);
+    box-shadow: 0 0 14px rgba(255,51,102,0.3);
+}
+#btnAddFamilyAction.fam-pending {
+    border-color: rgba(255,170,0,0.4) !important;
+    color: #ffcc66 !important;
+    background: rgba(255,170,0,0.06) !important;
+    cursor: default !important;
+}
+#btnAddFamilyAction.fam-already {
+    border-color: rgba(255,51,102,0.35) !important;
+    color: #ff88aa !important;
+    background: rgba(255,51,102,0.08) !important;
+    cursor: default !important;
+}
+
+/* ── Family Request Confirmation Modal ── */
+#familyReqModal {
+    display: none; position: fixed; inset: 0; z-index: 7800;
+    background: rgba(0,3,15,0.86); align-items: center; justify-content: center;
+    padding: 20px; box-sizing: border-box; backdrop-filter: blur(6px);
+}
+#familyReqModal.open { display: flex; }
+.fam-req-inner {
+    background: #060d1e; border: 1px solid rgba(255,51,102,0.4);
+    border-radius: 16px; padding: 24px 22px; max-width: 340px; width: 100%;
+    text-align: center; box-shadow: 0 0 50px rgba(255,30,80,0.18);
+    animation: deleteModalIn 0.2s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.fam-req-icon  { font-size: 36px; margin-bottom: 10px; }
+.fam-req-title { font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+.fam-req-body  { font-size: 13px; color: #9bbdd8; line-height: 1.6; margin-bottom: 6px; }
+.fam-req-name  { font-size: 14px; font-weight: 700; color: #ffaabb; margin-bottom: 16px; }
+.fam-req-msg-wrap { margin-bottom: 16px; text-align: left; }
+.fam-req-msg-wrap label { font-size: 11px; color: #6a90b8; display: block; margin-bottom: 4px; }
+.fam-req-msg-wrap textarea {
+    width: 100%; padding: 8px 10px; font-size: 12px; border-radius: 8px;
+    background: rgba(0,10,30,0.9); border: 1px solid rgba(255,51,102,0.3);
+    color: #e0f0ff; resize: none; box-sizing: border-box; font-family: inherit;
+}
+.fam-req-msg-wrap textarea:focus {
+    outline: none; border-color: rgba(255,51,102,0.65);
+    box-shadow: 0 0 8px rgba(255,51,102,0.2);
+}
+.fam-req-btns { display: flex; gap: 10px; justify-content: center; }
+.fam-req-btns button { flex: 1; padding: 10px; font-size: 13px; border-radius: 10px; }
+.fam-req-send {
+    background: linear-gradient(135deg,#66001a,#cc0033) !important;
+    border-color: rgba(255,51,102,0.7) !important; color: #fff !important;
+    box-shadow: 0 0 14px rgba(255,30,80,0.35) !important;
+}
+.fam-req-send:hover { background: linear-gradient(135deg,#880022,#ee0044) !important; }
+.fam-req-cancel {
+    background: rgba(255,255,255,0.04) !important;
+    border-color: rgba(255,255,255,0.12) !important; color: #6a90b8 !important;
+}
 .profile-fl-card {
     display: flex; align-items: center; gap: 10px;
     padding: 7px 0; border-bottom: 1px solid rgba(0,40,90,0.4);
@@ -3012,6 +3079,156 @@ img, video { max-width: 100%; height: auto; }
 .admin-post-actions button { font-size:11px; padding:4px 10px; border-radius:8px; }
 
 </style>
+
+<style id="role-panel-styles">
+/* ════════════════════════════════════════════
+   MODERATOR PANEL
+   ════════════════════════════════════════════ */
+.nav-item-mod  { color: #cc88ff !important; }
+.nav-item-mod:hover  { background: rgba(170,80,255,0.10) !important; color: #e0aaff !important; box-shadow: inset 2px 0 0 rgba(170,80,255,0.62) !important; }
+.nav-item-mod.active-nav { color: #cc88ff !important; box-shadow: inset 3px 0 0 #aa55ff, inset 0 0 14px rgba(170,80,255,0.08) !important; }
+
+.nav-item-adm  { color: #66ccff !important; }
+.nav-item-adm:hover  { background: rgba(0,160,255,0.10) !important; color: #99ddff !important; box-shadow: inset 2px 0 0 rgba(0,160,255,0.62) !important; }
+.nav-item-adm.active-nav { color: #66ccff !important; box-shadow: inset 3px 0 0 #00AEEF, inset 0 0 14px rgba(0,174,239,0.08) !important; }
+
+/* Shared panel card */
+.mod-panel-card {
+    background: rgba(11,31,58,0.92); border: 1px solid rgba(170,80,255,0.28);
+    border-radius: 14px; padding: 18px; margin-bottom: 16px;
+    transition: border-color 0.25s;
+}
+.mod-panel-card:hover { border-color: rgba(170,80,255,0.55); }
+.adm-panel-card {
+    background: rgba(11,31,58,0.92); border: 1px solid rgba(0,174,239,0.28);
+    border-radius: 14px; padding: 18px; margin-bottom: 16px;
+    transition: border-color 0.25s;
+}
+.adm-panel-card:hover { border-color: rgba(0,174,239,0.55); }
+
+/* Panel section titles */
+.mod-section-title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #cc88ff; margin: 0 0 12px;
+    border-bottom: 1px solid rgba(170,80,255,0.22); padding-bottom: 6px;
+    text-shadow: 0 0 8px rgba(170,80,255,0.4);
+}
+.adm-section-title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #00AEEF; margin: 0 0 12px;
+    border-bottom: 1px solid rgba(0,174,239,0.22); padding-bottom: 6px;
+    text-shadow: 0 0 8px rgba(0,174,239,0.4);
+}
+
+/* Report cards in mod panel */
+.mod-report-card {
+    padding: 12px; border: 1px solid rgba(255,80,120,0.25);
+    border-radius: 10px; margin-bottom: 8px; background: rgba(80,0,20,0.12);
+    animation: postSlideIn 0.2s ease-out both;
+}
+.mod-report-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    font-size: 12px; color: #ff9999; margin-bottom: 6px; flex-wrap: wrap; gap: 4px;
+}
+.mod-report-reason {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    background: rgba(255,51,102,0.15); border: 1px solid rgba(255,51,102,0.3);
+    color: #ff88aa; padding: 2px 7px; border-radius: 8px;
+}
+.mod-report-body { font-size: 13px; color: #d8eeff; margin-bottom: 8px; line-height: 1.5; }
+.mod-report-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.mod-report-actions button { font-size: 11px; padding: 4px 11px; border-radius: 8px; }
+.btn-mod-dismiss  { border-color: rgba(0,174,239,0.45) !important; color: #00AEEF !important; }
+.btn-mod-hide     { border-color: rgba(255,170,0,0.45) !important; color: #ffcc44 !important; }
+.btn-mod-remove   { border-color: rgba(255,51,102,0.45) !important; color: #ff5577 !important; }
+.btn-mod-mute     { border-color: rgba(170,80,255,0.45) !important; color: #cc88ff !important; }
+
+/* Muted user row */
+.mod-muted-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 0; border-bottom: 1px solid rgba(0,51,102,0.25);
+}
+.mod-muted-row:last-child { border-bottom: none; }
+.mod-muted-avatar {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    background: #0B1F3A; border: 2px solid rgba(170,80,255,0.38);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: bold; color: #cc88ff;
+}
+.mod-muted-name   { font-size: 13px; color: #d8eeff; flex: 1; min-width: 0; }
+.mod-muted-until  { font-size: 11px; color: #cc88ff; margin-right: 8px; white-space: nowrap; }
+.btn-mod-unmute   { border-color: rgba(57,255,20,0.45) !important; color: #39FF14 !important; font-size: 11px !important; padding: 3px 9px !important; border-radius: 8px !important; }
+
+/* Admin officer panel — stats */
+.adm-stats-row { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+.adm-stat-card  {
+    flex: 1; min-width: 90px; background: rgba(0,10,30,0.7);
+    border: 1px solid rgba(0,174,239,0.25); border-radius: 12px;
+    padding: 12px 14px; text-align: center;
+}
+.adm-stat-num   { font-size: 22px; font-weight: 800; color: #00AEEF; text-shadow: 0 0 10px rgba(0,174,239,0.42); }
+.adm-stat-label { font-size: 10px; color: #3a6a9a; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+/* Admin officer tabs */
+.adm-tab-bar { display: flex; gap: 4px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 4px; scrollbar-width: none; }
+.adm-tab-bar::-webkit-scrollbar { display: none; }
+.adm-tab {
+    background: rgba(0,10,30,0.7); border: 1px solid rgba(0,174,239,0.25);
+    color: #6a90b8; padding: 8px 14px; border-radius: 10px; cursor: pointer;
+    font-size: 12px; font-weight: 700; white-space: nowrap; flex-shrink: 0;
+    transition: all 0.18s ease;
+}
+.adm-tab:hover { border-color: rgba(0,174,239,0.55); color: #00AEEF; }
+.adm-tab.active {
+    background: linear-gradient(135deg, rgba(0,174,239,0.18), rgba(0,174,239,0.08));
+    border-color: rgba(0,174,239,0.65); color: #00AEEF;
+    box-shadow: 0 0 10px rgba(0,174,239,0.25);
+}
+.adm-tab-content { display: none; }
+.adm-tab-content.active { display: block; animation: pageFadeIn 0.2s ease both; }
+
+/* Suspended user row in admin officer */
+.adm-user-row {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid rgba(0,51,102,0.28); flex-wrap: wrap;
+}
+.adm-user-row:last-child { border-bottom: none; }
+.adm-user-row.adm-suspended { opacity: 0.55; border-left: 3px solid #ff4466 !important; padding-left: 8px; }
+.adm-user-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: #0B1F3A; background-size: cover; background-position: center;
+    border: 2px solid rgba(0,174,239,0.38); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: bold; color: #00AEEF;
+}
+.adm-user-info  { flex: 1; min-width: 150px; }
+.adm-user-name  { font-size: 13px; font-weight: bold; color: #eee; }
+.adm-user-handle{ font-size: 11px; color: #6a90b8; margin-top: 1px; }
+.adm-action-btns { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+.adm-action-btns button { font-size: 10px; padding: 3px 9px; border-radius: 8px; cursor: pointer; }
+.btn-adm-suspend { border-color: rgba(255,51,102,0.5) !important; color: #ff6680 !important; }
+.btn-adm-restore { border-color: rgba(57,255,20,0.5)  !important; color: #39FF14 !important; }
+.btn-adm-msg     { border-color: rgba(0,174,239,0.5)  !important; color: #00AEEF !important; }
+
+/* Announcement history in admin officer */
+.adm-announce-row {
+    padding: 9px 12px; border-bottom: 1px solid rgba(0,51,102,0.22);
+    font-size: 12px; color: #9bbdd8; display: flex; gap: 10px; align-items: flex-start;
+}
+.adm-announce-row:last-child { border-bottom: none; }
+.adm-announce-ts  { color: #3a5a7a; flex-shrink: 0; font-size: 10px; white-space: nowrap; }
+.adm-announce-msg { flex: 1; line-height: 1.5; }
+
+/* Audit log entries in admin officer */
+.adm-audit-entry {
+    padding: 8px 12px; border-bottom: 1px solid rgba(0,51,102,0.22);
+    font-size: 12px; color: #9bbdd8; display: flex; gap: 10px; align-items: flex-start;
+}
+.adm-audit-entry:last-child { border-bottom: none; }
+.adm-audit-ts   { color: #3a5a7a; flex-shrink: 0; font-size: 10px; white-space: nowrap; }
+.adm-audit-action { flex: 1; }
+</style>
+
 
 <style id="palette-overrides">
 /* ═══════════════════════════════════════════════════════════
@@ -4144,9 +4361,17 @@ body::after {
         <button class="nav-item" id="navCommunity" onclick="navTo('communityPage')">
             <span class="nav-icon">💙</span> Community Hub
         </button>
-        <!-- Admin Panel — only visible to the Founder; toggled in JS after auth -->
+        <!-- Moderator Panel — only visible to Moderators; toggled in JS after auth -->
+        <button class="nav-item nav-item-mod" id="navMod" onclick="navTo('moderatorPage')" style="display:none;">
+            <span class="nav-icon">🛡️</span> Moderator Panel
+        </button>
+        <!-- Administrator Panel — only visible to Administrators; toggled in JS after auth -->
+        <button class="nav-item nav-item-adm" id="navAdminOfficer" onclick="navTo('administratorPage')" style="display:none;">
+            <span class="nav-icon">🔰</span> Admin Panel
+        </button>
+        <!-- Founder Panel — only visible to the Founder; toggled in JS after auth -->
         <button class="nav-item nav-item-admin" id="navAdmin" onclick="navTo('adminPage')" style="display:none;">
-            <span class="nav-icon">🛡️</span> Admin Panel
+            <span class="nav-icon">👑</span> Founder Panel
         </button>
     </div>
 
@@ -4767,6 +4992,26 @@ body::after {
 </div>
 
 <!-- ═══════════════════════════════════════════
+     FAMILY REQUEST CONFIRMATION MODAL
+     ═══════════════════════════════════════════ -->
+<div id="familyReqModal" role="dialog" aria-modal="true">
+    <div class="fam-req-inner">
+        <div class="fam-req-icon">❤️</div>
+        <div class="fam-req-title">Send Family Request</div>
+        <div class="fam-req-body">Do you want to send a Family request to</div>
+        <div class="fam-req-name" id="familyReqTargetName">this user</div>
+        <div class="fam-req-msg-wrap">
+            <label for="familyReqMsg">Optional message (visible to recipient)</label>
+            <textarea id="familyReqMsg" rows="2" maxlength="160" placeholder="Add a personal note… (optional)"></textarea>
+        </div>
+        <div class="fam-req-btns">
+            <button class="fam-req-send" id="familyReqSendBtn">❤️ Send Request</button>
+            <button class="fam-req-cancel" onclick="closeFamilyReqModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
      PROFILE CHAT MODAL
      Full-screen overlay chat window — appears when "Message"
      is clicked on any user's profile. Uses the same Firestore
@@ -4963,7 +5208,7 @@ body::after {
 
 <!-- ═══════════ FRIENDS & FAMILY PAGE ═══════════ -->
 <div class="page" id="friendsPage">
-    <h2 class="eclipse-title">🦋 Nexus Family</h2>
+    <h2 class="eclipse-title">🦋 Nexus Family and friends</h2>
 
     <div class="section-card">
         <div class="friends-tabs">
@@ -5070,6 +5315,18 @@ body::after {
 
         <div class="settings-section">
             <h4>❤️ Family &amp; Friends Privacy</h4>
+            <div class="settings-row">
+                <div class="settings-label">
+                    Who can send me Family requests?
+                    <small>Controls who can tap "Add Family" on your profile</small>
+                </div>
+                <select id="privSendFamilyRequests" onchange="savePrivacySetting('sendFamilyRequests', this.value)">
+                    <option value="everyone">Everyone</option>
+                    <option value="friends">Friends only</option>
+                    <option value="followers">Followers only</option>
+                    <option value="nobody">No one</option>
+                </select>
+            </div>
             <div class="settings-row">
                 <div class="settings-label">
                     Who can see my Family list?
@@ -5199,14 +5456,26 @@ body::after {
             </div>
         </div>
 
-        <div class="settings-section" id="adminPanelSettingsSection">
-            <h4>🛡️ Founder Controls</h4>
+        <!-- Role panel shortcuts — shown dynamically by _showRolePanels() -->
+        <div class="settings-section" id="adminPanelSettingsSection" style="display:none;">
+            <h4>👑 Founder Controls</h4>
             <div class="settings-row" style="border-bottom:none;">
-                <div class="settings-label">
-                    Admin Panel
-                    <small>Manage users, content, reports & announcements</small>
-                </div>
-                <button onclick="if(window._snxRole==='founder'){navTo('adminPage')}else{toastNotification('⛔ Founder access only.')}" style="padding:7px 16px;font-size:12px;border-radius:10px;background:linear-gradient(135deg,#1a0a00,#664400);border-color:rgba(255,200,50,0.6);color:#ffe566;box-shadow:0 0 12px rgba(255,185,0,0.3);">🛡️ Open Panel</button>
+                <div class="settings-label">Founder Panel<small>Full platform management</small></div>
+                <button onclick="navTo('adminPage')" style="padding:7px 16px;font-size:12px;border-radius:10px;background:linear-gradient(135deg,#1a0a00,#664400);border-color:rgba(255,200,50,0.6);color:#ffe566;box-shadow:0 0 12px rgba(255,185,0,0.3);">👑 Open Panel</button>
+            </div>
+        </div>
+        <div class="settings-section" id="adminOfficerSettingsSection" style="display:none;">
+            <h4>🔰 Administrator Controls</h4>
+            <div class="settings-row" style="border-bottom:none;">
+                <div class="settings-label">Administrator Panel<small>Manage reports, users &amp; announcements</small></div>
+                <button onclick="navTo('administratorPage')" style="padding:7px 16px;font-size:12px;border-radius:10px;background:linear-gradient(135deg,#001a33,#003366);border-color:rgba(0,180,255,0.6);color:#66ccff;">🔰 Open Panel</button>
+            </div>
+        </div>
+        <div class="settings-section" id="modSettingsSection" style="display:none;">
+            <h4>🛡️ Moderator Controls</h4>
+            <div class="settings-row" style="border-bottom:none;">
+                <div class="settings-label">Moderator Panel<small>Review reports &amp; moderate content</small></div>
+                <button onclick="navTo('moderatorPage')" style="padding:7px 16px;font-size:12px;border-radius:10px;background:linear-gradient(135deg,#1a0033,#550099);border-color:rgba(170,80,255,0.6);color:#cc88ff;">🛡️ Open Panel</button>
             </div>
         </div>
 
@@ -5700,6 +5969,7 @@ body::after {
                 <option value="suspended">Suspended</option>
                 <option value="founder">Founders</option>
                 <option value="moderator">Moderators</option>
+                <option value="administrator">Administrators</option>
             </select>
             <button onclick="renderAdminPanel()" style="border-radius:8px;flex-shrink:0;">Refresh</button>
         </div>
@@ -5938,6 +6208,141 @@ body::after {
 </div>
 
 </div><!-- end adminPage -->
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODERATOR PANEL PAGE
+     Visible only when role === 'moderator'.
+     All actions are server-validated by Firestore Security Rules.
+     ═══════════════════════════════════════════════════════════ -->
+<div class="page" id="moderatorPage">
+<h2 class="eclipse-title" style="color:#cc88ff;text-shadow:0 0 18px rgba(170,80,255,0.7);">🛡️ Moderator Panel</h2>
+
+<div class="section-card" style="border-color:rgba(170,80,255,0.3);margin-bottom:12px;">
+    <p style="font-size:13px;color:#9bbdd8;margin:0;line-height:1.6;">You have <strong style="color:#cc88ff;">Moderator</strong> access. You can review reports, hide inappropriate posts, remove comments, and temporarily mute users. You cannot access Founder or Administrator settings.</p>
+</div>
+
+<!-- ── Reported Content ── -->
+<div class="mod-panel-card">
+    <h3 class="mod-section-title">🚨 Reported Content</h3>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="adm-tab active" id="modRepTabPost" onclick="modSwitchReportTab('post',this)" style="font-size:11px;padding:5px 12px;">Posts</button>
+        <button class="adm-tab" id="modRepTabComment" onclick="modSwitchReportTab('comment',this)" style="font-size:11px;padding:5px 12px;">Comments</button>
+        <button class="adm-tab" id="modRepTabUser" onclick="modSwitchReportTab('user',this)" style="font-size:11px;padding:5px 12px;">Users</button>
+    </div>
+    <div id="modReportList"><div class="empty-state">Loading reports…</div></div>
+</div>
+
+<!-- ── Muted Users ── -->
+<div class="mod-panel-card">
+    <h3 class="mod-section-title">🔇 Currently Muted</h3>
+    <div id="modMutedList"><div class="empty-state">No muted users.</div></div>
+</div>
+
+<!-- ── Recent Posts (quick hide) ── -->
+<div class="mod-panel-card">
+    <h3 class="mod-section-title">📝 Recent Posts</h3>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input id="modPostSearch" placeholder="Search posts…" style="flex:1;margin:0;font-size:12px;padding:7px 10px;" oninput="modSearchPosts()">
+    </div>
+    <div id="modPostList"><div class="empty-state">Loading…</div></div>
+</div>
+
+<!-- ── Mod Log ── -->
+<div class="mod-panel-card">
+    <h3 class="mod-section-title">📋 My Moderation Log</h3>
+    <div id="modActionLog"><div class="empty-state">No actions recorded yet.</div></div>
+</div>
+
+</div><!-- end moderatorPage -->
+
+<!-- ═══════════════════════════════════════════════════════════
+     ADMINISTRATOR PANEL PAGE
+     Visible only when role === 'administrator'.
+     All actions are server-validated by Firestore Security Rules.
+     ═══════════════════════════════════════════════════════════ -->
+<div class="page" id="administratorPage">
+<h2 class="eclipse-title" style="color:#66ccff;text-shadow:0 0 18px rgba(0,174,239,0.7);">🔰 Administrator Panel</h2>
+
+<div class="section-card" style="border-color:rgba(0,174,239,0.3);margin-bottom:12px;">
+    <p style="font-size:13px;color:#9bbdd8;margin:0;line-height:1.6;">You have <strong style="color:#66ccff;">Administrator</strong> access. You can manage reports, suspend accounts, send announcements, review audit logs, and manage badges. You do not have access to Founder-only settings.</p>
+</div>
+
+<!-- ── Tabs ── -->
+<div class="adm-tab-bar">
+    <button class="adm-tab active" onclick="admSwitchTab('dashboard',this)">📊 Dashboard</button>
+    <button class="adm-tab" onclick="admSwitchTab('users',this)">👥 Users</button>
+    <button class="adm-tab" onclick="admSwitchTab('reports',this)">🚨 Reports</button>
+    <button class="adm-tab" onclick="admSwitchTab('announce',this)">📢 Announce</button>
+    <button class="adm-tab" onclick="admSwitchTab('audit',this)">📋 Audit Log</button>
+</div>
+
+<!-- ── Dashboard ── -->
+<div class="adm-tab-content active" id="admTab-dashboard">
+    <div class="adm-stats-row" id="admStatsRow">
+        <div class="adm-stat-card"><div class="adm-stat-num" id="admStatTotal">—</div><div class="adm-stat-label">Total Users</div></div>
+        <div class="adm-stat-card"><div class="adm-stat-num" id="admStatOnline">—</div><div class="adm-stat-label">Online Now</div></div>
+        <div class="adm-stat-card"><div class="adm-stat-num" id="admStatReports">—</div><div class="adm-stat-label">Open Reports</div></div>
+        <div class="adm-stat-card"><div class="adm-stat-num" id="admStatSuspended">—</div><div class="adm-stat-label">Suspended</div></div>
+    </div>
+    <div class="adm-panel-card">
+        <h3 class="adm-section-title">ℹ️ Your Capabilities</h3>
+        <ul style="margin:0;padding-left:18px;font-size:12px;color:#9bbdd8;line-height:2.2;">
+            <li>✅ Suspend and restore user accounts.</li>
+            <li>✅ Manage and resolve reports.</li>
+            <li>✅ Manage user badges (excluding Founder badge).</li>
+            <li>✅ Review moderation audit logs.</li>
+            <li>✅ Send official announcements.</li>
+            <li>⛔ No access to site-wide settings.</li>
+            <li>⛔ No access to Founder-only controls.</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ── Users ── -->
+<div class="adm-tab-content" id="admTab-users">
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <input id="admUserSearch" placeholder="Search users…" style="flex:1;margin:0;font-size:12px;padding:7px 10px;" oninput="admSearchUsers()">
+        <select id="admUserFilter" style="width:auto;margin:0;font-size:12px;padding:7px 10px;" onchange="admSearchUsers()">
+            <option value="all">All</option>
+            <option value="online">Online</option>
+            <option value="suspended">Suspended</option>
+        </select>
+    </div>
+    <div id="admUserList"><div class="empty-state">Loading…</div></div>
+</div>
+
+<!-- ── Reports ── -->
+<div class="adm-tab-content" id="admTab-reports">
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="adm-tab active" id="admRepTabUser" onclick="admLoadReports('user',this)" style="font-size:11px;padding:5px 12px;">Users</button>
+        <button class="adm-tab" id="admRepTabPost" onclick="admLoadReports('post',this)" style="font-size:11px;padding:5px 12px;">Posts</button>
+        <button class="adm-tab" id="admRepTabComment" onclick="admLoadReports('comment',this)" style="font-size:11px;padding:5px 12px;">Comments</button>
+    </div>
+    <div id="admReportList"><div class="empty-state">Loading reports…</div></div>
+</div>
+
+<!-- ── Announcements ── -->
+<div class="adm-tab-content" id="admTab-announce">
+    <div class="adm-panel-card">
+        <h3 class="adm-section-title">📢 Send Announcement</h3>
+        <textarea id="admAnnounceText" rows="3" placeholder="Write an official announcement…" style="resize:vertical;width:100%;box-sizing:border-box;font-family:inherit;font-size:13px;margin-bottom:10px;"></textarea>
+        <button onclick="admSendAnnouncement()" style="width:100%;border-radius:10px;padding:10px;background:linear-gradient(135deg,#003d99,#0077dd);border-color:rgba(0,174,239,0.65);color:#fff;font-size:13px;">📢 Send to All Users</button>
+    </div>
+    <div class="adm-panel-card">
+        <h3 class="adm-section-title">📜 Announcement History</h3>
+        <div id="admAnnounceHistory"><div class="empty-state">Loading…</div></div>
+    </div>
+</div>
+
+<!-- ── Audit Log ── -->
+<div class="adm-tab-content" id="admTab-audit">
+    <div class="adm-panel-card">
+        <h3 class="adm-section-title">📋 Moderation Audit Log</h3>
+        <div id="admAuditLog"><div class="empty-state">Loading…</div></div>
+    </div>
+</div>
+
+</div><!-- end administratorPage -->
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -6275,9 +6680,8 @@ body::after {
                   window._snxRole = userData.role || 'member';
               }
               applyAestheticMatrix(userData.aesthetic || 'cyber');
-              // Sync nav admin button visibility
-              const _ab = document.getElementById("navAdmin");
-              if (_ab) _ab.style.display = window._snxRole === 'founder' ? 'flex' : 'none';
+              // Sync nav panel buttons by role
+              if (typeof window._showRolePanels === 'function') window._showRolePanels();
               const ps  = userData.privacySettings || {};
               const sel = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
               sel('privSeeProfile',   ps.seeProfile);
@@ -6285,8 +6689,9 @@ body::after {
               sel('privMessage',      ps.message);
               sel('privFindMe',       ps.findMe);
               sel('privWall',         ps.wall || userData.privacy);
-              sel('privFamilyList',   ps.familyList  || 'public');
-              sel('privFriendsList',  ps.friendsList || 'public');
+              sel('privFamilyList',          ps.familyList         || 'public');
+              sel('privFriendsList',         ps.friendsList        || 'public');
+              sel('privSendFamilyRequests',  ps.sendFamilyRequests || 'everyone');
               sel('privTagging',      ps.tagging      || 'everyone');
 
               // ── Notification bell badge ──
@@ -6358,10 +6763,10 @@ body::after {
           try {
               if (!_isFounder) {
                   const snap2 = await getDoc(doc(db, 'users', user.uid));
-                  window._snxRole = (snap2.exists() && snap2.data().role === 'founder') ? 'founder' : 'member';
+                  const r2 = snap2.exists() ? (snap2.data().role || 'member') : 'member';
+                  window._snxRole = r2;
               }
-              const adminNavBtn = document.getElementById("navAdmin");
-              if (adminNavBtn) adminNavBtn.style.display = window._snxRole === 'founder' ? 'flex' : 'none';
+              if (typeof window._showRolePanels === 'function') window._showRolePanels();
           } catch(_) {}
           navTo('feed');          initTimelineStream();
           presenceUnsubscribe = initPresenceStrip();
@@ -6386,8 +6791,12 @@ body::after {
           if (typeof window._teardownActiveChat === 'function') window._teardownActiveChat();
           if (typeof window.closeProfileChat    === 'function') window.closeProfileChat();
           document.getElementById("menuButton").style.display = "none";
-          const _adminBtn = document.getElementById("navAdmin");
-          if (_adminBtn) _adminBtn.style.display = "none";
+          // Hide all role-gated nav buttons on logout
+          ['navMod','navAdminOfficer','navAdmin'].forEach(id => {
+              const el = document.getElementById(id);
+              if (el) el.style.display = 'none';
+          });
+          window._snxRole = 'member';
           show('login');
       }
   });
@@ -7644,33 +8053,62 @@ body::after {
   };
 
   /* ═══════════════════════════════════════════════════════════
-     FAMILY INVITE SYSTEM — invite-based approval flow
+     FAMILY REQUEST SYSTEM — confirmation modal + approval flow
      ═══════════════════════════════════════════════════════════ */
 
-  window.sendFamilyInvite = async function(targetUid) {
+  /* ── Confirmation Modal helpers ── */
+  window.openFamilyReqModal = function(targetUid, targetName) {
+      const modal = document.getElementById('familyReqModal');
+      if (!modal) return;
+      const nameEl = document.getElementById('familyReqTargetName');
+      if (nameEl) nameEl.textContent = targetName;
+      const msgEl = document.getElementById('familyReqMsg');
+      if (msgEl) msgEl.value = '';
+      const sendBtn = document.getElementById('familyReqSendBtn');
+      if (sendBtn) {
+          sendBtn.onclick = async () => {
+              const msg = (document.getElementById('familyReqMsg')?.value || '').trim();
+              closeFamilyReqModal();
+              await sendFamilyInvite(targetUid, msg);
+          };
+      }
+      modal.classList.add('open');
+  };
+  window.closeFamilyReqModal = function() {
+      const modal = document.getElementById('familyReqModal');
+      if (modal) modal.classList.remove('open');
+  };
+
+  window.sendFamilyInvite = async function(targetUid, optionalMsg) {
       if (!currentUser) return;
       const mySnap = await getDoc(doc(db,"users",currentUser.uid));
       const md = mySnap.data();
       if ((md.family||[]).includes(targetUid)) { toastNotification("Already family members."); return; }
-      if ((md.familyInvitesSent||[]).includes(targetUid)) { toastNotification("Family invitation already sent."); return; }
+      if ((md.familyInvitesSent||[]).includes(targetUid)) { toastNotification("Family request already sent."); return; }
       await updateDoc(doc(db,"users",currentUser.uid), { familyInvitesSent: arrayUnion(targetUid) });
       await updateDoc(doc(db,"users",targetUid), {
           familyInvitesReceived: arrayUnion({
               fromUid: currentUser.uid, fromName: md.displayName||md.username||'Someone',
-              fromAvatar: md.avatar||'', ts: Date.now()
+              fromAvatar: md.avatar||'', message: optionalMsg||'', ts: Date.now()
           }),
           notifications: arrayUnion({
               id: Date.now()+Math.random().toString(36), type:'familyInvite',
               fromUid: currentUser.uid, fromName: md.displayName||md.username||'Someone',
-              fromAvatar: md.avatar||'', ts: Date.now(), read: false
+              fromAvatar: md.avatar||'', message: optionalMsg||'', ts: Date.now(), read: false
           })
       });
       sendPushToUser(targetUid, {
-          title: '❤️ Family Invitation',
-          body:  `${md.displayName||'Someone'} invited you to join their Family`,
+          title: '❤️ Family Request',
+          body:  `${md.displayName||'Someone'} sent you a Family request`,
           type:  'familyInvite', url: '/'
       }).catch(()=>{});
-      toastNotification("Family invitation sent! ❤️");
+      toastNotification("Family request sent. ❤️");
+      // Update button state immediately
+      const btn = document.getElementById("btnAddFamilyAction");
+      if (btn && btn.style.display !== "none") {
+          btn.textContent = "⏳ Pending"; btn.className = "fam-pending";
+          btn.disabled = true;
+      }
       renderFriendsPage();
   };
 
@@ -7678,12 +8116,14 @@ body::after {
       if (!currentUser) return;
       const [myS, thS] = await Promise.all([getDoc(doc(db,"users",currentUser.uid)), getDoc(doc(db,"users",fromUid))]);
       const md = myS.data(), td = thS.data();
+      const myName = md.displayName||md.username||'Someone';
+      const theirName = td.displayName||td.username||'Someone';
       await updateDoc(doc(db,"users",currentUser.uid), {
           family: arrayUnion(fromUid),
           familyInvitesReceived: (md.familyInvitesReceived||[]).filter(x=>x.fromUid!==fromUid),
           notifications: arrayUnion({
               id: Date.now()+Math.random().toString(36), type:'familyAccepted',
-              fromUid, fromName: td.displayName||td.username||'Someone', fromAvatar:td.avatar||'',
+              fromUid, fromName: theirName, fromAvatar:td.avatar||'',
               ts: Date.now(), read: false
           })
       });
@@ -7692,29 +8132,36 @@ body::after {
           familyInvitesSent: (td.familyInvitesSent||[]).filter(x=>x!==currentUser.uid),
           notifications: arrayUnion({
               id: Date.now()+Math.random().toString(36), type:'familyAccepted',
-              fromUid: currentUser.uid, fromName: md.displayName||md.username||'Someone',
+              fromUid: currentUser.uid, fromName: myName,
               fromAvatar: md.avatar||'', ts: Date.now(), read: false
           })
       });
       sendPushToUser(fromUid, {
-          title: '✅ Family Request Accepted',
-          body:  `${md.displayName||'Someone'} accepted your family invitation`,
+          title: '❤️ Family Request Accepted',
+          body:  `You and @${md.username||myName} are now Family on Shadow Nexus Social`,
           type:  'familyAccepted', url: '/'
       }).catch(()=>{});
-      toastNotification(`Now family! ❤️`);
+      toastNotification(`You and @${td.username||theirName} are now Family! ❤️`);
       renderFriendsPage();
   };
 
   window.declineFamilyRequest = async function(fromUid) {
       if (!currentUser) return;
       const [myS, thS] = await Promise.all([getDoc(doc(db,"users",currentUser.uid)), getDoc(doc(db,"users",fromUid))]);
+      const md = myS.data();
       await updateDoc(doc(db,"users",currentUser.uid), {
-          familyInvitesReceived: (myS.data().familyInvitesReceived||[]).filter(x=>x.fromUid!==fromUid)
+          familyInvitesReceived: (md.familyInvitesReceived||[]).filter(x=>x.fromUid!==fromUid)
       });
       await updateDoc(doc(db,"users",fromUid), {
-          familyInvitesSent: (thS.data().familyInvitesSent||[]).filter(x=>x!==currentUser.uid)
+          familyInvitesSent: (thS.data().familyInvitesSent||[]).filter(x=>x!==currentUser.uid),
+          // optional decline notification to sender
+          notifications: arrayUnion({
+              id: Date.now()+Math.random().toString(36), type:'familyDeclined',
+              fromUid: currentUser.uid, fromName: md.displayName||md.username||'Someone',
+              fromAvatar: md.avatar||'', ts: Date.now(), read: false
+          })
       });
-      toastNotification("Family invitation declined."); renderFriendsPage();
+      toastNotification("Family request declined."); renderFriendsPage();
   };
 
   window.blockFamilyInviter = async function(fromUid) {
@@ -7732,8 +8179,12 @@ body::after {
 
   window.removeFamilyMember = async function(fUid) {
       if (!currentUser || !confirm("Remove this person from your Family list?")) return;
-      const snap = await getDoc(doc(db,"users",currentUser.uid));
-      await updateDoc(doc(db,"users",currentUser.uid), { family:(snap.data().family||[]).filter(x=>x!==fUid) });
+      // Bilateral removal — deletes the relationship on both sides
+      const [myS, thS] = await Promise.all([getDoc(doc(db,"users",currentUser.uid)), getDoc(doc(db,"users",fUid))]);
+      await updateDoc(doc(db,"users",currentUser.uid), { family:(myS.data().family||[]).filter(x=>x!==fUid) });
+      if (thS.exists()) {
+          await updateDoc(doc(db,"users",fUid), { family:(thS.data().family||[]).filter(x=>x!==currentUser.uid) });
+      }
       toastNotification("Removed from Family list.");
       if (typeof snxLoadFamilySection === 'function') snxLoadFamilySection(currentUser.uid, true);
       renderFriendsPage();
@@ -7781,16 +8232,17 @@ body::after {
       if (famInvitesReceived.length) {
           const pendingHeader = document.createElement('div');
           pendingHeader.style.cssText='font-size:11px;color:#ff88aa;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;padding:6px 0 4px;margin-bottom:4px;border-bottom:1px solid rgba(255,51,102,0.2);';
-          pendingHeader.textContent='⏳ Pending Invitations';
+          pendingHeader.textContent='⏳ Pending Family Requests';
           fbox.appendChild(pendingHeader);
           famInvitesReceived.forEach(inv => {
               const row = document.createElement('div'); row.className='fam-invite-card';
               const avStyle = inv.fromAvatar ? `background-image:url('${inv.fromAvatar}');background-size:cover;background-position:center;` : 'display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:bold;color:#00AEEF;background:#0B1F3A;';
+              const msgSnippet = inv.message ? `<div style="font-size:11px;color:#8ab0cc;margin-top:2px;font-style:italic;">"${escFeed(inv.message)}"</div>` : '';
               row.innerHTML=`<div class="friend-avatar" style="${avStyle}" onclick="viewProfile('${inv.fromUid}')">${!inv.fromAvatar?escFeed((inv.fromName||'?')[0].toUpperCase()):''}</div>
-                <div class="friend-meta"><div class="friend-name" onclick="viewProfile('${inv.fromUid}')">${escFeed(inv.fromName)}<span class="fam-invite-pending-label">❤️ Invited You</span></div></div>
+                <div class="friend-meta"><div class="friend-name" onclick="viewProfile('${inv.fromUid}')">${escFeed(inv.fromName)}<span class="fam-invite-pending-label">❤️ Family Request</span></div>${msgSnippet}</div>
                 <div class="fam-invite-actions">
-                  <button class="btn-accept" onclick="approveFamilyRequest('${inv.fromUid}')">✓ Approve</button>
-                  <button class="btn-decline" onclick="declineFamilyRequest('${inv.fromUid}')">✕ Decline</button>
+                  <button class="btn-accept" onclick="approveFamilyRequest('${inv.fromUid}')">❤️ Accept</button>
+                  <button class="btn-decline" onclick="declineFamilyRequest('${inv.fromUid}')">❌ Decline</button>
                   <button class="btn-decline" style="font-size:10px;" onclick="blockFamilyInviter('${inv.fromUid}')">🚫 Block</button>
                 </div>`;
               fbox.appendChild(row);
@@ -7815,7 +8267,7 @@ body::after {
           });
       }
       if (!famDocs.length && !famInvitesReceived.length) {
-          fbox.innerHTML='<div class="empty-state">No family members yet.<br><span style="font-size:12px;color:#3a5a7a;">Send a Family Invitation from a friend\'s profile.</span></div>';
+          fbox.innerHTML='<div class="empty-state">No family members yet.<br><span style="font-size:12px;color:#3a5a7a;">Tap ❤️ Add Family on someone\'s profile to send a request.</span></div>';
       }
       updateFriendBadges(received.length);
   }
@@ -7863,16 +8315,21 @@ body::after {
               navFn = `viewProfile('${n.fromUid}')`;
           } else if (n.type === 'familyInvite') {
               icon = '❤️';
-              text = `<b>${escFeed(n.fromName)}</b> sent you a Family invitation.`;
-              actHtml = `<div class="notif-actions">
-                  <button class="btn-accept" onclick="event.stopPropagation();approveFamilyRequest('${n.fromUid}');markNotifRead(${origIdx})">✓ Approve</button>
-                  <button class="btn-decline" onclick="event.stopPropagation();declineFamilyRequest('${n.fromUid}');markNotifRead(${origIdx})">✕ Decline</button>
+              text = `<b>${escFeed(n.fromName)}</b> sent you a Family request.`;
+              const msgLine = n.message ? `<div style="font-size:11px;color:#8ab0cc;margin:3px 0 2px;font-style:italic;">"${escFeed(n.message)}"</div>` : '';
+              actHtml = `${msgLine}<div class="notif-actions">
+                  <button class="btn-accept" onclick="event.stopPropagation();approveFamilyRequest('${n.fromUid}');markNotifRead(${origIdx})">❤️ Accept</button>
+                  <button class="btn-decline" onclick="event.stopPropagation();declineFamilyRequest('${n.fromUid}');markNotifRead(${origIdx})">❌ Decline</button>
                   <button class="btn-decline" style="font-size:10px;" onclick="event.stopPropagation();blockFamilyInviter('${n.fromUid}');markNotifRead(${origIdx})">🚫 Block</button>
               </div>`;
-              navFn = `navTo('friends');switchFriendsTab('family')`;
+              navFn = `navTo('friendsPage');switchFriendsTab('family')`;
           } else if (n.type === 'familyAccepted') {
               icon = '❤️';
-              text = `<b>${escFeed(n.fromName)}</b> accepted your Family invitation.`;
+              text = `You and <b>${escFeed(n.fromName)}</b> are now Family on Shadow Nexus Social. ❤️`;
+              navFn = `viewProfile('${n.fromUid}')`;
+          } else if (n.type === 'familyDeclined') {
+              icon = '💔';
+              text = `<b>${escFeed(n.fromName)}</b> declined your Family request.`;
               navFn = `viewProfile('${n.fromUid}')`;
           } else if (n.type === 'like') {
               icon = '❤️';
@@ -8257,6 +8714,37 @@ body::after {
               addFriendBtn.textContent = "🦋 Add Friend"; addFriendBtn.className = "";
               addFriendBtn.disabled = false; addFriendBtn.style.display = "";
               addFriendBtn.onclick = () => sendFriendRequest(uid);
+          }
+
+          // Add Family button (injected once)
+          let addFamilyBtn = document.getElementById("btnAddFamilyAction");
+          if (!addFamilyBtn) {
+              addFamilyBtn = document.createElement("button");
+              addFamilyBtn.id = "btnAddFamilyAction";
+              const refBtn = document.getElementById("btnAddFriendAction") || document.getElementById("btnEditProfile");
+              if (refBtn) refBtn.insertAdjacentElement('afterend', addFamilyBtn);
+          }
+          const myFamily    = userData?.family || [];
+          const sentFamReq  = userData?.familyInvitesSent || [];
+          const inFamilyPS  = p.privacySettings?.sendFamilyRequests || 'everyone';
+          const isFollowerOf = (p.followers||[]).includes(currentUser.uid);
+          const canSendFam  = inFamilyPS === 'everyone' ||
+                              (inFamilyPS === 'friends'   && isFriend) ||
+                              (inFamilyPS === 'followers' && isFollowerOf);
+          if (isSelf) {
+              addFamilyBtn.style.display = "none";
+          } else if (myFamily.includes(uid)) {
+              addFamilyBtn.textContent = "❤️ Family"; addFamilyBtn.className = "fam-already";
+              addFamilyBtn.disabled = true; addFamilyBtn.style.display = "";
+          } else if (sentFamReq.includes(uid)) {
+              addFamilyBtn.textContent = "⏳ Pending"; addFamilyBtn.className = "fam-pending";
+              addFamilyBtn.disabled = true; addFamilyBtn.style.display = "";
+          } else if (!canSendFam) {
+              addFamilyBtn.style.display = "none";
+          } else {
+              addFamilyBtn.textContent = "❤️ Add Family"; addFamilyBtn.className = "";
+              addFamilyBtn.disabled = false; addFamilyBtn.style.display = "";
+              addFamilyBtn.onclick = () => openFamilyReqModal(uid, p.displayName || p.username || 'this user');
           }
 
           // Message button + tab
@@ -9609,13 +10097,21 @@ body::after {
           await updateDoc(doc(db, 'users', targetUid), { role: newRole });
           selectEl.dataset.prev = newRole;
           toastNotification(`Role updated to "${newRole}".`);
-          // Sync Moderator badge with role automatically
+          // Sync role badges automatically
           const snap = await getDoc(doc(db, 'users', targetUid));
           const badges = snap.data().badges || [];
-          if (newRole === 'moderator' && !badges.includes('Moderator')) {
-              await updateDoc(doc(db, 'users', targetUid), { badges: [...badges, 'Moderator'] });
-          } else if (newRole === 'member' && badges.includes('Moderator')) {
-              await updateDoc(doc(db, 'users', targetUid), { badges: badges.filter(b => b !== 'Moderator') });
+          let updatedBadges = [...badges];
+          if (newRole === 'moderator') {
+              if (!updatedBadges.includes('Moderator')) updatedBadges.push('Moderator');
+              updatedBadges = updatedBadges.filter(b => b !== 'Admin');
+          } else if (newRole === 'administrator') {
+              if (!updatedBadges.includes('Admin')) updatedBadges.push('Admin');
+              updatedBadges = updatedBadges.filter(b => b !== 'Moderator');
+          } else if (newRole === 'member') {
+              updatedBadges = updatedBadges.filter(b => b !== 'Moderator' && b !== 'Admin');
+          }
+          if (JSON.stringify(updatedBadges) !== JSON.stringify(badges)) {
+              await updateDoc(doc(db, 'users', targetUid), { badges: updatedBadges });
           }
           // Re-render to reflect changes
           renderAdminPanel();
@@ -9670,10 +10166,11 @@ body::after {
               if (u.uid === currentUser.uid) return;
               users.push(u);
           });
-          if (filterMode==='online')    users = users.filter(u=>u.status==='online');
-          if (filterMode==='suspended') users = users.filter(u=>u.suspended);
-          if (filterMode==='founder')   users = users.filter(u=>u.role==='founder');
-          if (filterMode==='moderator') users = users.filter(u=>u.role==='moderator');
+          if (filterMode==='online')        users = users.filter(u=>u.status==='online');
+          if (filterMode==='suspended')     users = users.filter(u=>u.suspended);
+          if (filterMode==='founder')       users = users.filter(u=>u.role==='founder');
+          if (filterMode==='moderator')     users = users.filter(u=>u.role==='moderator');
+          if (filterMode==='administrator') users = users.filter(u=>u.role==='administrator');
           if (filter) users = users.filter(u=>(u.displayName||'').toLowerCase().includes(filter)||(u.username||'').toLowerCase().includes(filter));
           users.sort((a,b)=>{ if(a.status==='online'&&b.status!=='online')return -1; if(b.status==='online'&&a.status!=='online')return 1; return(a.displayName||'').localeCompare(b.displayName||''); });
 
@@ -9707,7 +10204,7 @@ body::after {
               nameRow.style.cssText='display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;';
               nameRow.innerHTML=`<span class="admin-user-name">${escFeed(u.displayName)}</span>${buildBadgeHtml(u.badges||[],u.role||'member')}${statusTag}`;
               const roleSelect=document.createElement('select'); roleSelect.className='admin-role-select'; roleSelect.dataset.prev=u.role||'member';
-              ['member','moderator'].forEach(r=>{ const opt=document.createElement('option'); opt.value=r; opt.textContent=r.charAt(0).toUpperCase()+r.slice(1); if((u.role||'member')===r)opt.selected=true; roleSelect.appendChild(opt); });
+              ['member','moderator','administrator'].forEach(r=>{ const opt=document.createElement('option'); opt.value=r; opt.textContent=r.charAt(0).toUpperCase()+r.slice(1); if((u.role||'member')===r)opt.selected=true; roleSelect.appendChild(opt); });
               roleSelect.onchange=()=>setUserRole(u.uid,roleSelect.value,roleSelect);
               nameRow.appendChild(roleSelect);
               const meta=document.createElement('div'); meta.className='admin-user-handle'; meta.textContent=`@${u.username||''}  ·  Joined ${joined}`;
@@ -9907,6 +10404,7 @@ function navTo(pageId) {
         searchPage:'navSearch', friendsPage:'navFriends',
         notificationsPage:'navNotifs', settingsPage:'navSettings',
         stormRoomsPage:'navStorm', adminPage:'navAdmin',
+        moderatorPage:'navMod', administratorPage:'navAdminOfficer',
         communityPage:'navCommunity', supportRoomsPage:'navSupport'
     };
     const navEl = document.getElementById(map[pageId]);
@@ -9918,6 +10416,10 @@ function navTo(pageId) {
         renderAdminPanel();
         if (typeof window.adminLoadSettings === 'function') window.adminLoadSettings();
     }
+    // Render moderator panel on navigation
+    if (pageId === 'moderatorPage' && typeof window.renderModeratorPanel === 'function') window.renderModeratorPanel();
+    // Render administrator panel on navigation
+    if (pageId === 'administratorPage' && typeof window.renderAdministratorPanel === 'function') window.renderAdministratorPanel();
     // Load notification prefs when settings page opens
     if (pageId === 'settingsPage') {
         if (typeof window._loadNotifPrefs === 'function') window._loadNotifPrefs();
@@ -11253,13 +11755,31 @@ window._loadNotifPrefs = async function() {
     } catch(e) {}
 };
 
-/* ── Founder UI visibility — called from module script after login ── */
-window._showFounderUI = function() {
-    const isFounder = window._snxRole === 'founder';
-    const adminNav = document.getElementById('navAdmin');
-    if (adminNav) adminNav.style.display = isFounder ? 'flex' : 'none';
-    // adminPanelSettingsSection has no display:none — always visible, button is gated
+/* ── Role panel visibility — called after every login and role change ── */
+window._showRolePanels = function() {
+    const role = window._snxRole || 'member';
+    const isMod   = role === 'moderator';
+    const isAdm   = role === 'administrator';
+    const isFndr  = role === 'founder';
+
+    // Sidebar nav buttons
+    const navMod  = document.getElementById('navMod');
+    const navAdm  = document.getElementById('navAdminOfficer');
+    const navFndr = document.getElementById('navAdmin');
+    if (navMod)  navMod.style.display  = isMod   ? 'flex' : 'none';
+    if (navAdm)  navAdm.style.display  = isAdm   ? 'flex' : 'none';
+    if (navFndr) navFndr.style.display = isFndr  ? 'flex' : 'none';
+
+    // Settings page shortcuts
+    const secFndr = document.getElementById('adminPanelSettingsSection');
+    const secAdm  = document.getElementById('adminOfficerSettingsSection');
+    const secMod  = document.getElementById('modSettingsSection');
+    if (secFndr) secFndr.style.display = isFndr  ? 'block' : 'none';
+    if (secAdm)  secAdm.style.display  = isAdm   ? 'block' : 'none';
+    if (secMod)  secMod.style.display  = isMod   ? 'block' : 'none';
 };
+/* Backward-compat alias so any existing callers of _showFounderUI still work */
+window._showFounderUI = window._showRolePanels;
 
 /* ══════════════════════════════════════════════════════════════
    R2 UPLOAD SYSTEM
@@ -12777,6 +13297,554 @@ function _supportStopCanvas() {
      online/offline detection, helper functions)
      ═══════════════════════════════════════════════════════════ -->
 <script src="script.js"></script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   MODERATOR PANEL — JavaScript
+   All writes go through Firestore; Security Rules enforce role on server.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+(function() {
+  'use strict';
+
+  /* ── helpers ── */
+  function modOnly() {
+      const r = window._snxRole || 'member';
+      return r === 'moderator' || r === 'administrator' || r === 'founder';
+  }
+  function fmtDate(ts) {
+      if (!ts) return '';
+      return new Date(typeof ts === 'number' ? ts : ts.toMillis?.() || Date.now()).toLocaleString();
+  }
+  function esc(s) {
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  let _modReportType = 'post';
+
+  /* ── switch report tab in mod panel ── */
+  window.modSwitchReportTab = function(type, btn) {
+      _modReportType = type;
+      document.querySelectorAll('#moderatorPage .adm-tab').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      modLoadReports(type);
+  };
+
+  /* ── load reports ── */
+  async function modLoadReports(type) {
+      if (!modOnly()) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, collection, getDocs, query, where, orderBy, limit } = fs;
+      const listEl = document.getElementById('modReportList');
+      if (!listEl) return;
+      listEl.innerHTML = '<div class="empty-state">Loading…</div>';
+      try {
+          const q = query(collection(db,'reports'), where('type','==',type), where('status','==','open'), orderBy('createdAt','desc'), limit(30));
+          const snap = await getDocs(q);
+          if (snap.empty) { listEl.innerHTML = '<div class="empty-state">No open reports.</div>'; return; }
+          listEl.innerHTML = '';
+          snap.forEach(d => {
+              const r = d.data(); const rid = d.id;
+              listEl.insertAdjacentHTML('beforeend', `
+              <div class="mod-report-card">
+                  <div class="mod-report-header">
+                      <span>Reported by: <strong>${esc(r.reporterName||'Unknown')}</strong> · ${fmtDate(r.createdAt)}</span>
+                      <span class="mod-report-reason">${esc(r.reason||'No reason')}</span>
+                  </div>
+                  <div class="mod-report-body">${esc(r.content||r.targetId||'')}</div>
+                  <div class="mod-report-actions">
+                      <button class="btn-mod-dismiss" onclick="modResolveReport('${rid}','dismiss')">✓ Dismiss</button>
+                      <button class="btn-mod-hide"    onclick="modResolveReport('${rid}','hide')">🙈 Hide Content</button>
+                      <button class="btn-mod-remove"  onclick="modResolveReport('${rid}','remove')">🗑 Remove Content</button>
+                      ${type !== 'user' ? '' : `<button class="btn-mod-mute" onclick="modMuteUser('${esc(r.targetId||'')}','${esc(r.targetName||'')}')">🔇 Mute 24h</button>`}
+                  </div>
+              </div>`);
+          });
+      } catch(e) { listEl.innerHTML = '<div class="empty-state">Error loading reports.</div>'; }
+  }
+
+  window.modResolveReport = async function(reportId, action) {
+      if (!modOnly()) { toastNotification('⛔ Moderator access required.'); return; }
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, doc, updateDoc, getDoc, deleteDoc } = fs;
+      try {
+          const rSnap = await getDoc(doc(db,'reports',reportId));
+          if (!rSnap.exists()) { toastNotification('Report not found.'); return; }
+          const r = rSnap.data();
+
+          if (action === 'hide' || action === 'remove') {
+              const col = r.type === 'post' ? 'posts' : r.type === 'comment' ? 'posts' : null;
+              if (r.type === 'post' && r.targetId) {
+                  try { await updateDoc(doc(db,'posts',r.targetId), { hidden: true }); } catch(_) {}
+              }
+          }
+
+          await updateDoc(doc(db,'reports',reportId), {
+              status: 'resolved', resolvedBy: window._snxCurrentUser?.uid || '',
+              resolvedAt: Date.now(), resolution: action
+          });
+          await modAuditLog(`Report resolved (${action})`, `Report ID: ${reportId}`);
+          toastNotification(`✅ Report ${action === 'dismiss' ? 'dismissed' : 'resolved'}.`);
+          modLoadReports(_modReportType);
+      } catch(e) { toastNotification('Action failed: ' + e.message); }
+  };
+
+  /* ── mute a user for 24 h ── */
+  window.modMuteUser = async function(targetUid, targetName) {
+      if (!modOnly()) { toastNotification('⛔ Moderator access required.'); return; }
+      if (!targetUid) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, doc, updateDoc } = fs;
+      const muteUntil = Date.now() + 24 * 60 * 60 * 1000;
+      try {
+          await updateDoc(doc(db,'users',targetUid), { mutedUntil: muteUntil });
+          await modAuditLog('User muted 24h', `Target: ${targetName||targetUid}`);
+          toastNotification(`🔇 ${targetName||targetUid} muted for 24 hours.`);
+          modLoadMuted();
+      } catch(e) { toastNotification('Mute failed: ' + e.message); }
+  };
+
+  /* ── unmute a user ── */
+  window.modUnmuteUser = async function(targetUid, targetName) {
+      if (!modOnly()) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, doc, updateDoc } = fs;
+      try {
+          await updateDoc(doc(db,'users',targetUid), { mutedUntil: null });
+          await modAuditLog('User unmuted', `Target: ${targetName||targetUid}`);
+          toastNotification(`✅ ${targetName||targetUid} unmuted.`);
+          modLoadMuted();
+      } catch(e) { toastNotification('Unmute failed: ' + e.message); }
+  };
+
+  /* ── load currently muted users ── */
+  async function modLoadMuted() {
+      if (!modOnly()) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, collection, getDocs, query, where } = fs;
+      const listEl = document.getElementById('modMutedList');
+      if (!listEl) return;
+      const now = Date.now();
+      try {
+          const q = query(collection(db,'users'), where('mutedUntil','>',now));
+          const snap = await getDocs(q);
+          if (snap.empty) { listEl.innerHTML = '<div class="empty-state">No muted users.</div>'; return; }
+          listEl.innerHTML = '';
+          snap.forEach(d => {
+              const u = d.data();
+              const until = new Date(u.mutedUntil).toLocaleString();
+              listEl.insertAdjacentHTML('beforeend', `
+              <div class="mod-muted-row">
+                  <div class="mod-muted-avatar">${esc((u.displayName||'?')[0])}</div>
+                  <div class="mod-muted-name">${esc(u.displayName||u.username||u.uid)}</div>
+                  <span class="mod-muted-until">Until ${until}</span>
+                  <button class="btn-mod-unmute" onclick="modUnmuteUser('${esc(u.uid||d.id)}','${esc(u.displayName||'')}')">Unmute</button>
+              </div>`);
+          });
+      } catch(e) { listEl.innerHTML = '<div class="empty-state">Could not load.</div>'; }
+  }
+
+  /* ── search / list recent posts for quick hide ── */
+  let _modPostTimer = null;
+  window.modSearchPosts = function() {
+      clearTimeout(_modPostTimer);
+      _modPostTimer = setTimeout(modLoadPosts, 300);
+  };
+
+  async function modLoadPosts() {
+      if (!modOnly()) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, collection, getDocs, query, orderBy, limit, where } = fs;
+      const listEl = document.getElementById('modPostList');
+      const q_str = (document.getElementById('modPostSearch')?.value||'').trim().toLowerCase();
+      if (!listEl) return;
+      listEl.innerHTML = '<div class="empty-state">Loading…</div>';
+      try {
+          const snap = await getDocs(query(collection(db,'posts'), orderBy('createdAt','desc'), limit(40)));
+          let posts = snap.docs.map(d=>({id:d.id,...d.data()}));
+          if (q_str) posts = posts.filter(p=>(p.text||'').toLowerCase().includes(q_str)||(p.authorName||'').toLowerCase().includes(q_str));
+          if (!posts.length) { listEl.innerHTML = '<div class="empty-state">No posts found.</div>'; return; }
+          listEl.innerHTML = '';
+          posts.forEach(p => {
+              const hidden = p.hidden ? '🙈 Hidden' : '';
+              listEl.insertAdjacentHTML('beforeend', `
+              <div class="admin-post-card">
+                  <div style="font-size:12px;color:#6a90b8;margin-bottom:4px;">${esc(p.authorName||'Unknown')} · ${fmtDate(p.createdAt)} ${hidden ? `<span style="color:#ffcc44;font-size:10px;">${hidden}</span>` : ''}</div>
+                  <div style="font-size:13px;color:#d8eeff;">${esc((p.text||'').slice(0,120))}</div>
+                  <div class="admin-post-actions">
+                      ${p.hidden
+                          ? `<button class="btn-mod-dismiss" onclick="modTogglePostHide('${p.id}',false)">👁 Unhide</button>`
+                          : `<button class="btn-mod-hide" onclick="modTogglePostHide('${p.id}',true)">🙈 Hide</button>`
+                      }
+                  </div>
+              </div>`);
+          });
+      } catch(e) { listEl.innerHTML = '<div class="empty-state">Error.</div>'; }
+  }
+
+  window.modTogglePostHide = async function(postId, hide) {
+      if (!modOnly()) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, doc, updateDoc } = fs;
+      try {
+          await updateDoc(doc(db,'posts',postId), { hidden: hide });
+          await modAuditLog(hide ? 'Post hidden' : 'Post unhidden', `Post ID: ${postId}`);
+          toastNotification(hide ? '🙈 Post hidden.' : '👁 Post visible again.');
+          modLoadPosts();
+      } catch(e) { toastNotification('Failed: ' + e.message); }
+  };
+
+  /* ── mod audit log ── */
+  async function modAuditLog(action, details) {
+      const fs = window._snxFirestore;
+      if (!fs || !window._snxCurrentUser) return;
+      try {
+          const { db, collection, addDoc } = fs;
+          await addDoc(collection(db,'auditLog'), {
+              action, details,
+              adminUid:  window._snxCurrentUser.uid,
+              adminName: window._snxUserData?.displayName || '',
+              role: window._snxRole || 'moderator',
+              ts: Date.now()
+          });
+      } catch(_) {}
+  }
+
+  async function modLoadActionLog() {
+      const fs = window._snxFirestore;
+      if (!fs || !window._snxCurrentUser) return;
+      const { db, collection, getDocs, query, where, orderBy, limit } = fs;
+      const listEl = document.getElementById('modActionLog');
+      if (!listEl) return;
+      try {
+          const snap = await getDocs(query(collection(db,'auditLog'),
+              where('adminUid','==',window._snxCurrentUser.uid),
+              orderBy('ts','desc'), limit(30)));
+          if (snap.empty) { listEl.innerHTML = '<div class="empty-state">No actions yet.</div>'; return; }
+          listEl.innerHTML = '';
+          snap.forEach(d => {
+              const e = d.data();
+              listEl.insertAdjacentHTML('beforeend', `
+              <div class="audit-entry">
+                  <span class="audit-ts">${fmtDate(e.ts)}</span>
+                  <span class="audit-action">${esc(e.action)} — ${esc(e.details||'')}</span>
+              </div>`);
+          });
+      } catch(_) {}
+  }
+
+  /* ── master render ── */
+  window.renderModeratorPanel = function() {
+      if (!modOnly()) { toastNotification('⛔ Moderator access required.'); navTo('feed'); return; }
+      modLoadReports('post');
+      modLoadMuted();
+      modLoadPosts();
+      modLoadActionLog();
+  };
+
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ADMINISTRATOR PANEL — JavaScript
+   Role: 'administrator' — cannot access Founder-only settings.
+   All writes go through Firestore; Security Rules enforce role on server.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+(function() {
+  'use strict';
+
+  function admOnly() {
+      const r = window._snxRole || 'member';
+      return r === 'administrator' || r === 'founder';
+  }
+  function fmtDate(ts) {
+      if (!ts) return '';
+      return new Date(typeof ts === 'number' ? ts : ts.toMillis?.() || Date.now()).toLocaleString();
+  }
+  function esc(s) {
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  /* ── Tab switch ── */
+  window.admSwitchTab = function(tab, btn) {
+      document.querySelectorAll('#administratorPage .adm-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#administratorPage .adm-tab-content').forEach(c => c.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      const c = document.getElementById('admTab-' + tab);
+      if (c) c.classList.add('active');
+      if (tab === 'dashboard') admLoadStats();
+      if (tab === 'users')    admSearchUsers();
+      if (tab === 'reports')  admLoadReports('user');
+      if (tab === 'announce') admLoadAnnounceHistory();
+      if (tab === 'audit')    admLoadAuditLog();
+  };
+
+  /* ── Dashboard stats ── */
+  async function admLoadStats() {
+      if (!admOnly()) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, collection, getDocs, query, where } = fs;
+      try {
+          const usersSnap = await getDocs(collection(db,'users'));
+          const users = usersSnap.docs.map(d=>d.data()).filter(u=>u.uid&&u.displayName);
+          const _s = (id,v) => { const el=document.getElementById(id); if(el)el.textContent=v; };
+          _s('admStatTotal',    users.length);
+          _s('admStatOnline',   users.filter(u=>u.status==='online').length);
+          _s('admStatSuspended',users.filter(u=>u.suspended).length);
+          try {
+              const rSnap = await getDocs(query(collection(db,'reports'),where('status','==','open')));
+              _s('admStatReports', rSnap.size);
+          } catch(_) {}
+      } catch(_) {}
+  }
+
+  /* ── User search ── */
+  let _admUserTimer = null;
+  window.admSearchUsers = function() {
+      clearTimeout(_admUserTimer);
+      _admUserTimer = setTimeout(_admRenderUsers, 300);
+  };
+
+  async function _admRenderUsers() {
+      if (!admOnly()) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, collection, getDocs } = fs;
+      const listEl = document.getElementById('admUserList');
+      const q_str  = (document.getElementById('admUserSearch')?.value||'').trim().toLowerCase();
+      const filt   = document.getElementById('admUserFilter')?.value || 'all';
+      if (!listEl) return;
+      listEl.innerHTML = '<div class="empty-state">Loading…</div>';
+      try {
+          const snap = await getDocs(collection(db,'users'));
+          let users = snap.docs.map(d=>d.data()).filter(u=>u.uid&&u.displayName&&u.uid!==window._snxCurrentUser?.uid);
+          // Never allow operating on founder accounts
+          users = users.filter(u=>u.role !== 'founder');
+          if (filt === 'online')    users = users.filter(u=>u.status==='online');
+          if (filt === 'suspended') users = users.filter(u=>u.suspended);
+          if (q_str) users = users.filter(u=>(u.displayName||'').toLowerCase().includes(q_str)||(u.username||'').toLowerCase().includes(q_str));
+          users.sort((a,b)=>(a.displayName||'').localeCompare(b.displayName||''));
+          if (!users.length) { listEl.innerHTML = '<div class="empty-state">No users found.</div>'; return; }
+          listEl.innerHTML = '';
+          users.forEach(u => {
+              const susp = u.suspended;
+              listEl.insertAdjacentHTML('beforeend', `
+              <div class="adm-user-row ${susp?'adm-suspended':''}">
+                  <div class="adm-user-avatar">${esc((u.displayName||'?')[0])}</div>
+                  <div class="adm-user-info">
+                      <div class="adm-user-name">${esc(u.displayName||u.username||u.uid)}</div>
+                      <div class="adm-user-handle">@${esc(u.username||u.uid)} · ${u.role||'member'}${susp?' · 🔴 Suspended':''}</div>
+                      <div class="adm-action-btns">
+                          ${susp
+                            ? `<button class="btn-adm-restore" onclick="admRestoreUser('${esc(u.uid)}','${esc(u.displayName||'')}')">✅ Restore</button>`
+                            : `<button class="btn-adm-suspend" onclick="admSuspendUser('${esc(u.uid)}','${esc(u.displayName||'')}')">🚫 Suspend</button>`
+                          }
+                          <button class="btn-adm-msg" onclick="viewProfile('${esc(u.uid)}')">👤 Profile</button>
+                      </div>
+                  </div>
+              </div>`);
+          });
+      } catch(e) { listEl.innerHTML = '<div class="empty-state">Error loading users.</div>'; }
+  }
+
+  window.admSuspendUser = async function(uid, name) {
+      if (!admOnly()) { toastNotification('⛔ Administrator access required.'); return; }
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, doc, updateDoc } = fs;
+      try {
+          await updateDoc(doc(db,'users',uid), { suspended: true, status: 'offline' });
+          await admAuditLog('User suspended', `${name||uid}`);
+          toastNotification(`🚫 ${name||uid} suspended.`);
+          admSearchUsers();
+      } catch(e) { toastNotification('Failed: ' + e.message); }
+  };
+
+  window.admRestoreUser = async function(uid, name) {
+      if (!admOnly()) { toastNotification('⛔ Administrator access required.'); return; }
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, doc, updateDoc } = fs;
+      try {
+          await updateDoc(doc(db,'users',uid), { suspended: false });
+          await admAuditLog('User restored', `${name||uid}`);
+          toastNotification(`✅ ${name||uid} restored.`);
+          admSearchUsers();
+      } catch(e) { toastNotification('Failed: ' + e.message); }
+  };
+
+  /* ── Reports ── */
+  window.admLoadReports = async function(type, btn) {
+      if (!admOnly()) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      // update active tab state
+      document.querySelectorAll('#admTab-reports .adm-tab').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      const { db, collection, getDocs, query, where, orderBy, limit } = fs;
+      const listEl = document.getElementById('admReportList');
+      if (!listEl) return;
+      listEl.innerHTML = '<div class="empty-state">Loading…</div>';
+      try {
+          const q = query(collection(db,'reports'), where('type','==',type), where('status','==','open'), orderBy('createdAt','desc'), limit(40));
+          const snap = await getDocs(q);
+          if (snap.empty) { listEl.innerHTML = '<div class="empty-state">No open reports.</div>'; return; }
+          listEl.innerHTML = '';
+          snap.forEach(d => {
+              const r = d.data(); const rid = d.id;
+              listEl.insertAdjacentHTML('beforeend', `
+              <div class="report-card">
+                  <div class="report-card-header">
+                      <span>Reporter: ${esc(r.reporterName||'?')} · ${fmtDate(r.createdAt)}</span>
+                      <span style="font-size:10px;background:rgba(255,51,102,0.15);border:1px solid rgba(255,51,102,0.3);color:#ff88aa;padding:2px 7px;border-radius:8px;">${esc(r.reason||'')}</span>
+                  </div>
+                  <div class="report-card-body">${esc(r.content||r.targetId||'')}</div>
+                  <div class="report-card-actions">
+                      <button class="btn-mod-dismiss" onclick="admResolveReport('${rid}','dismiss')">✓ Dismiss</button>
+                      <button class="btn-mod-remove"  onclick="admResolveReport('${rid}','remove')">🗑 Remove</button>
+                      ${type === 'user' ? `<button class="btn-adm-suspend" onclick="admSuspendUser('${esc(r.targetId||'')}','${esc(r.targetName||'')}')">🚫 Suspend</button>` : ''}
+                  </div>
+              </div>`);
+          });
+      } catch(e) { listEl.innerHTML = '<div class="empty-state">Error.</div>'; }
+  };
+
+  window.admResolveReport = async function(reportId, action) {
+      if (!admOnly()) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, doc, updateDoc, getDoc } = fs;
+      try {
+          const rSnap = await getDoc(doc(db,'reports',reportId));
+          if (!rSnap.exists()) return;
+          const r = rSnap.data();
+          if ((action === 'remove') && r.type === 'post' && r.targetId) {
+              try { await updateDoc(doc(db,'posts',r.targetId), { hidden: true }); } catch(_) {}
+          }
+          await updateDoc(doc(db,'reports',reportId), {
+              status:'resolved', resolvedBy:window._snxCurrentUser?.uid||'',
+              resolvedAt:Date.now(), resolution:action
+          });
+          await admAuditLog(`Report resolved (${action})`, `ID: ${reportId}`);
+          toastNotification('✅ Report resolved.');
+          admLoadReports(r.type || 'user');
+      } catch(e) { toastNotification('Failed: ' + e.message); }
+  };
+
+  /* ── Send Announcement ── */
+  window.admSendAnnouncement = async function() {
+      if (!admOnly()) { toastNotification('⛔ Administrator access required.'); return; }
+      const text = (document.getElementById('admAnnounceText')?.value||'').trim();
+      if (!text) { toastNotification('Please write an announcement.'); return; }
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, collection, getDocs, addDoc, updateDoc, doc, arrayUnion } = fs;
+      try {
+          // Save to announcements collection
+          await addDoc(collection(db,'announcements'), {
+              text, sentBy: window._snxCurrentUser?.uid||'',
+              sentByName: window._snxUserData?.displayName||'Admin',
+              ts: Date.now()
+          });
+          // Deliver as notification to all users
+          const snap = await getDocs(collection(db,'users'));
+          const batch_promises = [];
+          snap.forEach(d => {
+              if (d.id === window._snxCurrentUser?.uid) return;
+              batch_promises.push(updateDoc(doc(db,'users',d.id), {
+                  notifications: arrayUnion({
+                      id: 'ann-'+Date.now()+'-'+Math.random().toString(36).slice(2,5),
+                      type:'announcement', text: '📢 ' + text.slice(0,100),
+                      read: false, ts: Date.now()
+                  })
+              }).catch(()=>{}));
+          });
+          await Promise.all(batch_promises);
+          await admAuditLog('Announcement sent', text.slice(0,80));
+          toastNotification('📢 Announcement sent!');
+          if (document.getElementById('admAnnounceText')) document.getElementById('admAnnounceText').value = '';
+          admLoadAnnounceHistory();
+      } catch(e) { toastNotification('Failed: ' + e.message); }
+  };
+
+  async function admLoadAnnounceHistory() {
+      if (!admOnly()) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, collection, getDocs, query, orderBy, limit } = fs;
+      const listEl = document.getElementById('admAnnounceHistory');
+      if (!listEl) return;
+      try {
+          const snap = await getDocs(query(collection(db,'announcements'), orderBy('ts','desc'), limit(20)));
+          if (snap.empty) { listEl.innerHTML = '<div class="empty-state">No announcements yet.</div>'; return; }
+          listEl.innerHTML = '';
+          snap.forEach(d => {
+              const a = d.data();
+              listEl.insertAdjacentHTML('beforeend', `
+              <div class="adm-announce-row">
+                  <span class="adm-announce-ts">${fmtDate(a.ts)}</span>
+                  <span class="adm-announce-msg">${esc(a.text)}</span>
+              </div>`);
+          });
+      } catch(_) { listEl.innerHTML = '<div class="empty-state">Error.</div>'; }
+  }
+  window.admLoadAnnounceHistory = admLoadAnnounceHistory;
+
+  /* ── Audit Log ── */
+  async function admLoadAuditLog() {
+      if (!admOnly()) return;
+      const fs = window._snxFirestore;
+      if (!fs) return;
+      const { db, collection, getDocs, query, orderBy, limit } = fs;
+      const listEl = document.getElementById('admAuditLog');
+      if (!listEl) return;
+      try {
+          const snap = await getDocs(query(collection(db,'auditLog'), orderBy('ts','desc'), limit(50)));
+          if (snap.empty) { listEl.innerHTML = '<div class="empty-state">No audit entries.</div>'; return; }
+          listEl.innerHTML = '';
+          snap.forEach(d => {
+              const e = d.data();
+              listEl.insertAdjacentHTML('beforeend', `
+              <div class="adm-audit-entry">
+                  <span class="adm-audit-ts">${fmtDate(e.ts)}</span>
+                  <span class="adm-audit-action"><strong>${esc(e.adminName||'?')}</strong> (${esc(e.role||'admin')}) — ${esc(e.action)} · ${esc(e.details||'')}</span>
+              </div>`);
+          });
+      } catch(_) { listEl.innerHTML = '<div class="empty-state">Error.</div>'; }
+  }
+
+  async function admAuditLog(action, details) {
+      const fs = window._snxFirestore;
+      if (!fs || !window._snxCurrentUser) return;
+      try {
+          const { db, collection, addDoc } = fs;
+          await addDoc(collection(db,'auditLog'), {
+              action, details,
+              adminUid:  window._snxCurrentUser.uid,
+              adminName: window._snxUserData?.displayName || '',
+              role: window._snxRole || 'administrator',
+              ts: Date.now()
+          });
+      } catch(_) {}
+  }
+
+  /* ── Master render ── */
+  window.renderAdministratorPanel = function() {
+      if (!admOnly()) { toastNotification('⛔ Administrator access required.'); navTo('feed'); return; }
+      admLoadStats();
+  };
+
+})();
+</script>
+
 
 </body>
 </html>

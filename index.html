@@ -4663,16 +4663,17 @@ body.arcade-fs-ios body::after { display:none !important; }
 .arcade-gameover-overlay {
     position:absolute; inset:0; background:rgba(0,0,0,0.82);
     display:none; align-items:center; justify-content:center;
-    flex-direction:column; gap:12px; z-index:10;
+    flex-direction:column; gap:10px; z-index:10;
     backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
-    padding:20px;
+    padding:20px; text-align:center;
 }
 .arcade-gameover-overlay.show { display:flex; }
 .arcade-go-title { font-size:22px; font-weight:900; color:#ff3366; font-family:monospace; letter-spacing:2px; text-shadow:0 0 14px rgba(255,51,102,0.7); }
 .arcade-go-score { font-size:15px; color:#d8eeff; font-family:monospace; }
 .arcade-go-best  { font-size:13px; color:#39FF14; font-family:monospace; }
-.arcade-go-btns  { display:flex; gap:12px; margin-top:4px; flex-wrap:wrap; justify-content:center; }
-.arcade-go-btns button { padding:12px 28px; border-radius:10px; font-size:14px; font-weight:700; min-height:48px; min-width:100px; touch-action:manipulation; }
+.arcade-go-stats { font-size:12px; color:#8ab0cc; font-family:monospace; display:flex; flex-direction:column; gap:3px; }
+.arcade-go-btns  { display:flex; gap:10px; margin-top:6px; flex-wrap:wrap; justify-content:center; }
+.arcade-go-btns button { padding:11px 22px; border-radius:10px; font-size:13px; font-weight:700; min-height:44px; min-width:90px; touch-action:manipulation; }
 
 /* Multiplayer invite challenge button on profiles */
 .btn-challenge-game {
@@ -15796,12 +15797,25 @@ function _setScore(val) {
   if (el) el.textContent = 'Score: ' + val;
 }
 
-function _gameOver(score, opponentName, isWin) {
+function _gameOver(score, opponentName, isWin, extraStats) {
   if (_arcadeRAF) { cancelAnimationFrame(_arcadeRAF); _arcadeRAF = null; }
   const best = _localBest(_arcadeCurrentGame, score);
   const go   = document.getElementById('arcadeGameOver');
   document.getElementById('agoScore').textContent = 'Score: ' + score;
   document.getElementById('agoBest').textContent  = 'Best: '  + best;
+  // Extra stats (time survived, food collected, etc.)
+  const statsEl = document.getElementById('agoStats');
+  if (statsEl) {
+    if (extraStats && Object.keys(extraStats).length) {
+      const lines = [];
+      if (extraStats.timeSurvived != null) lines.push('⏱ Time: ' + extraStats.timeSurvived + 's');
+      if (extraStats.foodCollected != null) lines.push('🍎 Collected: ' + extraStats.foodCollected);
+      statsEl.innerHTML = lines.join('<br>');
+      statsEl.style.display = '';
+    } else {
+      statsEl.style.display = 'none';
+    }
+  }
   go.classList.add('show');
   _saveScore(_arcadeCurrentGame, score, opponentName, isWin);
 }
@@ -16654,6 +16668,8 @@ function _snakeInit() {
     dir: {x:1, y:0}, nextDir:{x:1, y:0},
     food: _snakeFood(COLS, ROWS),
     score: 0, dead: false, speed: 96,
+    foodCollected: 0,
+    startTime: Date.now(),
     onKey(dir) {
       if (s.dead) { arcadeRestartGame(); return; }
       const nd = {up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}}[dir];
@@ -16681,6 +16697,12 @@ function _snakeInit() {
   _arcadeGameState = s;
   _attachGameListeners();
 
+  function _snakeDie() {
+    s.dead = true;
+    const timeSurvived = Math.floor((Date.now() - s.startTime) / 1000);
+    _gameOver(s.score, undefined, undefined, { timeSurvived, foodCollected: s.foodCollected });
+  }
+
   let lastTime = 0;
   function loop(ts) {
     // Guard: stop if game was closed or replaced while rAF was in flight
@@ -16691,14 +16713,14 @@ function _snakeInit() {
     lastTime = ts;
     s.dir = s.nextDir;
     const head = { x: s.snake[0].x + s.dir.x, y: s.snake[0].y + s.dir.y };
-    // Wrap
-    head.x = (head.x + COLS) % COLS;
-    head.y = (head.y + ROWS) % ROWS;
+    // Wall collision — game over (no wrap)
+    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) { _snakeDie(); return; }
     // Self collision
-    if (s.snake.some(p => p.x === head.x && p.y === head.y)) { s.dead = true; _gameOver(s.score); return; }
+    if (s.snake.some(p => p.x === head.x && p.y === head.y)) { _snakeDie(); return; }
     s.snake.unshift(head);
     if (head.x === s.food.x && head.y === s.food.y) {
       s.score += 10;
+      s.foodCollected++;
       s.speed = Math.max(48, s.speed - 2);
       _setScore(s.score);
       s.food = _snakeFood(COLS, ROWS);
@@ -16706,6 +16728,10 @@ function _snakeInit() {
     // Draw
     ctx.fillStyle = '#000510';
     ctx.fillRect(0, 0, cv.width, cv.height);
+    // Border walls (visual indicator)
+    ctx.strokeStyle = 'rgba(0,174,239,0.35)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, cv.width - 2, cv.height - 2);
     // Grid dots
     ctx.fillStyle = 'rgba(0,174,239,0.05)';
     for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
@@ -17499,23 +17525,40 @@ function _poolInit(){
       if(b.pocketed)return;
       b.x+=b.vx*dt60; b.y+=b.vy*dt60; b.vx*=frameFriction; b.vy*=frameFriction;
       if(Math.abs(b.vx)<0.05) b.vx=0; if(Math.abs(b.vy)<0.05) b.vy=0;
-      // Wall bounce
-      if(b.x<BALL_R){b.x=BALL_R;b.vx*=-0.8;} if(b.x>W-BALL_R){b.x=W-BALL_R;b.vx*=-0.8;}
-      if(b.y<BALL_R){b.y=BALL_R;b.vy*=-0.8;} if(b.y>H-BALL_R){b.y=H-BALL_R;b.vy*=-0.8;}
-      // Pocket
-      pockets.forEach(p=>{if(_dist(b,p)<POCKET_R){b.pocketed=true;if(b.num>0){score+=10;_setScore(score);}}});
+      // Wall bounce — clamp position after bounce to prevent sticking inside rail
+      if(b.x<BALL_R){b.x=BALL_R;b.vx=Math.abs(b.vx)*0.8;} if(b.x>W-BALL_R){b.x=W-BALL_R;b.vx=-Math.abs(b.vx)*0.8;}
+      if(b.y<BALL_R){b.y=BALL_R;b.vy=Math.abs(b.vy)*0.8;} if(b.y>H-BALL_R){b.y=H-BALL_R;b.vy=-Math.abs(b.vy)*0.8;}
+      // Pocket check
+      pockets.forEach(p=>{
+        if(!b.pocketed && _dist(b,p)<POCKET_R){
+          if(b.num===0){
+            // Cue ball scratch — reset to starting position, stop, continue play
+            b.x=W*0.28; b.y=H/2; b.vx=0; b.vy=0;
+          } else {
+            b.pocketed=true; score+=10; _setScore(score);
+          }
+        }
+      });
     });
-    // Ball collisions
-    for(let i=0;i<balls.length;i++) for(let j=i+1;j<balls.length;j++){
-      const a=balls[i], b=balls[j]; if(a.pocketed||b.pocketed)continue;
-      const d=_dist(a,b);
-      if(d<BALL_R*2){
-        const nx=(b.x-a.x)/d, ny=(b.y-a.y)/d;
-        const dvx=a.vx-b.vx, dvy=a.vy-b.vy;
-        const imp=(dvx*nx+dvy*ny)*0.9;
-        a.vx-=imp*nx; a.vy-=imp*ny; b.vx+=imp*nx; b.vy+=imp*ny;
-        const ov=(BALL_R*2-d)/2;
-        a.x-=ov*nx; a.y-=ov*ny; b.x+=ov*nx; b.y+=ov*ny;
+    // Ball collisions — iterative solver to prevent clipping on fast shots
+    for(let iter=0;iter<3;iter++){
+      for(let i=0;i<balls.length;i++) for(let j=i+1;j<balls.length;j++){
+        const a=balls[i], b=balls[j]; if(a.pocketed||b.pocketed)continue;
+        const d=_dist(a,b);
+        if(d<BALL_R*2&&d>0.001){
+          const nx=(b.x-a.x)/d, ny=(b.y-a.y)/d;
+          const dvx=a.vx-b.vx, dvy=a.vy-b.vy;
+          const imp=(dvx*nx+dvy*ny)*0.9;
+          if(imp>0){ // only resolve approaching pairs
+            a.vx-=imp*nx; a.vy-=imp*ny; b.vx+=imp*nx; b.vy+=imp*ny;
+          }
+          // Position correction to eliminate overlap completely
+          const ov=(BALL_R*2-d+0.5)/2;
+          a.x-=ov*nx; a.y-=ov*ny; b.x+=ov*nx; b.y+=ov*ny;
+          // Re-clamp both balls after separation push
+          a.x=Math.max(BALL_R,Math.min(W-BALL_R,a.x)); a.y=Math.max(BALL_R,Math.min(H-BALL_R,a.y));
+          b.x=Math.max(BALL_R,Math.min(W-BALL_R,b.x)); b.y=Math.max(BALL_R,Math.min(H-BALL_R,b.y));
+        }
       }
     }
     // Check end
@@ -17886,9 +17929,11 @@ window._snxArcadeSubscribeInvites = _subscribeInvites;
             <div class="arcade-go-title">GAME OVER</div>
             <div class="arcade-go-score" id="agoScore">Score: 0</div>
             <div class="arcade-go-best"  id="agoBest">Best: 0</div>
+            <div class="arcade-go-stats" id="agoStats" style="display:none;"></div>
             <div class="arcade-go-btns">
-                <button onclick="arcadeRestartGame()" style="background:linear-gradient(135deg,#003d99,#0077dd);border-color:rgba(0,174,239,0.65);color:#fff;">▶ Play Again</button>
-                <button onclick="closeArcadeGame()" style="background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.12);color:#6a90b8;">✕ Close</button>
+                <button onclick="arcadeRestartGame()" style="background:linear-gradient(135deg,#003d99,#0077dd);border-color:rgba(0,174,239,0.65);color:#fff;">🔄 Play Again</button>
+                <button onclick="closeArcadeGame()" style="background:rgba(0,40,100,0.35);border-color:rgba(0,174,239,0.35);color:#8ab0cc;">🏠 Games</button>
+                <button onclick="closeArcadeGame();switchArcadeTab('leaderboard',document.getElementById('ahTab-leaderboard'));openArcadeHub();" style="background:rgba(255,215,0,0.08);border-color:rgba(255,215,0,0.35);color:#ffd700;">🏆 Leaderboard</button>
             </div>
         </div>
     </div>

@@ -50,11 +50,11 @@
         });
       });
 
-      // Once the new SW takes control, reload so users get fresh files.
-      // This happens in the background after activation — session is preserved.
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload();
-      });
+      // New SW takes control — do NOT reload automatically.
+      // Reloading here causes a loop on mobile (the new SW triggers
+      // controllerchange before Firebase auth resolves, so the guard
+      // window._snxCurrentUser is always null at that moment).
+      // New assets are served automatically on the next natural page open.
     } catch (err) {
       console.warn('[SW] Registration failed:', err);
     }
@@ -73,10 +73,11 @@
 
 /* ═══════════════════════════════════════════════
    3. SILENT BACKGROUND UPDATES
-   All updates are applied automatically without
-   any prompts, toasts, or buttons. The service
-   worker activates silently and the page reloads
-   to pick up the new files.
+   New SW versions are detected, skipWaiting() is
+   sent automatically, and the worker activates
+   silently in the background — no reload, no
+   prompts, no toasts. New assets are served on
+   the next natural page open (tab close/reopen).
    ═══════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════

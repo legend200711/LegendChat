@@ -96,6 +96,8 @@ const NETWORK_QUALITY_CAP = {
 // ─────────────────────────────────────────────────────────────────
 let currentUser     = null;
 let myDisplayName   = "Guest";
+let myPhotoURL      = null;  // populated from auth + Firestore after login
+let myVerified      = false; // populated from Firestore after login
 let roomId          = null;
 let isHost          = false;
 let roomLocked      = false;
@@ -114,6 +116,16 @@ let requestAllowMode = "everyone";   // "everyone"|"followers"|"friends"|"family
 
 // ── Viewer-side cooldown (after being denied) ──
 let _reqCooldownTimer = null;        // setTimeout handle
+
+// ── Chat state ──
+let chatEnabled       = true;   // host can turn off chat entirely
+let slowMode          = false;  // host can enable slow mode (1 msg per 5s)
+let slowModeDelay     = 5000;   // ms between messages in slow mode
+let _lastMsgTime      = 0;      // timestamp of last sent message (for slow mode)
+let pinnedMsgId       = null;   // docId of pinned message
+let chatMutedUsers    = {};     // { uid: true } — users muted from chat by host
+let _replyTo          = null;   // { msgId, name, text } — current reply-to state
+let _chatSettingsUnsub = null;  // guard: only one settings listener at a time
 
 // guests[uid] = { pc, stream, displayName, muted, camOff, retries, quality, _qualityInterval }
 const guests = {};
@@ -186,10 +198,16 @@ onAuthStateChanged(auth, async user => {
     return;
   }
   currentUser = user;
+  myPhotoURL  = user.photoURL || null;
 
   try {
     const snap = await getDoc(doc(db, "users", user.uid));
-    if (snap.exists()) myDisplayName = snap.data().displayName || snap.data().username || "User";
+    if (snap.exists()) {
+      const d = snap.data();
+      myDisplayName = d.displayName || d.username || "User";
+      myVerified    = d.verified || d.isVerified || false;
+      myPhotoURL    = d.photoURL || d.avatarUrl || user.photoURL || null;
+    }
   } catch (_) { /* best-effort */ }
 
   initUI();
@@ -619,6 +637,18 @@ function attachButtonHandlers() {
   $("chat-send").onclick        = sendChat;
   $("chat-input").addEventListener("keydown", e => { if (e.key === "Enter") sendChat(); });
 
+  // Reply cancel buttons
+  $("chat-reply-cancel")?.addEventListener("click", clearReplyTo);
+  $("chat-reply-cancel-mobile")?.addEventListener("click", clearReplyTo);
+
+  // Pinned bar — click scrolls to pinned msg, X unpins (host only)
+  $("chat-pinned-bar")?.addEventListener("click", scrollToPinnedMsg);
+  $("chat-unpin-btn")?.addEventListener("click", e => { e.stopPropagation(); unpinMessage(); });
+
+  // Host chat control buttons (wired, safe to call even for guests — guarded inside)
+  $("btn-chat-toggle")?.addEventListener("click", toggleChatEnabled);
+  $("btn-slow-mode")?.addEventListener("click",   toggleSlowMode);
+
   // Request to Join button (viewer flow)
   $("request-join-btn").onclick = handleRequestToJoin;
 
@@ -757,6 +787,8 @@ function _showHostRequestControls() {
   const btn = $("btnRequests");
   if (btn) btn.style.display = "";
   _syncRequestsOpenUI();
+  // Show host chat controls bar
+  _syncHostChatBar();
 }
 
 // Sync all UI to match requestsOpen / requestAllowMode
@@ -1758,65 +1790,479 @@ function listenViewerCount() {
 
 function listenChat() {
   if (!chatRtRef) return;
+  // Load last 200 messages; real-time new additions come via "added" changes
   const q = query(collection(db, "liveRooms", roomId, "chat"), orderBy("ts", "asc"), limit(200));
   const unsub = onSnapshot(q, snap => {
     snap.docChanges().forEach(ch => {
-      if (ch.type === "added") appendChatMsg(ch.doc.data());
+      if (ch.type === "added") {
+        appendChatMsg(ch.doc.data(), ch.doc.id);
+      } else if (ch.type === "modified") {
+        updateChatMsg(ch.doc.id, ch.doc.data());
+      } else if (ch.type === "removed") {
+        removeChatMsgEl(ch.doc.id);
+      }
     });
   });
   _unsubs.push(unsub);
+  // Also listen to the room doc for chatEnabled / slowMode / pinnedMsgId changes
+  listenChatSettings();
 }
 
-async function sendChat() {
-  const input = $("chat-input");
-  const text  = input.value.trim();
-  if (!text || !roomId) return;
-  input.value = "";
-  await addDoc(collection(db, "liveRooms", roomId, "chat"), {
-    uid:  currentUser.uid,
-    name: myDisplayName,
-    text,
-    isHost: isHost,
-    ts:   serverTimestamp()
+function listenChatSettings() {
+  if (_chatSettingsUnsub) return;   // already listening
+  _chatSettingsUnsub = onSnapshot(doc(db, "liveRooms", roomId), snap => {
+    if (!snap.exists()) return;
+    const d = snap.data();
+    // Chat on/off
+    const nowEnabled = d.chatEnabled !== false;
+    if (nowEnabled !== chatEnabled) {
+      chatEnabled = nowEnabled;
+      _syncChatStatusBar();
+      _syncChatInputDisabled();
+    }
+    // Slow mode
+    const nowSlow = !!d.slowMode;
+    if (nowSlow !== slowMode) {
+      slowMode = nowSlow;
+      _syncChatStatusBar();
+    }
+    // Chat-muted users
+    chatMutedUsers = d.chatMutedUsers || {};
+    // Pinned message
+    const newPinId = d.pinnedMsgId || null;
+    if (newPinId !== pinnedMsgId) {
+      pinnedMsgId = newPinId;
+      _syncPinnedBar(d.pinnedMsgText || null, d.pinnedMsgAuthor || null);
+    }
+    // Host bar sync
+    if (isHost) _syncHostChatBar();
+    // Viewer mute check (if current user got muted/unmuted)
+    _syncChatInputDisabled();
+  });
+  _unsubs.push(_chatSettingsUnsub);
+}
+
+// ── Update the status bar text (chat off / slow mode) ──
+function _syncChatStatusBar() {
+  const bar = $("chat-status-bar");
+  if (!bar) return;
+  if (!chatEnabled) {
+    bar.textContent = "🚫 Chat has been turned off by the host.";
+    bar.classList.add("visible");
+  } else if (slowMode) {
+    bar.textContent = "🐢 Slow mode — 1 message every 5 seconds.";
+    bar.classList.add("visible");
+  } else {
+    bar.classList.remove("visible");
+    bar.textContent = "";
+  }
+}
+
+function _syncChatInputDisabled() {
+  const off = !chatEnabled || (chatMutedUsers[currentUser?.uid] === true);
+  const inp  = $("chat-input");
+  const btn  = $("chat-send");
+  const inpM = $("chat-input-mobile");
+  if (inp) { inp.disabled = off; inp.placeholder = off ? "Chat is disabled…" : "Say something…"; }
+  if (btn) btn.disabled = off;
+  if (inpM) { inpM.disabled = off; inpM.placeholder = off ? "Chat is disabled…" : "Say something…"; }
+}
+
+function _syncPinnedBar(text, author) {
+  const bar  = $("chat-pinned-bar");
+  const span = $("chat-pinned-text");
+  if (!bar || !span) return;
+  if (!pinnedMsgId || !text) {
+    bar.classList.remove("visible");
+  } else {
+    span.textContent = author ? `${author}: ${text}` : text;
+    bar.classList.add("visible");
+  }
+  // Also re-style messages
+  document.querySelectorAll(".chat-msg[data-msg-id]").forEach(el => {
+    el.classList.toggle("pinned-msg", el.dataset.msgId === pinnedMsgId);
   });
 }
 
-function sendChatMobile() {
-  const input = $("chat-input-mobile");
-  const text  = input.value.trim();
-  if (!text || !roomId) return;
-  input.value = "";
-  addDoc(collection(db, "liveRooms", roomId, "chat"), {
-    uid:  currentUser.uid,
-    name: myDisplayName,
-    text,
-    isHost: isHost,
-    ts:   serverTimestamp()
-  });
+function _syncHostChatBar() {
+  const bar = $("host-chat-bar");
+  if (!bar) return;
+  bar.classList.add("visible");
+  const toggleBtn = $("btn-chat-toggle");
+  const slowBtn   = $("btn-slow-mode");
+  const label     = $("slow-mode-label");
+  if (toggleBtn) {
+    toggleBtn.textContent = chatEnabled ? "💬 Chat on" : "🚫 Chat off";
+    toggleBtn.classList.toggle("active", !chatEnabled);
+  }
+  if (slowBtn) slowBtn.classList.toggle("active", slowMode);
+  if (label) label.textContent = slowMode ? `(${slowModeDelay / 1000}s delay)` : "";
 }
 
-function appendChatMsg(data) {
-  const msgEl = el("div", data.isReaction ? "chat-msg reaction-msg" : "chat-msg",
-    data.isReaction
-      ? data.text
-      : `<span class="msg-name${data.isHost ? " host" : ""}">${esc(data.name)}</span>: <span class="msg-text">${esc(data.text)}</span>`
-  );
+// ── Helper to format a timestamp as HH:MM ──
+function _fmtTime(ts) {
+  if (!ts) return "";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+// ── Build a rich chat message element ──
+function _buildMsgEl(data, msgId) {
+  if (data.isReaction) {
+    const r = el("div", "chat-msg reaction-msg");
+    r.dataset.msgId = msgId;
+    r.textContent = data.text;
+    return r;
+  }
+
+  const isOwn   = currentUser && data.uid === currentUser.uid;
+  const isMine  = isOwn;
+  const msgEl   = el("div", "chat-msg");
+  msgEl.dataset.msgId = msgId;
+  if (data.pinned || msgId === pinnedMsgId) msgEl.classList.add("pinned-msg");
+  if (data.deleted) msgEl.classList.add("deleted-msg");
+
+  // Avatar
+  const avatarEl = el("div", "msg-avatar");
+  if (data.photoURL) {
+    const img = document.createElement("img");
+    img.src = data.photoURL;
+    img.alt = "";
+    img.onerror = () => { img.style.display = "none"; avatarEl.textContent = data.name?.[0]?.toUpperCase() || "?"; };
+    avatarEl.appendChild(img);
+  } else {
+    avatarEl.textContent = data.name?.[0]?.toUpperCase() || "?";
+  }
+
+  // Body
+  const bodyEl = el("div", "msg-body");
+
+  // Meta row: name + verify + time
+  const metaEl = el("div", "msg-meta");
+  const nameEl = el("span", `msg-name${data.isHost ? " host" : ""}`, esc(data.name || "User"));
+  metaEl.appendChild(nameEl);
+  if (data.verified) {
+    metaEl.appendChild(el("span", "msg-verify", "✔️"));
+  }
+  if (data.pinned || msgId === pinnedMsgId) {
+    metaEl.appendChild(el("span", "msg-pinned-tag", "📌 pinned"));
+  }
+  const timeEl = el("span", "msg-time", _fmtTime(data.ts));
+  metaEl.appendChild(timeEl);
+  bodyEl.appendChild(metaEl);
+
+  // Reply-to quote
+  if (data.replyTo?.text) {
+    const quoteEl = el("div", "msg-reply-quote",
+      `↩ <strong>${esc(data.replyTo.name || "")}</strong>: ${esc(data.replyTo.text)}`);
+    bodyEl.appendChild(quoteEl);
+  }
+
+  // Message text
+  const textContent = data.deleted ? "Message deleted." : esc(data.text || "");
+  bodyEl.appendChild(el("div", "msg-text", textContent));
+
+  // Action buttons
+  const actions = el("div", "msg-actions");
+
+  // Reply button (everyone)
+  const replyBtn = el("button", "msg-action-btn", "↩ Reply");
+  replyBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    setReplyTo({ msgId, name: data.name, text: data.text });
+  });
+  actions.appendChild(replyBtn);
+
+  // Delete button (own messages or host)
+  if (isMine || isHost) {
+    const delBtn = el("button", "msg-action-btn danger", isHost && !isMine ? "🗑 Remove" : "🗑 Delete");
+    delBtn.addEventListener("click", e => { e.stopPropagation(); deleteMessage(msgId, data); });
+    actions.appendChild(delBtn);
+  }
+
+  // Pin / unpin button (host only)
+  if (isHost) {
+    const pinBtn = el("button", "msg-action-btn", msgId === pinnedMsgId ? "📌 Unpin" : "📌 Pin");
+    pinBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      if (msgId === pinnedMsgId) unpinMessage();
+      else pinMessage(msgId, data);
+    });
+    actions.appendChild(pinBtn);
+
+    // Mute user from chat (host, on other users' messages)
+    if (data.uid !== currentUser?.uid) {
+      const muteLabel = chatMutedUsers[data.uid] ? "💬 Unmute chat" : "🔇 Mute chat";
+      const muteBtn = el("button", "msg-action-btn", muteLabel);
+      muteBtn.addEventListener("click", e => { e.stopPropagation(); toggleChatMuteUser(data.uid, data.name); });
+      actions.appendChild(muteBtn);
+    }
+  }
+
+  msgEl.appendChild(avatarEl);
+  msgEl.appendChild(bodyEl);
+  msgEl.appendChild(actions);
+  return msgEl;
+}
+
+function appendChatMsg(data, msgId) {
+  if (!msgId) return; // defensive: Firestore always provides an id
+  const msgEl = _buildMsgEl(data, msgId);
   const panels = [$("chat-messages"), $("mobile-chat-messages")];
   panels.forEach(p => {
     if (!p) return;
     const clone = msgEl.cloneNode(true);
+    // Re-wire action buttons on the clone (cloneNode doesn't clone event listeners)
+    _wireClonedActions(clone, data, msgId);
     p.appendChild(clone);
-    p.scrollTop = p.scrollHeight;
+    // Auto-scroll only if already near the bottom
+    if (p.scrollHeight - p.scrollTop - p.clientHeight < 120) {
+      p.scrollTop = p.scrollHeight;
+    }
   });
+  // Push bubble to mobile overlay (only if drawer is closed)
+  if (!data.isReaction && isMobile()) {
+    _pushMobileOverlayBubble(data);
+  }
+}
+
+// Re-wire action button event listeners on a cloned node
+function _wireClonedActions(clone, data, msgId) {
+  const btns = clone.querySelectorAll(".msg-action-btn");
+  btns.forEach(btn => {
+    const label = btn.textContent.trim();
+    if (label.startsWith("↩")) {
+      btn.addEventListener("click", e => { e.stopPropagation(); setReplyTo({ msgId, name: data.name, text: data.text }); });
+    } else if (label.includes("Delete") || label.includes("Remove")) {
+      btn.addEventListener("click", e => { e.stopPropagation(); deleteMessage(msgId, data); });
+    } else if (label.includes("Pin") || label.includes("Unpin")) {
+      btn.addEventListener("click", e => {
+        e.stopPropagation();
+        if (msgId === pinnedMsgId) unpinMessage(); else pinMessage(msgId, data);
+      });
+    } else if (label.includes("Mute") || label.includes("Unmute")) {
+      btn.addEventListener("click", e => { e.stopPropagation(); toggleChatMuteUser(data.uid, data.name); });
+    }
+  });
+}
+
+// Called when a message is modified (e.g., deleted flag set, or pinned)
+function updateChatMsg(msgId, data) {
+  document.querySelectorAll(`.chat-msg[data-msg-id="${msgId}"]`).forEach(el => {
+    const textEl = el.querySelector(".msg-text");
+    if (textEl) {
+      textEl.textContent = data.deleted ? "Message deleted." : (data.text || "");
+    }
+    el.classList.toggle("deleted-msg", !!data.deleted);
+    el.classList.toggle("pinned-msg",  msgId === pinnedMsgId);
+  });
+}
+
+function removeChatMsgEl(msgId) {
+  document.querySelectorAll(`.chat-msg[data-msg-id="${msgId}"]`).forEach(el => el.remove());
+}
+
+// ── Push a floating bubble to the mobile overlay ──
+function _pushMobileOverlayBubble(data) {
+  const overlay = $("mobile-chat-overlay");
+  if (!overlay) return;
+  // Keep max 6 bubbles visible
+  while (overlay.children.length >= 6) overlay.firstChild.remove();
+  const bubble = el("div", "mob-bubble",
+    `<span class="mob-name${data.isHost ? " host" : ""}">${esc(data.name || "")}</span>: ${esc(data.text || "")}`);
+  overlay.appendChild(bubble);
+  // Auto-remove after 6s
+  setTimeout(() => { if (bubble.parentNode) bubble.remove(); }, 6000);
+}
+
+async function sendChat() {
+  if (!chatEnabled || chatMutedUsers[currentUser?.uid]) {
+    toast("Chat is currently disabled.");
+    return;
+  }
+  const input = $("chat-input");
+  const text  = input.value.trim();
+  if (!text || !roomId) return;
+  // Slow mode check
+  if (slowMode && !isHost) {
+    const now = Date.now();
+    if (now - _lastMsgTime < slowModeDelay) {
+      const wait = Math.ceil((slowModeDelay - (now - _lastMsgTime)) / 1000);
+      toast(`🐢 Slow mode — wait ${wait}s`);
+      return;
+    }
+  }
+  input.value = "";
+  _lastMsgTime = Date.now();
+  const payload = {
+    uid:      currentUser.uid,
+    name:     myDisplayName,
+    photoURL: myPhotoURL || null,
+    verified: myVerified || false,
+    text,
+    isHost:   isHost,
+    ts:       serverTimestamp()
+  };
+  if (_replyTo) {
+    payload.replyTo = { msgId: _replyTo.msgId, name: _replyTo.name, text: _replyTo.text };
+    clearReplyTo();
+  }
+  await addDoc(collection(db, "liveRooms", roomId, "chat"), payload);
+}
+
+function sendChatMobile() {
+  if (!chatEnabled || chatMutedUsers[currentUser?.uid]) {
+    toast("Chat is currently disabled.");
+    return;
+  }
+  const input = $("chat-input-mobile");
+  const text  = input.value.trim();
+  if (!text || !roomId) return;
+  if (slowMode && !isHost) {
+    const now = Date.now();
+    if (now - _lastMsgTime < slowModeDelay) {
+      const wait = Math.ceil((slowModeDelay - (now - _lastMsgTime)) / 1000);
+      toast(`🐢 Slow mode — wait ${wait}s`);
+      return;
+    }
+  }
+  input.value = "";
+  _lastMsgTime = Date.now();
+  const payload = {
+    uid:      currentUser.uid,
+    name:     myDisplayName,
+    photoURL: myPhotoURL || null,
+    verified: myVerified || false,
+    text,
+    isHost:   isHost,
+    ts:       serverTimestamp()
+  };
+  if (_replyTo) {
+    payload.replyTo = { msgId: _replyTo.msgId, name: _replyTo.name, text: _replyTo.text };
+    clearReplyTo();
+  }
+  addDoc(collection(db, "liveRooms", roomId, "chat"), payload);
 }
 
 function sendReaction(emoji) {
   if (!roomId) return;
   addDoc(collection(db, "liveRooms", roomId, "chat"), {
     uid: currentUser.uid, name: myDisplayName,
-    text: emoji, isReaction: true, ts: serverTimestamp()
+    text: emoji, isReaction: true,
+    photoURL: myPhotoURL || null,
+    verified: myVerified || false,
+    ts: serverTimestamp()
   });
   flyReaction(emoji);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Chat feature: Reply-to
+// ─────────────────────────────────────────────────────────────────
+function setReplyTo(ref) {
+  _replyTo = ref;
+  const previewTxt = `↩ ${ref.name}: ${ref.text}`;
+  const desktopPreview = $("chat-reply-preview");
+  const desktopText    = $("chat-reply-text");
+  if (desktopPreview && desktopText) {
+    desktopText.textContent = previewTxt;
+    desktopPreview.classList.add("visible");
+    $("chat-input")?.focus();
+  }
+  const mobilePreview = $("chat-reply-preview-mobile");
+  const mobileText    = $("chat-reply-text-mobile");
+  if (mobilePreview && mobileText) {
+    mobileText.textContent = previewTxt;
+    mobilePreview.classList.add("visible");
+    $("chat-input-mobile")?.focus();
+  }
+}
+
+function clearReplyTo() {
+  _replyTo = null;
+  $("chat-reply-preview")?.classList.remove("visible");
+  $("chat-reply-preview-mobile")?.classList.remove("visible");
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Chat feature: Delete message
+// ─────────────────────────────────────────────────────────────────
+function deleteMessage(msgId, data) {
+  if (!roomId || !msgId) return;
+  const isOwn = currentUser && data.uid === currentUser.uid;
+  if (!isOwn && !isHost) return;
+  // Soft-delete: update the message doc
+  updateDoc(doc(db, "liveRooms", roomId, "chat", msgId), { deleted: true, text: "Message deleted." }).catch(() => {});
+  // If it was pinned, unpin it
+  if (msgId === pinnedMsgId) unpinMessage();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Chat feature: Pin message (host only)
+// ─────────────────────────────────────────────────────────────────
+function pinMessage(msgId, data) {
+  if (!isHost || !roomId) return;
+  pinnedMsgId = msgId;
+  updateDoc(doc(db, "liveRooms", roomId), {
+    pinnedMsgId:     msgId,
+    pinnedMsgText:   data.text || "",
+    pinnedMsgAuthor: data.name || ""
+  }).catch(() => {});
+}
+
+function unpinMessage() {
+  if (!isHost || !roomId) return;
+  pinnedMsgId = null;
+  updateDoc(doc(db, "liveRooms", roomId), {
+    pinnedMsgId:     null,
+    pinnedMsgText:   null,
+    pinnedMsgAuthor: null
+  }).catch(() => {});
+}
+
+function scrollToPinnedMsg() {
+  if (!pinnedMsgId) return;
+  const el = document.querySelector(`.chat-msg[data-msg-id="${pinnedMsgId}"]`);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Chat feature: Host toggle chat on/off
+// ─────────────────────────────────────────────────────────────────
+function toggleChatEnabled() {
+  if (!isHost || !roomId) return;
+  chatEnabled = !chatEnabled;
+  updateDoc(doc(db, "liveRooms", roomId), { chatEnabled }).catch(() => {});
+  _syncHostChatBar();
+  _syncChatStatusBar();
+  _syncChatInputDisabled();
+  toast(chatEnabled ? "💬 Chat enabled." : "🚫 Chat disabled.");
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Chat feature: Slow mode (host only)
+// ─────────────────────────────────────────────────────────────────
+function toggleSlowMode() {
+  if (!isHost || !roomId) return;
+  slowMode = !slowMode;
+  updateDoc(doc(db, "liveRooms", roomId), { slowMode }).catch(() => {});
+  _syncHostChatBar();
+  _syncChatStatusBar();
+  toast(slowMode ? "🐢 Slow mode on (5s)." : "🐢 Slow mode off.");
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Chat feature: Mute a user from chat (host only)
+// ─────────────────────────────────────────────────────────────────
+function toggleChatMuteUser(uid, name) {
+  if (!isHost || !roomId) return;
+  const isMuted = !!chatMutedUsers[uid];
+  chatMutedUsers[uid] = !isMuted;
+  // Persist the muted map to Firestore
+  const update = {};
+  update[`chatMutedUsers.${uid}`] = !isMuted;
+  updateDoc(doc(db, "liveRooms", roomId), update).catch(() => {});
+  toast(isMuted ? `💬 ${name} can chat again.` : `🔇 ${name} muted from chat.`);
 }
 
 function flyReaction(emoji) {
@@ -1928,7 +2374,11 @@ window.switchSideTab = switchSideTab;
 // Mobile chat drawer
 // ─────────────────────────────────────────────────────────────────
 function toggleMobileChat() {
-  $("mobile-chat-drawer").classList.toggle("open");
+  const drawer  = $("mobile-chat-drawer");
+  const overlay = $("mobile-chat-overlay");
+  const isOpen  = drawer.classList.toggle("open");
+  // Hide the floating bubble overlay while drawer is open
+  if (overlay) overlay.style.display = isOpen ? "none" : "";
 }
 window.toggleMobileChat = toggleMobileChat;
 
@@ -1984,6 +2434,7 @@ async function leaveAsGuest() {
     deleteDoc(doc(db, "liveRooms", roomId, "signals",  currentUser.uid)).catch(() => {});
   }
   _unsubs.forEach(u => u()); _unsubs.length = 0;
+  _chatSettingsUnsub = null;  // allow re-registration on next live session
   hideRequestJoinBtn();
 }
 

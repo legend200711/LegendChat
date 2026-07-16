@@ -299,26 +299,154 @@ html, body {
 }
 #chat-panel.active, #requests-panel.active { display: flex; }
 
+/* ── Chat panel ── */
 #chat-messages {
   flex: 1; overflow-y: auto; padding: 10px;
-  display: flex; flex-direction: column; gap: 6px;
+  display: flex; flex-direction: column; gap: 5px;
   scrollbar-width: thin;
   scrollbar-color: rgba(0,174,239,0.2) transparent;
 }
-.chat-msg {
-  background: rgba(0,0,0,0.3); border-radius: 8px; padding: 7px 10px;
-  font-size: 13px; line-height: 1.4;
-  border: 1px solid rgba(255,255,255,0.05);
-  animation: msgIn 0.18s ease;
+
+/* ── Chat pinned message bar ── */
+#chat-pinned-bar {
+  display: none; align-items: center; gap: 8px;
+  padding: 6px 10px; flex-shrink: 0;
+  background: rgba(0,174,239,0.10);
+  border-bottom: 1px solid rgba(0,174,239,0.22);
+  font-size: 12px; color: var(--text-secondary);
+  cursor: pointer;
 }
-.chat-msg .msg-name { font-weight: 700; color: var(--neon-blue); font-size: 12px; }
-.chat-msg .msg-name.host { color: var(--neon-green); }
-.chat-msg .msg-text { color: var(--text-secondary); }
-.chat-msg.reaction-msg { background: none; border: none; font-size: 20px; text-align: center; }
+#chat-pinned-bar.visible { display: flex; }
+#chat-pinned-bar .pinned-icon { color: var(--neon-blue); font-size: 13px; flex-shrink: 0; }
+#chat-pinned-bar .pinned-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#chat-pinned-bar .pinned-close { background: none; border: none; color: var(--text-muted); font-size: 14px; cursor: pointer; flex-shrink: 0; padding: 0 2px; }
+#chat-pinned-bar .pinned-close:hover { color: #fff; }
+
+/* ── Slow-mode / chat-off banner ── */
+#chat-status-bar {
+  display: none; align-items: center; justify-content: center; gap: 6px;
+  padding: 5px 10px; flex-shrink: 0; font-size: 11px;
+  background: rgba(255,204,68,0.10);
+  border-bottom: 1px solid rgba(255,204,68,0.2);
+  color: #ffcc44;
+}
+#chat-status-bar.visible { display: flex; }
+
+/* ── Reply preview strip ── */
+#chat-reply-preview {
+  display: none; align-items: center; gap: 8px;
+  padding: 5px 10px 5px 12px;
+  background: rgba(0,174,239,0.08); border-left: 3px solid var(--neon-blue);
+  font-size: 11px; color: var(--text-muted); flex-shrink: 0;
+}
+#chat-reply-preview.visible { display: flex; }
+#chat-reply-preview .reply-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#chat-reply-preview .reply-cancel { background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; flex-shrink: 0; line-height: 1; }
+
+/* Mobile versions of same bars */
+#chat-reply-preview-mobile {
+  display: none; align-items: center; gap: 8px;
+  padding: 5px 10px 5px 12px;
+  background: rgba(0,174,239,0.08); border-left: 3px solid var(--neon-blue);
+  font-size: 11px; color: var(--text-muted); flex-shrink: 0;
+}
+#chat-reply-preview-mobile.visible { display: flex; }
+#chat-reply-preview-mobile .reply-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#chat-reply-preview-mobile .reply-cancel { background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; flex-shrink: 0; line-height: 1; }
+
+/* ── Chat message bubble (rich) ── */
+.chat-msg {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 6px 8px; border-radius: 10px;
+  font-size: 13px; line-height: 1.4;
+  background: rgba(0,0,0,0.28);
+  border: 1px solid rgba(255,255,255,0.04);
+  animation: msgIn 0.18s ease;
+  position: relative;
+}
+.chat-msg:hover { background: rgba(0,174,239,0.06); border-color: rgba(0,174,239,0.14); }
+.chat-msg:hover .msg-actions { opacity: 1; pointer-events: auto; }
+
+.msg-avatar {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(0,174,239,0.18); overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: var(--text-muted);
+  border: 1px solid rgba(0,174,239,0.2);
+  margin-top: 2px;
+}
+.msg-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+.msg-body { flex: 1; min-width: 0; }
+.msg-meta { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
+.msg-name { font-weight: 700; color: var(--neon-blue); font-size: 12px; }
+.msg-name.host { color: var(--neon-green); }
+.msg-verify { font-size: 11px; }
+.msg-time { font-size: 10px; color: var(--text-muted); margin-left: 2px; }
+.msg-text { color: var(--text-secondary); word-break: break-word; }
+.msg-pinned-tag {
+  display: inline-block; font-size: 10px; color: var(--neon-blue);
+  background: rgba(0,174,239,0.12); border-radius: 4px; padding: 0 5px;
+  margin-left: 4px; vertical-align: middle;
+}
+
+/* Reply-to quote inside a message */
+.msg-reply-quote {
+  background: rgba(0,174,239,0.08); border-left: 2px solid var(--neon-blue);
+  border-radius: 4px; padding: 3px 7px; margin-bottom: 4px;
+  font-size: 11px; color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Message action buttons (reply / delete / pin) */
+.msg-actions {
+  display: flex; gap: 2px; align-items: center;
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.15s;
+}
+.msg-action-btn {
+  background: rgba(7,20,40,0.9); border: 1px solid rgba(0,174,239,0.22);
+  color: var(--text-muted); border-radius: 6px; padding: 2px 6px;
+  font-size: 11px; cursor: pointer; touch-action: manipulation;
+  transition: background 0.12s, color 0.12s;
+}
+.msg-action-btn:hover { background: rgba(0,174,239,0.18); color: #fff; }
+.msg-action-btn.danger:hover { background: rgba(255,51,85,0.18); color: #ff5566; }
+
+.chat-msg.reaction-msg {
+  background: none; border: none; font-size: 20px; text-align: center;
+  justify-content: center; padding: 4px 0;
+}
+.chat-msg.pinned-msg {
+  background: rgba(0,174,239,0.07);
+  border-color: rgba(0,174,239,0.22);
+}
+.chat-msg.deleted-msg { opacity: 0.38; pointer-events: none; }
+.chat-msg.deleted-msg .msg-text { font-style: italic; color: var(--text-muted); }
+
 @keyframes msgIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Host chat controls bar ── */
+#host-chat-bar {
+  display: none; align-items: center; gap: 6px; flex-shrink: 0;
+  padding: 6px 8px; border-top: 1px solid rgba(0,174,239,0.1);
+  background: rgba(0,0,0,0.2);
+}
+#host-chat-bar.visible { display: flex; }
+.host-chat-btn {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text-muted); border-radius: 8px; padding: 4px 8px;
+  font-size: 11px; cursor: pointer; touch-action: manipulation;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.host-chat-btn:hover { background: rgba(0,174,239,0.15); color: #fff; }
+.host-chat-btn.active { background: rgba(255,51,85,0.18); color: #ff5566; border-color: rgba(255,51,85,0.3); }
+#slow-mode-label { font-size: 10px; color: var(--text-muted); margin-left: auto; }
 
 #chat-input-row {
   display: flex; gap: 6px; padding: 8px;
@@ -330,6 +458,7 @@ html, body {
   outline: none;
 }
 #chat-input:focus { border-color: var(--neon-blue); }
+#chat-input:disabled { opacity: 0.45; cursor: not-allowed; }
 #chat-send {
   background: var(--neon-blue); color: #000; border: none;
   border-radius: 50%; width: 36px; height: 36px; font-size: 16px;
@@ -338,6 +467,7 @@ html, body {
   transition: background 0.15s;
 }
 #chat-send:hover { background: var(--neon-cyan); }
+#chat-send:disabled { opacity: 0.45; cursor: not-allowed; }
 
 #reaction-row {
   display: flex; gap: 6px; padding: 0 8px 8px;
@@ -350,6 +480,34 @@ html, body {
   touch-action: manipulation;
 }
 .react-btn:hover { background: rgba(255,255,255,0.12); transform: scale(1.18); }
+
+/* ── Mobile chat bubble overlay (shows over video while drawer is closed) ── */
+#mobile-chat-overlay {
+  display: none; /* shown only on mobile via media query */
+  position: fixed; left: 0; right: 0;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  z-index: 145;
+  pointer-events: none;
+  padding: 0 12px;
+  max-height: 38vh;
+  overflow: hidden;
+  flex-direction: column; justify-content: flex-end; gap: 3px;
+}
+.mob-bubble {
+  background: rgba(5,12,28,0.72);
+  border-radius: 14px; padding: 5px 10px;
+  font-size: 12px; line-height: 1.4; color: #fff;
+  max-width: 78%; word-break: break-word;
+  backdrop-filter: blur(6px);
+  animation: bubbleIn 0.2s ease;
+  pointer-events: none;
+}
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.mob-bubble .mob-name { font-weight: 700; color: var(--neon-blue); font-size: 11px; }
+.mob-bubble .mob-name.host { color: var(--neon-green); }
 
 /* ── Requests panel header / settings bar ── */
 #requests-panel { padding: 0; gap: 0; overflow-y: auto; display: none; flex-direction: column; }
@@ -636,6 +794,11 @@ html, body {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   #mobile-chat-drawer.open { transform: translateY(0); }
+
+  /* Mobile transparent chat overlay — visible over video by default on mobile */
+  #mobile-chat-overlay {
+    display: flex;
+  }
 }
 
 #mobile-chat-btn {
@@ -1034,13 +1197,33 @@ html, body {
     </button>
   </div>
   <div id="chat-panel" class="active">
+    <!-- Pinned message bar -->
+    <div id="chat-pinned-bar">
+      <span class="pinned-icon">📌</span>
+      <span class="pinned-text" id="chat-pinned-text"></span>
+      <button class="pinned-close" id="chat-unpin-btn" title="Unpin">✕</button>
+    </div>
+    <!-- Slow-mode / chat-off status bar -->
+    <div id="chat-status-bar"></div>
+    <!-- Chat messages list -->
     <div id="chat-messages"></div>
+    <!-- Host chat controls bar (shown only to host) -->
+    <div id="host-chat-bar">
+      <button class="host-chat-btn" id="btn-chat-toggle" title="Turn chat on/off">💬 Chat on</button>
+      <button class="host-chat-btn" id="btn-slow-mode" title="Toggle slow mode">🐢 Slow mode</button>
+      <span id="slow-mode-label"></span>
+    </div>
     <div id="reaction-row">
       <button class="react-btn" onclick="sendReaction('❤️')">❤️</button>
       <button class="react-btn" onclick="sendReaction('🔥')">🔥</button>
       <button class="react-btn" onclick="sendReaction('🤣')">🤣</button>
       <button class="react-btn" onclick="sendReaction('👏')">👏</button>
       <button class="react-btn" onclick="sendReaction('😮')">😮</button>
+    </div>
+    <!-- Reply preview strip -->
+    <div id="chat-reply-preview">
+      <span class="reply-text" id="chat-reply-text">↩ Replying to…</span>
+      <button class="reply-cancel" id="chat-reply-cancel">✕</button>
     </div>
     <div id="chat-input-row">
       <input id="chat-input" type="text" placeholder="Say something…" maxlength="200" autocomplete="off">
@@ -1085,6 +1268,9 @@ html, body {
   </div>
 </div>
 
+<!-- ── Mobile transparent chat bubble overlay (always-on over video) ── -->
+<div id="mobile-chat-overlay"></div>
+
 <!-- ── Mobile chat button + bottom drawer ── -->
 <button id="mobile-chat-btn" onclick="toggleMobileChat()" aria-label="Open chat">💬</button>
 <div id="mobile-chat-drawer">
@@ -1101,6 +1287,11 @@ html, body {
     <button class="react-btn" onclick="sendReaction('🤣')">🤣</button>
     <button class="react-btn" onclick="sendReaction('👏')">👏</button>
     <button class="react-btn" onclick="sendReaction('😮')">😮</button>
+  </div>
+  <!-- Mobile reply preview -->
+  <div id="chat-reply-preview-mobile">
+    <span class="reply-text" id="chat-reply-text-mobile">↩ Replying to…</span>
+    <button class="reply-cancel" id="chat-reply-cancel-mobile">✕</button>
   </div>
   <div id="chat-input-row-mobile" style="display:flex;gap:6px;padding:8px;border-top:1px solid rgba(0,174,239,0.12);">
     <input id="chat-input-mobile" type="text" placeholder="Say something…" maxlength="200" autocomplete="off"

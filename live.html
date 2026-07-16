@@ -49,14 +49,27 @@ html, body {
 #video-grid {
   position: fixed; inset: 0; z-index: 0;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: repeat(4, 1fr);
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
   gap: 3px;
   background: #000;
   overflow: hidden;
 }
 
-/* Desktop: host box spans full left column */
+/* ── Dynamic grid layout classes (set by applyGridLayout) ── */
+#video-grid.grid-1 { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+#video-grid.grid-2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
+#video-grid.grid-3,
+#video-grid.grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+#video-grid.grid-5,
+#video-grid.grid-6 { grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 1fr); }
+#video-grid.grid-7,
+#video-grid.grid-8 { grid-template-columns: 1fr 1fr; grid-template-rows: repeat(4, 1fr); }
+
+/* Empty slots are always hidden */
+.video-box.empty-slot { display: none !important; }
+
+/* ── Video box ── */
 .video-box {
   position: relative;
   background: var(--bg-deep);
@@ -64,6 +77,11 @@ html, body {
   overflow: hidden;
   transition: border-color 0.2s;
   touch-action: manipulation;
+  animation: boxIn 0.28s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes boxIn {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
 }
 .video-box.speaking {
   border-color: var(--neon-green);
@@ -127,12 +145,9 @@ html, body {
 }
 .cam-placeholder-name { font-size: 12px; color: var(--text-muted); }
 
-/* Empty slot */
-.video-box.empty-slot {
-  border: 1px dashed rgba(0,174,239,0.12);
-  display: flex; align-items: center; justify-content: center;
-}
-.empty-slot-label { font-size: 12px; color: rgba(255,255,255,0.14); }
+/* Empty slot — hidden; kept for legacy compat but never shown */
+.video-box.empty-slot { display: none; }
+.empty-slot-label { display: none; }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    FULLSCREEN HUD — all overlaid on the video grid
@@ -397,11 +412,51 @@ html, body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ── Request to Join button (viewers) ── */
+#request-join-btn {
+  position: fixed;
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  left: 50%; transform: translateX(-50%);
+  z-index: 210;
+  display: none;
+  background: var(--neon-blue); color: #000;
+  border: none; border-radius: 24px;
+  padding: 12px 28px; font-size: 14px; font-weight: 800;
+  cursor: pointer; white-space: nowrap;
+  box-shadow: var(--blue-glow-md);
+  touch-action: manipulation;
+  transition: background 0.15s, transform 0.12s;
+}
+#request-join-btn:active { transform: translateX(-50%) scale(0.96); }
+#request-join-btn.visible { display: block; }
+#request-join-btn.waiting {
+  background: rgba(0,174,239,0.2); color: var(--neon-blue);
+  border: 1px solid rgba(0,174,239,0.4);
+  box-shadow: none; cursor: default; pointer-events: none;
+}
+
+/* ── Tap-to-enlarge box (mobile) ── */
+.video-box.expanded {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 100 !important;
+  border-radius: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 /* ── Mobile active-speaker layout ── */
 @media (max-width: 700px) {
   #side-panel { display: none; }
 
-  #video-grid {
+  /* All multi-person grids: single column stacked on mobile */
+  #video-grid.grid-2,
+  #video-grid.grid-3,
+  #video-grid.grid-4,
+  #video-grid.grid-5,
+  #video-grid.grid-6,
+  #video-grid.grid-7,
+  #video-grid.grid-8 {
     grid-template-columns: 1fr;
     grid-template-rows: auto;
   }
@@ -618,9 +673,9 @@ html, body {
   50%     { box-shadow: 0 0 0 4px rgba(57,255,20,0); }
 }
 
-/* Smooth box transition on mobile tap-to-enlarge */
+/* Smooth box transition override (also adds grid position transitions) */
 .video-box {
-  transition: border-color 0.2s, grid-row 0.3s, grid-column 0.3s;
+  transition: border-color 0.2s, opacity 0.2s, transform 0.2s, grid-row 0.3s, grid-column 0.3s;
 }
 
 /* ── End Live Confirmation Modal ── */
@@ -678,6 +733,9 @@ html, body {
 
 <!-- ── Exit Live button (always-accessible red X) ── -->
 <button id="btnExitLive" aria-label="Exit Live">✕</button>
+
+<!-- ── Request to Join button (shown to viewers who haven't requested yet) ── -->
+<button id="request-join-btn" aria-label="Request to join Live">➕ Request to Join</button>
 
 <!-- ── Reconnecting banner ── -->
 <div id="reconnect-banner">⚡ Connection lost. Reconnecting…</div>

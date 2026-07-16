@@ -222,146 +222,193 @@ function initUI() {
     if (params.get("host") === "1") {
       startAsHost(code);
     } else {
-      // Guest arriving from the Feed — auto-request to join, no code screen shown
-      requestToJoin(code);
+      // Viewer arriving from the Feed — enter as viewer and show "Request to Join"
+      enterAsViewer(code);
     }
   }
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Build 8 video boxes in the grid
+// Viewer enters a live room from the Feed — watches without a box
+// until they tap "Request to Join"
+// ─────────────────────────────────────────────────────────────────
+async function enterAsViewer(code) {
+  roomId = code;
+  liveActive = true;
+  $("roomTitle").textContent = `🔴 Live`;
+  hideAll();
+  showCtrlBar();
+  // Hide host-only controls
+  $("btnGoLive").style.display  = "none";
+  $("btnEndLive").style.display = "none";
+  setupRTDB();
+  listenViewerCount();
+  listenChat();
+  listenForHostCommands();
+  // Show the "Request to Join" button so the viewer can request a box
+  showRequestJoinBtn();
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Build video grid — only creates the host box at start; guest boxes
+// are added dynamically as guests are accepted.
 // ─────────────────────────────────────────────────────────────────
 function buildVideoGrid() {
   const grid = $("video-grid");
   grid.innerHTML = "";
-  // ctrl-bar is now a sibling of video-grid in the body; no re-injection needed
-  for (let i = 0; i < 8; i++) {
-    const box = el("div", `video-box empty-slot${i === 0 ? " host-box" : ""}`, "");
-    box.dataset.slot  = i;
-    box.dataset.uid   = "";
+  // Remove all layout classes
+  grid.className = "grid-1";
+}
 
-    // Video element
-    const vid = document.createElement("video");
-    vid.autoplay    = true;
-    vid.playsInline = true;
-    vid.muted       = (i === 0); // mute local playback to avoid echo
-    box.appendChild(vid);
+// ─────────────────────────────────────────────────────────────────
+// Create a fully-wired video box element (used by assignSlot)
+// ─────────────────────────────────────────────────────────────────
+function makeVideoBox(uid, displayName, isHostBox, muteLocal) {
+  const box = el("div", `video-box${isHostBox ? " host-box" : ""}`, "");
+  box.dataset.uid = uid;
 
-    // Cam-off placeholder
-    const ph = el("div", "cam-placeholder",
-      `<div class="cam-placeholder-avatar">🌑</div><div class="cam-placeholder-name">—</div>`);
-    box.appendChild(ph);
+  // Video element
+  const vid = document.createElement("video");
+  vid.autoplay    = true;
+  vid.playsInline = true;
+  vid.muted       = !!muteLocal; // mute own preview to avoid echo
+  box.appendChild(vid);
 
-    // Error overlay — shown when cam/mic fails or connection is totally lost
-    const errOv = el("div", "box-error-overlay",
-      `<div class="box-error-icon">⚠️</div><div class="box-error-msg">No video</div>`);
-    box.appendChild(errOv);
+  // Cam-off placeholder
+  const ph = el("div", "cam-placeholder",
+    `<div class="cam-placeholder-avatar">🌑</div><div class="cam-placeholder-name">${esc(displayName)}</div>`);
+  box.appendChild(ph);
 
-    // Reconnecting overlay — per-box spinner shown during ICE restart
-    const reconOv = el("div", "box-reconnect-overlay",
-      `<div class="box-recon-spinner"></div><div class="box-recon-msg">Reconnecting…</div>`);
-    box.appendChild(reconOv);
+  // Error overlay
+  const errOv = el("div", "box-error-overlay",
+    `<div class="box-error-icon">⚠️</div><div class="box-error-msg">No video</div>`);
+  box.appendChild(errOv);
 
-    // Overlay (name / badges)
-    const ov = el("div", "box-overlay",
-      `<div class="box-badges"></div>
-       <div class="box-host-tag" style="display:none;">HOST</div>
-       <div class="box-name">Empty</div>`
-    );
-    box.appendChild(ov);
+  // Reconnecting overlay
+  const reconOv = el("div", "box-reconnect-overlay",
+    `<div class="box-recon-spinner"></div><div class="box-recon-msg">Reconnecting…</div>`);
+  box.appendChild(reconOv);
 
-    // Connection status indicator
-    const statusBar = el("div", "box-status-bar",
-      `<span class="box-conn-dot good"></span><span class="box-conn-label">Good</span>`);
-    box.appendChild(statusBar);
+  // Name / badge overlay
+  const ov = el("div", "box-overlay",
+    `<div class="box-badges"></div>
+     <div class="box-host-tag" style="${isHostBox ? "" : "display:none;"}">HOST</div>
+     <div class="box-name">${esc(displayName)}</div>`);
+  box.appendChild(ov);
 
-    // Per-box control buttons
-    const boxCtrls = el("div", "box-controls", "");
-    const btnRefresh = el("button", "box-ctrl-btn", "🔄");
-    btnRefresh.title = "Refresh box";
-    btnRefresh.addEventListener("click", e => { e.stopPropagation(); refreshBox(box.dataset.uid, box); });
+  // Connection status bar
+  const statusBar = el("div", "box-status-bar",
+    `<span class="box-conn-dot good"></span><span class="box-conn-label">Good</span>`);
+  box.appendChild(statusBar);
 
-    const btnBoxMute = el("button", "box-ctrl-btn", "🎤");
-    btnBoxMute.title = "Mute/Unmute";
-    btnBoxMute.addEventListener("click", e => { e.stopPropagation(); toggleBoxMute(box.dataset.uid, btnBoxMute); });
+  // Per-box control buttons
+  const boxCtrls = el("div", "box-controls", "");
+  const btnRefresh = el("button", "box-ctrl-btn", "🔄");
+  btnRefresh.title = "Refresh box";
+  btnRefresh.addEventListener("click", e => { e.stopPropagation(); refreshBox(box.dataset.uid, box); });
 
-    const btnBoxCam = el("button", "box-ctrl-btn", "📷");
-    btnBoxCam.title = "Restart camera";
-    btnBoxCam.addEventListener("click", e => { e.stopPropagation(); restartBoxCam(box.dataset.uid); });
+  const btnBoxMute = el("button", "box-ctrl-btn", "🎤");
+  btnBoxMute.title = "Mute/Unmute";
+  btnBoxMute.addEventListener("click", e => { e.stopPropagation(); toggleBoxMute(box.dataset.uid, btnBoxMute); });
 
-    const btnBoxRemove = el("button", "box-ctrl-btn box-ctrl-remove", "❌");
-    btnBoxRemove.title = "Remove guest (host only)";
-    btnBoxRemove.addEventListener("click", e => { e.stopPropagation(); removeBoxGuest(box.dataset.uid); });
+  const btnBoxCam = el("button", "box-ctrl-btn", "📷");
+  btnBoxCam.title = "Restart camera";
+  btnBoxCam.addEventListener("click", e => { e.stopPropagation(); restartBoxCam(box.dataset.uid); });
 
-    boxCtrls.appendChild(btnRefresh);
-    boxCtrls.appendChild(btnBoxMute);
-    boxCtrls.appendChild(btnBoxCam);
-    boxCtrls.appendChild(btnBoxRemove);
-    box.appendChild(boxCtrls);
+  const btnBoxRemove = el("button", "box-ctrl-btn box-ctrl-remove", "❌");
+  btnBoxRemove.title = "Remove guest (host only)";
+  btnBoxRemove.addEventListener("click", e => { e.stopPropagation(); removeBoxGuest(box.dataset.uid); });
 
-    // Quality dot (legacy, kept for compat)
-    const qd = el("div", "quality-dot good");
-    box.appendChild(qd);
+  // Hide remove button on host's own box
+  if (isHostBox) btnBoxRemove.style.display = "none";
 
-    // Empty label
-    const lbl = el("div", "empty-slot-label", "Empty slot");
-    box.appendChild(lbl);
+  boxCtrls.appendChild(btnRefresh);
+  boxCtrls.appendChild(btnBoxMute);
+  boxCtrls.appendChild(btnBoxCam);
+  boxCtrls.appendChild(btnBoxRemove);
+  box.appendChild(boxCtrls);
 
-    // Long-press / right-click for host context menu
-    addContextMenuTrigger(box);
+  // Quality dot
+  const qd = el("div", "quality-dot good");
+  box.appendChild(qd);
 
-    grid.appendChild(box);
+  // Mobile tap-to-enlarge
+  if (isMobile()) {
+    box.addEventListener("click", e => {
+      if (e.target.closest(".box-controls")) return; // don't expand when tapping controls
+      if (box.classList.contains("expanded")) {
+        box.classList.remove("expanded");
+      } else {
+        // Collapse any other expanded box first
+        document.querySelectorAll(".video-box.expanded").forEach(b => b.classList.remove("expanded"));
+        box.classList.add("expanded");
+      }
+    });
   }
 
-  // ctrl-bar is a fixed-position element in the body — no DOM injection required
+  // Long-press / right-click for host context menu
+  addContextMenuTrigger(box);
+
+  return box;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Update CSS grid class based on active participant count
+// ─────────────────────────────────────────────────────────────────
+function applyGridLayout() {
+  const grid = $("video-grid");
+  const count = grid.querySelectorAll(".video-box:not(.empty-slot)").length;
+  const n = Math.max(1, Math.min(count, 8));
+  grid.className = `grid-${n}`;
 }
 
 // ─────────────────────────────────────────────────────────────────
 // Slot helpers
 // ─────────────────────────────────────────────────────────────────
 function slotFor(uid) {
-  return document.querySelector(`.video-box[data-uid="${uid}"]`);
-}
-function nextEmptySlot() {
-  return document.querySelector('.video-box[data-uid=""]');
+  return document.querySelector(`.video-box[data-uid="${CSS.escape(uid)}"]`);
 }
 function assignSlot(uid, displayName, stream, isHostSlot) {
-  const slot = isHostSlot
-    ? document.querySelector('.video-box.host-box')
-    : nextEmptySlot();
-  if (!slot) return null;
-
-  slot.dataset.uid = uid;
+  // Reuse existing slot if the uid is already present
+  let slot = slotFor(uid);
+  if (!slot) {
+    // Create a new box — mute local preview (host slot or own guest slot)
+    const muteLocal = isHostSlot || (currentUser && uid === currentUser.uid);
+    slot = makeVideoBox(uid, displayName, !!isHostSlot, muteLocal);
+    $("video-grid").appendChild(slot);
+  }
   slot.classList.remove("empty-slot", "box-error");
 
   const vid  = slot.querySelector("video");
   const name = slot.querySelector(".box-name");
-  const tag  = slot.querySelector(".box-host-tag");
-  const lbl  = slot.querySelector(".empty-slot-label");
 
   if (stream) { vid.srcObject = stream; vid.play().catch(() => {}); }
   name.textContent = displayName;
-  if (isHostSlot) tag.style.display = "block";
-  if (lbl) lbl.style.display = "none";
-
   slot.querySelector(".cam-placeholder-name").textContent = displayName;
   setBoxStatus(slot, "good");
+  applyGridLayout();
   return slot;
 }
 
 function clearSlot(uid) {
   const slot = slotFor(uid);
   if (!slot) return;
-  const vid  = slot.querySelector("video");
+  // Don't remove the host's own box — it persists for the duration of the stream
+  const isMyHostBox = slot.classList.contains("host-box") && isHost && uid === currentUser?.uid;
+  const vid = slot.querySelector("video");
   vid.srcObject = null;
-  slot.dataset.uid = "";
-  slot.classList.add("empty-slot");
-  slot.classList.remove("cam-off", "speaking", "box-reconnecting", "box-error");
-  slot.querySelector(".box-name").textContent = "Empty";
-  slot.querySelector(".box-host-tag").style.display = "none";
-  slot.querySelector(".empty-slot-label").style.display = "";
-  slot.querySelector(".cam-placeholder-name").textContent = "—";
-  setBoxStatus(slot, "good");
+  if (isMyHostBox) {
+    // Just clear the stream, keep the box
+    return;
+  }
+  // Animate out then remove
+  slot.style.transition = "opacity 0.2s, transform 0.2s";
+  slot.style.opacity    = "0";
+  slot.style.transform  = "scale(0.88)";
+  setTimeout(() => {
+    slot.remove();
+    applyGridLayout();
+  }, 210);
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -528,6 +575,9 @@ function attachButtonHandlers() {
   $("chat-send").onclick        = sendChat;
   $("chat-input").addEventListener("keydown", e => { if (e.key === "Enter") sendChat(); });
 
+  // Request to Join button (viewer flow)
+  $("request-join-btn").onclick = handleRequestToJoin;
+
   // Dismiss context menu on outside click
   document.addEventListener("click", e => {
     if (!e.target.closest("#guest-ctx-menu")) hideCtxMenu();
@@ -545,10 +595,41 @@ function attachKeyboardHandlers() {
 // ─────────────────────────────────────────────────────────────────
 // Overlay helpers
 // ─────────────────────────────────────────────────────────────────
-function showLobby()      { hideAll(); $("lobby-overlay").classList.remove("hidden"); }
+function showLobby()      { hideAll(); $("lobby-overlay").classList.remove("hidden"); hideRequestJoinBtn(); }
 function showJoinOverlay(){ hideAll(); $("join-overlay").classList.remove("hidden"); }
 function hideOverlay(id)  { $(id).classList.add("hidden"); }
 function hideAll()        { ["lobby-overlay","join-overlay","waiting-overlay"].forEach(hideOverlay); }
+
+// ─────────────────────────────────────────────────────────────────
+// Request to Join button helpers (shown to viewers watching the live)
+// ─────────────────────────────────────────────────────────────────
+function showRequestJoinBtn() {
+  const btn = $("request-join-btn");
+  if (!btn || isHost) return;
+  btn.textContent = "➕ Request to Join";
+  btn.classList.remove("waiting");
+  btn.classList.add("visible");
+}
+function hideRequestJoinBtn() {
+  $("request-join-btn")?.classList.remove("visible", "waiting");
+}
+function setRequestJoinWaiting() {
+  const btn = $("request-join-btn");
+  if (!btn) return;
+  btn.textContent = "⏳ Waiting for host…";
+  btn.classList.add("waiting");
+}
+
+// Handle viewer tapping "Request to Join"
+function handleRequestToJoin() {
+  if (!roomId || isHost || !liveActive) return;
+  const btn = $("request-join-btn");
+  if (btn?.classList.contains("waiting")) return;
+  // Show waiting-overlay and submit request (reuse existing requestToJoin flow)
+  hideRequestJoinBtn();
+  // Already watching as viewer — re-use the requestToJoin path
+  requestToJoin(roomId);
+}
 
 // ─────────────────────────────────────────────────────────────────
 // Generate a random 6-char room code
@@ -624,6 +705,7 @@ async function endLive() {
   $("btnGoLive").style.display  = "";
   $("btnEndLive").style.display = "none";
   $("btnExitLive").classList.remove("visible");
+  hideRequestJoinBtn();
   exitFullscreen();
   buildVideoGrid();
   showLobby();
@@ -640,20 +722,33 @@ function handleJoinConfirm() {
 }
 
 async function requestToJoin(code) {
+  const alreadyViewing = liveActive && roomId === code;
   roomId = code;
   $("roomTitle").textContent = `🔴 Live`;
-  hideAll();
-  $("waiting-overlay").classList.remove("hidden");
-  $("waitingSub").textContent = `Waiting for host approval…`;
+
+  if (alreadyViewing) {
+    // Viewer is already watching — show in-page waiting state instead of full overlay
+    setRequestJoinWaiting();
+    toast("⏳ Requesting to join… waiting for host.");
+  } else {
+    hideAll();
+    $("waiting-overlay").classList.remove("hidden");
+    $("waitingSub").textContent = `Waiting for host approval…`;
+  }
 
   try {
-    await acquireLocalStream();
+    if (!localStream) await acquireLocalStream();
   } catch (e) {
-    // Show clear error, stay on waiting screen
-    $("waitingSub").textContent = getMediaErrorMessage(e);
+    if (alreadyViewing) {
+      showRequestJoinBtn();
+      toast(getMediaErrorMessage(e));
+    } else {
+      $("waitingSub").textContent = getMediaErrorMessage(e);
+    }
     return;
   }
-  setupRTDB();
+
+  if (!alreadyViewing) setupRTDB();
 
   await setDoc(doc(db, "liveRooms", roomId, "requests", currentUser.uid), {
     uid:         currentUser.uid,
@@ -662,20 +757,25 @@ async function requestToJoin(code) {
     requestedAt: serverTimestamp()
   });
 
-  const reqRef   = doc(db, "liveRooms", roomId, "requests", currentUser.uid);
-  const unsub    = onSnapshot(reqRef, snap => {
+  const reqRef = doc(db, "liveRooms", roomId, "requests", currentUser.uid);
+  const unsub  = onSnapshot(reqRef, snap => {
     if (!snap.exists()) return;
     const status = snap.data().status;
     if (status === "accepted") {
       unsub();
-      hideOverlay("waiting-overlay");
+      if (!alreadyViewing) hideOverlay("waiting-overlay");
       joinAsGuest();
     } else if (status === "denied") {
       unsub();
       localStream?.getTracks().forEach(t => t.stop());
       localStream = null;
-      showLobby();
-      toast("Host denied your request.");
+      if (alreadyViewing) {
+        showRequestJoinBtn();
+        toast("❌ Host declined your request.");
+      } else {
+        showLobby();
+        toast("Host denied your request.");
+      }
     }
   });
   _unsubs.push(unsub);
@@ -693,10 +793,11 @@ async function cancelJoinRequest() {
 
 async function joinAsGuest() {
   liveActive = true;
+  hideRequestJoinBtn();
   assignSlot(currentUser.uid, myDisplayName + " (you)", localStream, false);
   showCtrlBar();
   await initiateGuestPeerConnection(currentUser.uid);
-  listenViewerCount();
+  if (!$("viewer-count").style.display || $("viewer-count").style.display === "none") listenViewerCount();
   listenChat();
   listenForHostCommands();
   startGuestConnectionMonitor();
@@ -811,6 +912,39 @@ function renderJoinRequest(req) {
   card.querySelector(".req-accept").onclick = () => acceptGuest(req);
   card.querySelector(".req-deny").onclick   = () => denyGuest(req.uid);
   panel.appendChild(card);
+
+  // On mobile the side panel is hidden — show a persistent toast with quick actions
+  if (isMobile()) {
+    showJoinRequestToast(req);
+  }
+}
+
+// Mobile-only: shows a toast with Accept/Deny inline so host can act without opening the drawer
+function showJoinRequestToast(req) {
+  const existing = document.getElementById("join-req-toast");
+  if (existing) existing.remove();
+
+  const t = el("div", "", "");
+  t.id = "join-req-toast";
+  t.style.cssText = `
+    position:fixed; bottom:calc(104px + env(safe-area-inset-bottom,0px));
+    left:50%; transform:translateX(-50%);
+    background:rgba(5,12,28,0.97); border:1px solid rgba(0,174,239,0.45);
+    color:#fff; font-size:13px; padding:10px 14px; border-radius:14px;
+    z-index:750; display:flex; align-items:center; gap:10px;
+    box-shadow:0 4px 24px rgba(0,0,0,0.7); backdrop-filter:blur(10px);
+    white-space:nowrap; animation:msgIn 0.18s ease;
+  `;
+  t.innerHTML = `
+    <span>👤 <b>${esc(req.displayName)}</b> wants to join</span>
+    <button id="jrt-accept" style="background:var(--neon-green);color:#000;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:800;cursor:pointer;">✓</button>
+    <button id="jrt-deny"   style="background:rgba(255,51,85,0.2);color:#ff5566;border:1px solid rgba(255,51,85,0.3);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;">✕</button>
+  `;
+  t.querySelector("#jrt-accept").onclick = () => { acceptGuest(req); t.remove(); };
+  t.querySelector("#jrt-deny").onclick   = () => { denyGuest(req.uid); t.remove(); };
+  document.body.appendChild(t);
+  // Auto-dismiss after 12 s if host doesn't interact
+  setTimeout(() => t.remove(), 12000);
 }
 
 function removeRequestCard(uid) {
@@ -1558,7 +1692,16 @@ function showCtrlBar() {
 async function handleBack() {
   if (liveActive) {
     if (!confirm("Leave the Live?")) return;
-    if (isHost) await endLive(); else await leaveAsGuest();
+    if (isHost) {
+      await endLive();
+    } else {
+      await leaveAsGuest();
+      liveActive = false;
+      $("ctrl-bar").classList.remove("visible");
+      $("btnExitLive").classList.remove("visible");
+      if (isMobile()) $("mobile-chat-btn").style.display = "none";
+      buildVideoGrid();
+    }
   }
   exitFullscreen();
   // Use history.back() if we came from the Feed so state is preserved;
@@ -1583,6 +1726,7 @@ async function leaveAsGuest() {
     deleteDoc(doc(db, "liveRooms", roomId, "signals",  currentUser.uid)).catch(() => {});
   }
   _unsubs.forEach(u => u()); _unsubs.length = 0;
+  hideRequestJoinBtn();
 }
 
 // ─────────────────────────────────────────────────────────────────

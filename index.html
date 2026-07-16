@@ -19640,9 +19640,13 @@ window.lvSendReaction = async function() {
 window.endLiveStream = async function() {
     if (!SNX_STORY.liveDocId) return;
     if (!confirm('End your live stream?')) return;
+    const docId = SNX_STORY.liveDocId;
     try {
-        const { db, doc, updateDoc } = _db();
-        await updateDoc(doc(db, 'stories', SNX_STORY.liveDocId), { liveActive: false });
+        const { db, doc, updateDoc, serverTimestamp } = _db();
+        // Mark ended in stories (removes Feed bubble for everyone) and in liveRooms
+        await updateDoc(doc(db, 'stories', docId), { liveActive: false, endedAt: serverTimestamp() });
+        // Best-effort: mark liveRooms doc as ended so live.js viewers get notified
+        updateDoc(doc(db, 'liveRooms', docId), { live: false, endedAt: serverTimestamp() }).catch(() => {});
     } catch(_) {}
     closeLiveStreamViewer();
     _stopLiveStream();

@@ -113,6 +113,12 @@ let currentQuality  = "HIGH";
 let _networkTier    = "HIGH";   // derived from navigator.connection
 let _connMonInterval = null;    // heartbeat for self-recovery (guest)
 
+// ── Replay / Recording state ──
+let _mediaRecorder   = null;   // MediaRecorder instance (host only)
+let _recordedChunks  = [];     // collected Blob chunks
+let _recordingStart  = 0;      // Date.now() when recording started
+let _replayBlob      = null;   // final Blob after recording stops
+
 // ── Join-request gating (host-side) ──
 let requestsOpen    = true;          // host can close/open requests
 let requestAllowMode = "everyone";   // "everyone"|"followers"|"friends"|"family"
@@ -626,9 +632,20 @@ function attachButtonHandlers() {
   $("btnCam").onclick           = toggleCam;
   $("btnFlip").onclick          = flipCamera;
   $("btnLock").onclick          = toggleLock;
+
   // End Live confirmation modal buttons
   $("elcBtnEnd").onclick        = async () => { $("endLiveConfirm").classList.remove("open"); await endLive(); };
   $("elcBtnCancel").onclick     = () => { $("endLiveConfirm").classList.remove("open"); };
+
+  // Replay modal buttons (host post-live choices)
+  $("replayBtnSave")?.addEventListener("click",    handleReplaySave);
+  $("replayBtnPost")?.addEventListener("click",    handleReplayPost);
+  $("replayBtnDiscard")?.addEventListener("click", handleReplayDiscard);
+
+  // Leave confirm overlay (viewer / guest exit — no browser confirm())
+  $("leaveBtnYes")?.addEventListener("click", confirmLeave);
+  $("leaveBtnNo")?.addEventListener("click",  () => $("leaveConfirm").classList.remove("open"));
+
   $("btnHostRoom").onclick      = () => startAsHost();
   // btnJoinRoom removed — public discovery is via the Feed
   $("btnBackHome").onclick      = () => {
@@ -859,6 +876,8 @@ async function handleGoLive() {
   listenViewerCount();
   _showHostRequestControls();
   markPresenceLive(roomId);
+  // Start recording the host's local stream
+  _startRecording();
   toast("🔴 You are now Live! Your followers can see you on their Feed.");
 }
 
@@ -867,39 +886,241 @@ function handleEndLive() {
   $("endLiveConfirm").classList.add("open");
 }
 
+// Guard to prevent double-navigation if both "liveEnded" command and
+// live:false room doc change fire in the same session.
+let _liveEndNavigating = false;
+
+// ─────────────────────────────────────────────────────────────────
+// MediaRecorder helpers — record host's local stream for replay
+// ─────────────────────────────────────────────────────────────────
+function _startRecording() {
+  if (!localStream || !window.MediaRecorder) return;
+  _recordedChunks = [];
+  _replayBlob     = null;
+  _recordingStart = Date.now();
+  try {
+    // Prefer a format the browser supports; fall back to default
+    const mimeType = [
+      "video/webm;codecs=vp9,opus",
+      "video/webm;codecs=vp8,opus",
+      "video/webm",
+      "video/mp4",
+    ].find(m => MediaRecorder.isTypeSupported(m)) || "";
+    _mediaRecorder = new MediaRecorder(localStream, mimeType ? { mimeType } : {});
+    _mediaRecorder.ondataavailable = e => {
+      if (e.data && e.data.size > 0) _recordedChunks.push(e.data);
+    };
+    _mediaRecorder.start(1000); // collect a chunk every second
+  } catch (_) {
+    _mediaRecorder = null; // recording not supported — silently skip
+  }
+}
+
+function _stopRecording() {
+  return new Promise(resolve => {
+    if (!_mediaRecorder || _mediaRecorder.state === "inactive") {
+      resolve(null); return;
+    }
+    _mediaRecorder.onstop = () => {
+      const mimeType = _mediaRecorder.mimeType || "video/webm";
+      _replayBlob = _recordedChunks.length
+        ? new Blob(_recordedChunks, { type: mimeType })
+        : null;
+      _mediaRecorder = null;
+      resolve(_replayBlob);
+    };
+    _mediaRecorder.stop();
+  });
+}
+
+function _fmtDuration(ms) {
+  const s  = Math.floor(ms / 1000);
+  const m  = Math.floor(s / 60);
+  const h  = Math.floor(m / 60);
+  const ss = String(s % 60).padStart(2, "0");
+  const mm = String(m % 60).padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Replay modal helpers
+// ─────────────────────────────────────────────────────────────────
+function _showReplayModal() {
+  const dur = $("replayDuration");
+  if (dur) {
+    const elapsed = _recordingStart ? Date.now() - _recordingStart : 0;
+    if (elapsed > 0) {
+      dur.textContent = `⏱ Duration: ${_fmtDuration(elapsed)}`;
+      dur.classList.add("visible");
+    } else {
+      dur.classList.remove("visible");
+    }
+  }
+  // Enable / disable Save & Post based on whether we have a recording
+  const hasBlobOrRecording = _replayBlob || (_recordedChunks.length > 0);
+  $("replayBtnSave").classList.toggle("disabled", !hasBlobOrRecording);
+  $("replayBtnPost").classList.toggle("disabled", !hasBlobOrRecording);
+
+  $("replayModal").classList.add("open");
+}
+
+function _closeReplayModal() {
+  $("replayModal").classList.remove("open");
+  _replayBlob     = null;
+  _recordedChunks = [];
+}
+
+async function handleReplaySave() {
+  if (!_replayBlob) { _replayToFeed(); return; }
+  const btn = $("replayBtnSave");
+  const sp  = $("replaySaveSpinner");
+  btn.classList.add("disabled");
+  if (sp) sp.classList.add("visible");
+  try {
+    // Trigger a browser download so it's saved to the device
+    const url = URL.createObjectURL(_replayBlob);
+    const a   = document.createElement("a");
+    const ext = _replayBlob.type.includes("mp4") ? "mp4" : "webm";
+    a.href     = url;
+    a.download = `shadow-nexus-live-${Date.now()}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    toast("✅ Replay saved to your device.");
+    await new Promise(r => setTimeout(r, 800));
+  } catch (e) {
+    toast("⚠️ Could not save replay: " + (e.message || e));
+  }
+  _closeReplayModal();
+  _replayToFeed();
+}
+
+async function handleReplayPost() {
+  if (!_replayBlob) { _replayToFeed(); return; }
+  const btn = $("replayBtnPost");
+  const sp  = $("replayPostSpinner");
+  btn.classList.add("disabled");
+  $("replayBtnSave").classList.add("disabled");
+  $("replayBtnDiscard").classList.add("disabled");
+  if (sp) sp.classList.add("visible");
+  toast("📤 Uploading replay…");
+  try {
+    // Upload to the Cloudflare R2 worker the project already uses
+    const ext      = _replayBlob.type.includes("mp4") ? "mp4" : "webm";
+    const fileName = `replays/${currentUser.uid}_${Date.now()}.${ext}`;
+    const resp     = await fetch("https://upload.shadow-nexus.workers.dev/upload", {
+      method: "POST",
+      headers: {
+        "Content-Type": _replayBlob.type || "video/webm",
+        "X-File-Name":  fileName,
+      },
+      body: _replayBlob,
+    });
+    if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
+    const { url: videoUrl } = await resp.json();
+
+    // Create a Firestore post doc so it appears in the Feed
+    const elapsed = _recordingStart ? Date.now() - _recordingStart : 0;
+    await addDoc(collection(db, "posts"), {
+      uid:          currentUser.uid,
+      displayName:  myDisplayName,
+      photoURL:     myPhotoURL || "",
+      type:         "video",
+      mediaUrl:     videoUrl,
+      text:         `🔴 Live Replay — ${_fmtDuration(elapsed)}`,
+      isReplay:     true,
+      privacy:      "public",
+      likes:        [],
+      comments:     [],
+      createdAt:    serverTimestamp(),
+    });
+    toast("✅ Replay posted to the Feed!");
+    await new Promise(r => setTimeout(r, 1000));
+  } catch (e) {
+    toast("⚠️ Could not post replay: " + (e.message || e));
+    // Re-enable buttons so host can try again or discard
+    btn.classList.remove("disabled");
+    $("replayBtnSave").classList.remove("disabled");
+    $("replayBtnDiscard").classList.remove("disabled");
+    if (sp) sp.classList.remove("visible");
+    return; // stay on the modal — don't navigate away on error
+  }
+  _closeReplayModal();
+  _replayToFeed();
+}
+
+function handleReplayDiscard() {
+  _closeReplayModal();
+  _replayToFeed();
+}
+
+function _replayToFeed() {
+  // Return to the Feed — no hard reload, session stays active
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    window.location.replace("index.html");
+  }
+}
+
 async function endLive() {
   liveActive = false;
   stopGuestConnectionMonitor();
-  Object.keys(guests).forEach(uid => closePeer(uid));
+
+  // ── 1. Stop recording — collect the final blob before closing streams ──
+  const blob = await _stopRecording();
+  if (blob) _replayBlob = blob;
+
+  // ── 2. Notify every connected guest that the stream has ended ──
+  const guestUids = Object.keys(guests);
+  await Promise.all(guestUids.map(uid =>
+    setDoc(doc(db, "liveRooms", roomId, "commands", uid), { cmd: "liveEnded" }).catch(() => {})
+  ));
+
+  // ── 3. Close all peer connections ──
+  guestUids.forEach(uid => closePeer(uid));
+
   if (roomId) {
-    // Mark live ended in the liveRooms collection
+    // ── 4a. Mark live ended in Firestore liveRooms (viewers on live.js detect this) ──
     try { await updateDoc(doc(db, "liveRooms", roomId), { live: false, endedAt: serverTimestamp() }); }
     catch (_) { /* best-effort */ }
-    // Mark liveActive:false so the Feed bubble disappears immediately for all users
-    try { await updateDoc(doc(db, "stories", roomId), { liveActive: false }); }
+    // ── 4b. Mark liveActive:false in stories so the Feed bubble disappears for everyone ──
+    try { await updateDoc(doc(db, "stories", roomId), { liveActive: false, endedAt: serverTimestamp() }); }
     catch (_) { /* best-effort — may not exist for manually-created rooms */ }
+    // ── 4c. Remove the RTDB room node so viewer counts and chat are cleared ──
+    try { await remove(ref(rtdb, `liveRooms/${roomId}`)); }
+    catch (_) { /* best-effort */ }
   }
+
+  // ── 5. Clear own RTDB presence / viewer entry ──
   if (presenceRef) { set(presenceRef, null).catch(() => {}); }
-  // Clear liveRoomId from global presence
   markPresenceLive(null);
-  // Stop ALL local media tracks — camera & microphone fully off
+
+  // ── 6. Unsubscribe all Firestore listeners so nothing re-fires after we leave ──
+  _unsubs.forEach(u => u()); _unsubs.length = 0;
+  if (_chatSettingsUnsub) { _chatSettingsUnsub(); _chatSettingsUnsub = null; }
+
+  // ── 7. Stop VAD ──
+  _vadRunning = false;
+  if (_vadCtx) { try { _vadCtx.close(); } catch (_) {} _vadCtx = null; }
+
+  // ── 8. Stop ALL local media tracks — camera & microphone fully off ──
   if (localStream) {
     localStream.getTracks().forEach(t => t.stop());
     localStream = null;
   }
+
+  // ── 9. Reset live UI chrome ──
   $("live-badge").classList.remove("visible");
   $("btnGoLive").style.display  = "";
   $("btnEndLive").style.display = "none";
   $("btnExitLive").classList.remove("visible");
   hideRequestJoinBtn();
   exitFullscreen();
-  // Return to the Feed — use history.back() so the user is not hard-reloaded
-  // and stays logged in. Fall back to replace() only if there is no history.
-  if (window.history.length > 1) {
-    window.history.back();
-  } else {
-    window.location.replace("index.html");
-  }
+
+  // ── 10. Show replay choice modal (or go straight to Feed if no recording) ──
+  _showReplayModal();
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -1658,8 +1879,31 @@ function listenForHostCommands() {
     if (cmd === "remove") {
       closePeer(currentUser.uid);
       localStream?.getTracks().forEach(t => t.stop());
+      localStream = null;
       showLobby();
       toast("You were removed from the Live.");
+    }
+    // ── Host ended the entire Live — close player and return viewer to Feed ──
+    if (cmd === "liveEnded") {
+      if (_liveEndNavigating) { deleteDoc(cmdRef).catch(() => {}); return; }
+      _liveEndNavigating = true;
+      liveActive = false;
+      closePeer(currentUser.uid);
+      localStream?.getTracks().forEach(t => t.stop());
+      localStream = null;
+      _unsubs.forEach(u => u()); _unsubs.length = 0;
+      if (_chatSettingsUnsub) { _chatSettingsUnsub(); _chatSettingsUnsub = null; }
+      _vadRunning = false;
+      if (_vadCtx) { try { _vadCtx.close(); } catch (_) {} _vadCtx = null; }
+      exitFullscreen();
+      toast("📺 The Live has ended.");
+      setTimeout(() => {
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.location.replace("index.html");
+        }
+      }, 2200);
     }
     deleteDoc(cmdRef).catch(() => {});
   });
@@ -1837,7 +2081,28 @@ function listenChat() {
 function listenChatSettings() {
   if (_chatSettingsUnsub) return;   // already listening
   _chatSettingsUnsub = onSnapshot(doc(db, "liveRooms", roomId), snap => {
-    if (!snap.exists()) return;
+    // ── Host ended the Live — notify viewer and return them to the Feed ──
+    if (!snap.exists() || snap.data().live === false) {
+      if (!isHost && liveActive && !_liveEndNavigating) {
+        _liveEndNavigating = true;
+        liveActive = false;
+        toast("📺 The Live has ended.");
+        // Give the toast a moment to be seen, then navigate back
+        setTimeout(() => {
+          _unsubs.forEach(u => u()); _unsubs.length = 0;
+          if (_chatSettingsUnsub) { _chatSettingsUnsub(); _chatSettingsUnsub = null; }
+          localStream?.getTracks().forEach(t => t.stop());
+          localStream = null;
+          exitFullscreen();
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            window.location.replace("index.html");
+          }
+        }, 2200);
+      }
+      return;
+    }
     const d = snap.data();
     // Chat on/off
     const nowEnabled = d.chatEnabled !== false;
@@ -2430,17 +2695,29 @@ async function handleBack() {
       handleEndLive();
       return;
     }
-    // Viewer / guest pressing Exit
-    if (!confirm("Leave the Live?")) return;
-    await leaveAsGuest();
-    liveActive = false;
-    $("ctrl-bar").classList.remove("visible");
-    $("btnExitLive").classList.remove("visible");
-    if (isMobile()) $("mobile-chat-btn").style.display = "none";
-    buildVideoGrid();
+    // Viewer / guest pressing Exit — show inline overlay, no browser confirm()
+    $("leaveConfirm").classList.add("open");
+    return;
   }
   exitFullscreen();
   // Return to the Feed without a hard reload — session stays active
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    window.location.replace("index.html");
+  }
+}
+
+// Called when viewer taps "Leave" in the leave-confirm overlay
+async function confirmLeave() {
+  $("leaveConfirm").classList.remove("open");
+  await leaveAsGuest();
+  liveActive = false;
+  $("ctrl-bar").classList.remove("visible");
+  $("btnExitLive").classList.remove("visible");
+  if (isMobile()) $("mobile-chat-btn").style.display = "none";
+  buildVideoGrid();
+  exitFullscreen();
   if (window.history.length > 1) {
     window.history.back();
   } else {

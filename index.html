@@ -19001,8 +19001,8 @@ window.submitStory = async function() {
     try {
         await addDoc(collection(db, 'stories'), {
             authorUid    : me.uid,
-            authorName   : ud.displayName || me.displayName || 'User',
-            authorAvatar : ud.avatar || ud.avatarUrl || '',
+            authorName   : ud.displayName || ud.username || me.displayName || 'User',
+            authorAvatar : ud.avatarUrl || ud.avatar || me.photoURL || '',
             text,
             mediaUrl,
             mediaType,
@@ -19019,11 +19019,12 @@ window.submitStory = async function() {
         });
         _toast('✅ Story posted successfully!');
         closeStoryCreator();
-        // Immediately re-render the story strip so the new circle appears without a refresh
+        // The real-time listener in initStoryStrip() will fire automatically and
+        // update the strip. Re-init the listener as well in case it was lost.
         try { initStoryStrip(); } catch(_) {}
     } catch(err) {
         _toast('❌ Database save failed: ' + (err.message || err));
-        if (btn) btn.disabled=false;
+        if (btn) btn.disabled = false;
     }
 };
 
@@ -19473,8 +19474,8 @@ window.startLiveStream = async function() {
         const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000); // 4h max live
         const ref = await addDoc(collection(db, 'stories'), {
             authorUid    : me.uid,
-            authorName   : ud.displayName || me.displayName || 'User',
-            authorAvatar : ud.avatarUrl || '',
+            authorName   : ud.displayName || ud.username || me.displayName || 'User',
+            authorAvatar : ud.avatarUrl || ud.avatar || me.photoURL || '',
             text         : title,
             mediaUrl     : '',
             mediaType    : '',
@@ -19568,9 +19569,18 @@ function _subscribeToLiveDoc(docId) {
     if (SNX_STORY.liveUnsub) SNX_STORY.liveUnsub();
     const { db, doc, onSnapshot } = _db();
     SNX_STORY.liveUnsub = onSnapshot(doc(db, 'stories', docId), snap => {
-        if (!snap.exists()) { closeLiveStreamViewer(); return; }
+        if (!snap.exists()) {
+            closeLiveStreamViewer();
+            _toast('Live stream has ended.');
+            return;
+        }
         const data = snap.data();
-        if (!data.liveActive) { closeLiveStreamViewer(); return; }
+        if (!data.liveActive) {
+            // Host ended the live — close overlay and toast viewer, do NOT navigate
+            closeLiveStreamViewer();
+            _toast('The live stream has ended.');
+            return;
+        }
         // Update viewer count
         document.getElementById('lvViewerCount').textContent = '👁 ' + (data.viewerCount || 0);
         // Render chat
@@ -19751,13 +19761,15 @@ function _renderLiveFeedCards(snap) {
     const strip   = $id('liveFeedStrip');
     if (!section || !strip) return;
 
+    // Always clear the strip first so ended lives are removed immediately
+    strip.innerHTML = '';
+
     if (_activeLives.length === 0) {
         section.classList.remove('has-lives');
         return;
     }
     section.classList.add('has-lives');
 
-    strip.innerHTML = '';
     _activeLives.forEach(live => strip.appendChild(_buildLiveFeedCard(live)));
 }
 

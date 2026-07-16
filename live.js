@@ -828,9 +828,12 @@ async function handleGoLive() {
   $("btnEndLive").style.display = "";
   $("live-badge").classList.add("visible");
   $("viewer-count").style.display = "flex";
+
+  // Write WebRTC room metadata so guests can signal
   await setDoc(doc(db, "liveRooms", roomId), {
     host:             currentUser.uid,
     hostName:         myDisplayName,
+    hostPhotoURL:     myPhotoURL || "",
     roomId,
     live:             true,
     locked:           false,
@@ -839,6 +842,19 @@ async function handleGoLive() {
     createdAt:        serverTimestamp(),
     viewerCount:      0
   });
+
+  // Ensure the stories doc (feed bubble) reflects the live as active.
+  // index.html:startLiveStream() already created it with liveActive:true,
+  // but we patch the avatar + name here in case they loaded after the doc
+  // was written, and we confirm liveActive:true so the bubble always shows.
+  try {
+    await updateDoc(doc(db, "stories", roomId), {
+      liveActive   : true,
+      authorName   : myDisplayName,
+      authorAvatar : myPhotoURL || "",
+    });
+  } catch (_) { /* doc may not exist for manually-created rooms — ignore */ }
+
   listenForJoinRequests();
   listenViewerCount();
   _showHostRequestControls();
@@ -859,9 +875,9 @@ async function endLive() {
     // Mark live ended in the liveRooms collection
     try { await updateDoc(doc(db, "liveRooms", roomId), { live: false, endedAt: serverTimestamp() }); }
     catch (_) { /* best-effort */ }
-    // Also mark liveActive:false in the stories collection so the feed card disappears
+    // Mark liveActive:false so the Feed bubble disappears immediately for all users
     try { await updateDoc(doc(db, "stories", roomId), { liveActive: false }); }
-    catch (_) { /* best-effort — may not exist for legacy rooms */ }
+    catch (_) { /* best-effort — may not exist for manually-created rooms */ }
   }
   if (presenceRef) { set(presenceRef, null).catch(() => {}); }
   // Clear liveRoomId from global presence
@@ -877,8 +893,13 @@ async function endLive() {
   $("btnExitLive").classList.remove("visible");
   hideRequestJoinBtn();
   exitFullscreen();
-  // Navigate back to the Feed — user stays logged in, no page reload loop
-  window.location.href = "index.html";
+  // Return to the Feed — use history.back() so the user is not hard-reloaded
+  // and stays logged in. Fall back to replace() only if there is no history.
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    window.location.replace("index.html");
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -2404,25 +2425,26 @@ function showCtrlBar() {
 // ─────────────────────────────────────────────────────────────────
 async function handleBack() {
   if (liveActive) {
-    if (!confirm("Leave the Live?")) return;
     if (isHost) {
-      await endLive();
-    } else {
-      await leaveAsGuest();
-      liveActive = false;
-      $("ctrl-bar").classList.remove("visible");
-      $("btnExitLive").classList.remove("visible");
-      if (isMobile()) $("mobile-chat-btn").style.display = "none";
-      buildVideoGrid();
+      // Host pressing Exit: treat it the same as End Live — show confirmation
+      handleEndLive();
+      return;
     }
+    // Viewer / guest pressing Exit
+    if (!confirm("Leave the Live?")) return;
+    await leaveAsGuest();
+    liveActive = false;
+    $("ctrl-bar").classList.remove("visible");
+    $("btnExitLive").classList.remove("visible");
+    if (isMobile()) $("mobile-chat-btn").style.display = "none";
+    buildVideoGrid();
   }
   exitFullscreen();
-  // Use history.back() if we came from the Feed so state is preserved;
-  // fall back to index.html if there is no history to go back to.
+  // Return to the Feed without a hard reload — session stays active
   if (window.history.length > 1) {
     window.history.back();
   } else {
-    window.location.href = "index.html";
+    window.location.replace("index.html");
   }
 }
 

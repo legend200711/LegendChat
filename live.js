@@ -137,6 +137,12 @@ let chatMutedUsers    = {};     // { uid: true } — users muted from chat by ho
 let _replyTo          = null;   // { msgId, name, text } — current reply-to state
 let _chatSettingsUnsub = null;  // guard: only one settings listener at a time
 
+// ── AutoMod violation state per-user ──
+// { uid: { warnCount: number, lastWarnTs: number, offenses: string[], removedFromBox: boolean } }
+const _violationState = {};
+// How many warnings before the user is removed from the Live box (medium escalation)
+const _AUTOMOD_WARN_BEFORE_REMOVE = 1; // 1 warning → next medium offense removes from box
+
 // guests[uid] = { pc, stream, displayName, muted, camOff, retries, quality, _qualityInterval }
 const guests = {};
 
@@ -693,12 +699,19 @@ function attachButtonHandlers() {
   $("btnRequests")?.addEventListener("click",         toggleRequestsOpen);
   $("req-allow-select")?.addEventListener("change",   e => setRequestAllowMode(e.target.value));
 
+  // Report Live button (viewers/guests)
+  _attachReportLiveBtn();
+
   // Dismiss context menu + per-request safety menus on outside click
   document.addEventListener("click", e => {
     if (!e.target.closest("#guest-ctx-menu")) hideCtxMenu();
     if (!e.target.closest(".req-safety-menu") && !e.target.closest(".req-more")) {
       document.querySelectorAll(".req-safety-menu.open").forEach(m => m.classList.remove("open"));
     }
+    // Close report modal on backdrop click
+    if (e.target.id === "report-live-modal") closeReportModal();
+    // Close mod logs modal on backdrop click
+    if (e.target.id === "mod-logs-modal") closeModLogs();
   });
 }
 
@@ -1143,6 +1156,8 @@ async function endLive() {
   $("btnGoLive").style.display  = "";
   $("btnEndLive").style.display = "none";
   $("btnExitLive").classList.remove("visible");
+  $("btn-report-live")?.classList.remove("visible");
+  $("btn-mod-logs")?.classList.remove("visible");
   hideRequestJoinBtn();
   exitFullscreen();
 
@@ -1747,6 +1762,9 @@ function closePeer(uid) {
   clearSlot(uid);
   updateMiniStrip();
   deleteDoc(doc(db, "liveRooms", roomId, "signals", uid)).catch(() => {});
+  // Clean up per-user automod state so a re-joining user starts fresh
+  delete _violationState[uid];
+  delete _spamTrack[uid];
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -1900,7 +1918,7 @@ function listenForHostCommands() {
   const cmdRef = doc(db, "liveRooms", roomId, "commands", currentUser.uid);
   const unsub  = onSnapshot(cmdRef, snap => {
     if (!snap.exists()) return;
-    const { cmd } = snap.data();
+    const { cmd, reason } = snap.data();
     if (cmd === "mute"   && micEnabled) toggleMic();
     if (cmd === "camOff" && camEnabled) toggleCam();
     if (cmd === "remove") {
@@ -1909,6 +1927,26 @@ function listenForHostCommands() {
       localStream = null;
       showLobby();
       toast("You were removed from the Live.");
+    }
+    // ── AutoMod: warning banner ──
+    if (cmd === "autoWarn") {
+      _showAutoModWarning(`⚠️ Warning: ${reason || "Your behavior may violate Shadow Nexus Social community rules"}. Please stop.`);
+    }
+    // ── AutoMod: removed from Live box (medium violation) ──
+    if (cmd === "autoRemove") {
+      closePeer(currentUser.uid);
+      localStream?.getTracks().forEach(t => t.stop());
+      localStream = null;
+      showLobby();
+      _showAutoModWarning(`🔇 You have been removed from the Live box for: ${reason || "repeated violations"}. You may still watch as a viewer.`);
+    }
+    // ── AutoMod: removed + blocked (serious violation) ──
+    if (cmd === "autoRemoveSerious") {
+      closePeer(currentUser.uid);
+      localStream?.getTracks().forEach(t => t.stop());
+      localStream = null;
+      showLobby();
+      _showAutoModWarning(`🚨 You have been removed from the Live for a serious violation: ${reason || "serious violation"}. A report has been sent to moderators.`);
     }
     // ── Host ended the entire Live — close player and return viewer to Feed ──
     if (cmd === "liveEnded") {
@@ -2057,6 +2095,472 @@ function startVAD() {
 // ─────────────────────────────────────────────────────────────────
 // Firebase Realtime DB — viewer count, chat, reactions
 // ─────────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════
+// LIVE RULE DETECTION & AUTO-MODERATION ENGINE
+// ═════════════════════════════════════════════════════════════════
+
+// ── Pattern lists (never flag profanity alone; only flag when combined) ──
+const _THREAT_RE = /\b(i(?:'?ll| will| am going to|'m going to)\s+(?:kill|hurt|attack|shoot|stab|beat|destroy|murder|rape|find)\s+(?:you|u\b)|you(?:'re| are) dead|gonna (?:kill|hurt|find) you|watch your back|i know where you live|coming for you)\b/i;
+const _HATE_RE = /\b(go\s+(?:kill\s+yourself|kys)|die\s+(?:you|u)\s+(?:dirty|filthy|stupid|fat|ugly)?\s*(?:n[i1]gg[ae]r|ch[i1]nk|sp[i1][ck]|f[a@]gg?[o0]t|k[i1]ke|w[e3]tb[a@]ck)|sub-?human|inferior race|exterminate\s+(?:you|them|all|these)|gas the|white\s+power|heil\s+hitler)\b/i;
+const _HARASSMENT_RE = /\b(nobody\s+(?:likes|wants|cares about)\s+you|you(?:'re| are)\s+(?:worthless|pathetic|trash|garbage|useless|disgusting|ugly|fat|stupid|dumb|a\s+(?:loser|idiot|moron|waste))\b|go\s+(?:cry|die|away|back to)|shut\s+the\s+f[u*]ck\s+up|no\s+one\s+asked\s+you|kill\s+your(?:self|s[e3]lf)\b)\b/i;
+const _SLUR_TARGET_RE = /\b(n[i1]gg[ae]r|ch[i1]nk|sp[i1][ck]k?|f[a@]gg?[o0]t|k[i1]ke|w[e3]tb[a@]ck|r[e3]t[a@]rd)\b/i;
+
+// ── Spam tracking per-user ──
+// { uid: { msgs: [timestamps], dupeText: { text: count }, warnCount: number } }
+const _spamTrack = {};
+const _SPAM_WINDOW = 8000;   // ms: sliding window for burst detection
+const _SPAM_BURST  = 5;      // messages within window → spam
+const _DUPE_LIMIT  = 3;      // same text repeated N times in session
+const _WARN_LIMIT  = 2;      // violations before escalation to medium
+
+/**
+ * Classify a chat message's severity.
+ * Returns: { level: "ok"|"low"|"medium"|"serious", reason: string }
+ *
+ * Escalation model:
+ *  • "serious" — death threats, doxxing threats, severe hate speech → immediate removal
+ *  • "medium"  — harassment/slurs after a prior warning, or repeated spam
+ *  • "low"     — first-offense harassment/slur (warning), first spam burst
+ *  • "ok"      — everything else (casual profanity alone is not actioned)
+ */
+function classifyChatMsg(uid, text) {
+  // ── Serious: always immediate regardless of prior history ──
+  if (_THREAT_RE.test(text))  return { level: "serious", reason: "Threat detected" };
+  if (_HATE_RE.test(text))    return { level: "serious", reason: "Hate speech detected" };
+
+  // ── Content violations: first offense = warning ("low"), repeat = escalate ("medium") ──
+  const vs = _violationState[uid] || (_violationState[uid] = { warnCount: 0, lastWarnTs: 0, offenses: [], removedFromBox: false });
+
+  if (_SLUR_TARGET_RE.test(text) || _HARASSMENT_RE.test(text)) {
+    const reason = _SLUR_TARGET_RE.test(text) ? "Targeted slur detected" : "Harassment detected";
+    if (vs.warnCount === 0) {
+      // First offence — issue a warning, do not escalate yet
+      return { level: "low", reason };
+    }
+    // Already warned — escalate
+    return { level: "medium", reason: `Repeated violation: ${reason}` };
+  }
+
+  // ── Spam detection (burst + duplicate tracking) ──
+  const now = Date.now();
+  if (!_spamTrack[uid]) _spamTrack[uid] = { msgs: [], dupeText: {}, warnCount: 0 };
+  const st = _spamTrack[uid];
+
+  st.msgs = st.msgs.filter(t => now - t < _SPAM_WINDOW);
+  st.msgs.push(now);
+  if (st.msgs.length >= _SPAM_BURST) {
+    st.warnCount++;
+    return st.warnCount > _WARN_LIMIT
+      ? { level: "medium", reason: "Repeated spam" }
+      : { level: "low",    reason: "Message burst detected" };
+  }
+
+  const key = text.trim().toLowerCase().slice(0, 80);
+  st.dupeText[key] = (st.dupeText[key] || 0) + 1;
+  if (st.dupeText[key] >= _DUPE_LIMIT) {
+    st.warnCount++;
+    return st.warnCount > _WARN_LIMIT
+      ? { level: "medium", reason: "Repeated duplicate messages" }
+      : { level: "low",    reason: "Duplicate message" };
+  }
+
+  return { level: "ok", reason: "" };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// AutoMod UI helpers
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Show the in-Live warning banner to the current user (the violator).
+ * Severity is inferred from the message prefix (🚨 = serious, 🔇 = medium, ⚠️ = low).
+ * The banner auto-dismisses after 8 seconds.
+ */
+function _showAutoModWarning(message) {
+  const banner = $("automod-warn-banner");
+  if (!banner) return;
+
+  // Pick icon and title by severity prefix
+  const iconEl  = $("automod-warn-icon");
+  const titleEl = $("automod-warn-title");
+  const textEl  = $("automod-warn-text");
+
+  if (message.startsWith("🚨")) {
+    if (iconEl)  iconEl.textContent  = "🚨";
+    if (titleEl) titleEl.textContent = "Serious Violation";
+    banner.style.borderColor = "rgba(255,51,85,0.75)";
+    banner.style.boxShadow   = "0 4px 28px rgba(255,51,85,0.28)";
+  } else if (message.startsWith("🔇")) {
+    if (iconEl)  iconEl.textContent  = "🔇";
+    if (titleEl) titleEl.textContent = "Removed from Live Box";
+    banner.style.borderColor = "rgba(255,100,100,0.65)";
+    banner.style.boxShadow   = "0 4px 28px rgba(200,50,50,0.22)";
+  } else {
+    if (iconEl)  iconEl.textContent  = "⚠️";
+    if (titleEl) titleEl.textContent = "Community Guidelines Warning";
+    banner.style.borderColor = "rgba(255,170,30,0.72)";
+    banner.style.boxShadow   = "0 4px 28px rgba(255,140,0,0.22)";
+  }
+
+  if (textEl) textEl.textContent = message || "Your message or behavior may violate Shadow Nexus Social community rules. Please stop.";
+  banner.classList.add("visible");
+  clearTimeout(banner._hideTimer);
+  // Serious violations stay longer (12s), others auto-dismiss in 8s
+  const dur = message.startsWith("🚨") ? 12000 : 8000;
+  banner._hideTimer = setTimeout(() => banner.classList.remove("visible"), dur);
+}
+
+/**
+ * Dismiss the warning banner immediately (e.g. user taps the close button).
+ */
+function _dismissAutoModWarning() {
+  const banner = $("automod-warn-banner");
+  if (!banner) return;
+  clearTimeout(banner._hideTimer);
+  banner.classList.remove("visible");
+}
+
+/**
+ * Notify the host that the automod has taken an action.
+ * Bumps the badge counter on the Mod History button so the host can review.
+ */
+function _notifyHostAutoMod(actionLabel) {
+  if (!isHost) return;
+  const btn = $("btn-mod-logs");
+  if (!btn) return;
+  // Increment badge counter
+  let count = parseInt(btn.dataset.badge || "0", 10) + 1;
+  btn.dataset.badge = count;
+  let badge = btn.querySelector(".mod-logs-badge-dot");
+  if (!badge) {
+    badge = document.createElement("span");
+    badge.className = "mod-logs-badge-dot";
+    btn.appendChild(badge);
+  }
+  badge.textContent = count > 9 ? "9+" : String(count);
+  badge.title = `${count} auto-mod action${count > 1 ? "s" : ""} taken`;
+  // Also show a toast so the host notices immediately
+  toast(`🛡 AutoMod: ${actionLabel}`);
+}
+
+/**
+ * Reset the notification badge once the host opens the Mod History modal.
+ */
+function _clearModLogsBadge() {
+  const btn = $("btn-mod-logs");
+  if (!btn) return;
+  btn.dataset.badge = "0";
+  btn.querySelector(".mod-logs-badge-dot")?.remove();
+}
+
+/**
+ * Apply automatic moderation based on violation level.
+ *
+ * Escalation path:
+ *  low     → show ⚠️ warning banner to the user, hide message, log warning
+ *  medium  → mute from chat, remove from Live box if already warned, log + notify host
+ *  serious → immediately remove from Live box, block from re-joining, file report to moderators
+ */
+async function _applyAutoMod(uid, displayName, msgDocRef, violation) {
+  if (!roomId || !uid) return;
+  const { level, reason } = violation;
+
+  // Ensure violation state entry exists
+  if (!_violationState[uid]) {
+    _violationState[uid] = { warnCount: 0, lastWarnTs: 0, offenses: [], removedFromBox: false };
+  }
+  const vs = _violationState[uid];
+
+  // ── LOW: First-offense warning ──
+  if (level === "low") {
+    // Remove the offending message
+    updateDoc(msgDocRef, { deleted: true, text: "Message removed by safety filter.", autoMod: true }).catch(() => {});
+
+    // Record the warning in per-user state
+    vs.warnCount++;
+    vs.lastWarnTs = Date.now();
+    vs.offenses.push(reason);
+
+    // Show the warning banner to the offending user
+    if (currentUser?.uid === uid) {
+      _showAutoModWarning(`⚠️ Warning: ${reason}. Your message or behavior may violate Shadow Nexus Social community rules. Please stop.`);
+    } else {
+      // Deliver warning via Firestore command so the guest's client shows the banner
+      setDoc(doc(db, "liveRooms", roomId, "commands", uid), {
+        cmd: "autoWarn", reason, from: "system", ts: serverTimestamp()
+      }).catch(() => {});
+    }
+
+    // Log so the host can review
+    addDoc(collection(db, "moderationLogs"), {
+      roomId, targetUid: uid, targetName: displayName,
+      action: "warning_issued", reason, level,
+      actorUid: "system", ts: serverTimestamp()
+    }).catch(() => {});
+
+    _notifyHostAutoMod(`Warning issued to ${displayName}`);
+    return;
+  }
+
+  // ── MEDIUM: Mute from chat + remove from box if already warned ──
+  if (level === "medium") {
+    updateDoc(msgDocRef, { deleted: true, text: "Message removed by safety filter.", autoMod: true }).catch(() => {});
+    vs.warnCount++;
+    vs.offenses.push(reason);
+
+    // Mute user from chat
+    const muteUpdate = {};
+    muteUpdate[`chatMutedUsers.${uid}`] = true;
+    updateDoc(doc(db, "liveRooms", roomId), muteUpdate).catch(() => {});
+
+    // Enable slow mode (safety net for the room)
+    if (!slowMode && isHost) {
+      slowMode = true;
+      updateDoc(doc(db, "liveRooms", roomId), { slowMode: true }).catch(() => {});
+      _syncChatStatusBar();
+    }
+
+    // Remove from Live box if they haven't been removed yet
+    if (!vs.removedFromBox) {
+      vs.removedFromBox = true;
+      if (uid !== currentUser?.uid && guests[uid]) {
+        // Deliver remove command through standard host-command channel
+        setDoc(doc(db, "liveRooms", roomId, "commands", uid), {
+          cmd: "autoRemove", reason, from: "system", ts: serverTimestamp()
+        }).catch(() => {});
+        // Close the peer connection on the host side
+        hostRemoveGuest(uid);
+      } else if (currentUser?.uid === uid) {
+        // Self — remove own box
+        closePeer(uid);
+        localStream?.getTracks().forEach(t => t.stop());
+        localStream = null;
+        showLobby();
+        _showAutoModWarning(`🔇 You have been removed from the Live box for: ${reason}. You may still watch as a viewer.`);
+      }
+    }
+
+    if (currentUser?.uid !== uid) {
+      toast(`🔇 ${displayName} removed from box & muted by safety system.`);
+    }
+
+    addDoc(collection(db, "moderationLogs"), {
+      roomId, targetUid: uid, targetName: displayName,
+      action: "chat_mute_and_remove", reason, level,
+      actorUid: "system", ts: serverTimestamp()
+    }).catch(() => {});
+
+    _notifyHostAutoMod(`${displayName} muted & removed from box`);
+    return;
+  }
+
+  // ── SERIOUS: Immediate removal, block from re-joining, report to moderators ──
+  if (level === "serious") {
+    updateDoc(msgDocRef, { deleted: true, text: "Message removed by safety filter.", autoMod: true }).catch(() => {});
+    vs.warnCount++;
+    vs.offenses.push(reason);
+    vs.removedFromBox = true;
+
+    // Notify the user why they are being removed (they see this briefly before being kicked)
+    if (currentUser?.uid === uid) {
+      _showAutoModWarning(`🚨 You have been removed from the Live for a serious violation: ${reason}.`);
+    } else {
+      setDoc(doc(db, "liveRooms", roomId, "commands", uid), {
+        cmd: "autoRemoveSerious", reason, from: "system", ts: serverTimestamp()
+      }).catch(() => {});
+    }
+
+    // Remove from box
+    if (uid !== currentUser?.uid && guests[uid]) hostRemoveGuest(uid);
+    else if (currentUser?.uid === uid) {
+      closePeer(uid);
+      localStream?.getTracks().forEach(t => t.stop());
+      localStream = null;
+      showLobby();
+    }
+
+    // Block from re-joining this Live session
+    if (isHost) {
+      const blockUpdate = {};
+      blockUpdate[`blockedUsers.${uid}`] = true;
+      updateDoc(doc(db, "liveRooms", roomId), blockUpdate).catch(() => {});
+    }
+
+    toast(`🚨 ${displayName} removed for serious violation.`);
+
+    // File report to moderators/admins
+    addDoc(collection(db, "reports"), {
+      reportedUid: uid, reportedName: displayName,
+      reporterUid: "system", context: "auto_mod_live",
+      roomId, reason, level, ts: serverTimestamp()
+    }).catch(() => {});
+
+    addDoc(collection(db, "moderationLogs"), {
+      roomId, targetUid: uid, targetName: displayName,
+      action: "remove_live_serious", reason, level,
+      actorUid: "system", ts: serverTimestamp()
+    }).catch(() => {});
+
+    _notifyHostAutoMod(`🚨 ${displayName} removed — serious violation reported`);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// REPORT LIVE MODAL
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Open the Report Live modal.
+ * @param {object} opts — optional pre-fill:
+ *   { targetUid, targetName, targetType, msgId, msgText }
+ */
+function openReportModal(opts = {}) {
+  const m = $("report-live-modal");
+  if (!m) return;
+  const typeSelect = $("rpt-target-type");
+  const uidInput   = $("rpt-target-uid");
+  const nameInput  = $("rpt-target-name");
+  const msgRow     = $("rpt-msg-row");
+  const msgInput   = $("rpt-msg-id");
+
+  if (typeSelect && opts.targetType) typeSelect.value = opts.targetType;
+  if (uidInput  && opts.targetUid)   uidInput.value   = opts.targetUid   || "";
+  if (nameInput && opts.targetName)  nameInput.value  = opts.targetName  || "";
+  if (msgRow)    msgRow.style.display = opts.msgId ? "block" : "none";
+  if (msgInput  && opts.msgId)       msgInput.value   = opts.msgId       || "";
+
+  document.querySelectorAll(".rpt-reason-btn").forEach(b => b.classList.remove("selected"));
+  const notesEl = $("rpt-notes");
+  if (notesEl) notesEl.value = "";
+  $("rpt-submit-feedback")?.classList.remove("visible");
+
+  m.classList.add("visible");
+}
+
+async function submitReport() {
+  if (!currentUser || !roomId) return;
+  const typeSelect  = $("rpt-target-type");
+  const nameInput   = $("rpt-target-name");
+  const uidInput    = $("rpt-target-uid");
+  const msgInput    = $("rpt-msg-id");
+  const notesEl     = $("rpt-notes");
+  const selectedBtn = document.querySelector(".rpt-reason-btn.selected");
+  const feedback    = $("rpt-submit-feedback");
+
+  if (!selectedBtn) { toast("Please select a reason for your report."); return; }
+
+  const payload = {
+    reporterUid:  currentUser.uid,
+    reporterName: myDisplayName,
+    roomId,
+    targetType:   typeSelect?.value  || "unknown",
+    targetName:   nameInput?.value   || "",
+    targetUid:    uidInput?.value    || "",
+    msgId:        msgInput?.value    || null,
+    reason:       selectedBtn.dataset.reason,
+    notes:        notesEl?.value?.trim() || "",
+    context:      "live",
+    ts:           serverTimestamp(),
+  };
+
+  try {
+    await addDoc(collection(db, "reports"), payload);
+    await addDoc(collection(db, "moderationLogs"), {
+      roomId,
+      targetUid:  payload.targetUid,
+      targetName: payload.targetName,
+      action:     "user_report",
+      reason:     payload.reason,
+      level:      "user_submitted",
+      actorUid:   currentUser.uid,
+      ts:         serverTimestamp(),
+    });
+    if (feedback) { feedback.textContent = "✅ Report sent. Thank you."; feedback.classList.add("visible"); }
+    setTimeout(() => closeReportModal(), 1800);
+  } catch (_) {
+    toast("Could not send report. Please try again.");
+  }
+}
+
+function closeReportModal() {
+  $("report-live-modal")?.classList.remove("visible");
+}
+
+function _attachReportLiveBtn() {
+  const btn = $("btn-report-live");
+  if (!btn) return;
+  btn.onclick = () => openReportModal({
+    targetType: "host",
+    targetName: $("roomTitle")?.textContent || "",
+    targetUid:  "",
+  });
+}
+
+function reportMessage(msgId, data) {
+  openReportModal({
+    targetType: "message",
+    targetUid:  data.uid  || "",
+    targetName: data.name || "Unknown",
+    msgId,
+    msgText:    data.text || "",
+  });
+}
+
+// ── Moderator: load and display recent moderation logs ──
+async function openModLogs() {
+  if (!roomId) return;
+  const m = $("mod-logs-modal");
+  if (!m) return;
+  const list = $("mod-logs-list");
+  if (list) list.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:18px;">Loading…</div>';
+  m.classList.add("visible");
+  _clearModLogsBadge();
+
+  try {
+    const q = query(
+      collection(db, "moderationLogs"),
+      where("roomId", "==", roomId),
+      orderBy("ts", "desc"),
+      limit(50)
+    );
+    const snap = await getDocs(q);
+    if (!list) return;
+    if (snap.empty) {
+      list.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:18px;">No actions logged yet.</div>';
+      return;
+    }
+    list.innerHTML = "";
+    snap.forEach(d => {
+      const data = d.data();
+      const row  = document.createElement("div");
+      row.className = "mod-log-row";
+      const ts = data.ts?.toDate?.() ? data.ts.toDate().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }) : "–";
+      const badge = data.actorUid === "system" ? '<span class="mod-log-badge system">AUTO</span>' : '<span class="mod-log-badge user">USER</span>';
+      row.innerHTML = `
+        <div class="mod-log-meta">${badge} <span class="mod-log-action">${esc(data.action || "")}</span> <span class="mod-log-time">${ts}</span></div>
+        <div class="mod-log-detail">Target: <strong>${esc(data.targetName || data.targetUid || "–")}</strong></div>
+        <div class="mod-log-reason">${esc(data.reason || "")}</div>
+      `;
+      list.appendChild(row);
+    });
+  } catch (_) {
+    if (list) list.innerHTML = '<div style="color:#ff8899;text-align:center;padding:18px;">Could not load logs.</div>';
+  }
+}
+
+function closeModLogs() {
+  $("mod-logs-modal")?.classList.remove("visible");
+}
+
+// ── Expose report + mod + automod functions globally ──
+window.openReportModal          = openReportModal;
+window.closeReportModal         = closeReportModal;
+window.submitReport             = submitReport;
+window.reportMessage            = reportMessage;
+window.openModLogs              = openModLogs;
+window.closeModLogs             = closeModLogs;
+window._dismissAutoModWarning   = _dismissAutoModWarning;
+
 function setupRTDB() {
   if (!roomId) return;
   roomRtRef   = ref(rtdb, `liveRooms/${roomId}`);
@@ -2310,6 +2814,13 @@ function _buildMsgEl(data, msgId) {
     }
   }
 
+  // Report button (everyone, on other users' messages)
+  if (!isMine && !data.deleted && !data.isReaction) {
+    const rptBtn = el("button", "msg-action-btn warn", "🚩 Report");
+    rptBtn.addEventListener("click", e => { e.stopPropagation(); reportMessage(msgId, data); });
+    actions.appendChild(rptBtn);
+  }
+
   msgEl.appendChild(avatarEl);
   msgEl.appendChild(bodyEl);
   msgEl.appendChild(actions);
@@ -2353,6 +2864,8 @@ function _wireClonedActions(clone, data, msgId) {
       });
     } else if (label.includes("Mute") || label.includes("Unmute")) {
       btn.addEventListener("click", e => { e.stopPropagation(); toggleChatMuteUser(data.uid, data.name); });
+    } else if (label.includes("Report")) {
+      btn.addEventListener("click", e => { e.stopPropagation(); reportMessage(msgId, data); });
     }
   });
 }
@@ -2403,6 +2916,23 @@ async function sendChat() {
       return;
     }
   }
+  // ── Rule detection: classify before sending ──
+  if (!isHost) {
+    const violation = classifyChatMsg(currentUser.uid, text);
+    if (violation.level !== "ok") {
+      input.value = "";
+      const payload = {
+        uid: currentUser.uid, name: myDisplayName,
+        photoURL: myPhotoURL || null, verified: myVerified || false,
+        text, isHost, ts: serverTimestamp()
+      };
+      if (_replyTo) { payload.replyTo = { msgId: _replyTo.msgId, name: _replyTo.name, text: _replyTo.text }; clearReplyTo(); }
+      const docRef = await addDoc(collection(db, "liveRooms", roomId, "chat"), payload);
+      await _applyAutoMod(currentUser.uid, myDisplayName, doc(db, "liveRooms", roomId, "chat", docRef.id), violation);
+      _lastMsgTime = Date.now();
+      return;
+    }
+  }
   input.value = "";
   _lastMsgTime = Date.now();
   const payload = {
@@ -2434,6 +2964,24 @@ function sendChatMobile() {
     if (now - _lastMsgTime < slowModeDelay) {
       const wait = Math.ceil((slowModeDelay - (now - _lastMsgTime)) / 1000);
       toast(`🐢 Slow mode — wait ${wait}s`);
+      return;
+    }
+  }
+  // ── Rule detection: classify before sending ──
+  if (!isHost) {
+    const violation = classifyChatMsg(currentUser.uid, text);
+    if (violation.level !== "ok") {
+      input.value = "";
+      const payload = {
+        uid: currentUser.uid, name: myDisplayName,
+        photoURL: myPhotoURL || null, verified: myVerified || false,
+        text, isHost, ts: serverTimestamp()
+      };
+      if (_replyTo) { payload.replyTo = { msgId: _replyTo.msgId, name: _replyTo.name, text: _replyTo.text }; clearReplyTo(); }
+      addDoc(collection(db, "liveRooms", roomId, "chat"), payload).then(docRef => {
+        _applyAutoMod(currentUser.uid, myDisplayName, doc(db, "liveRooms", roomId, "chat", docRef.id), violation);
+      });
+      _lastMsgTime = Date.now();
       return;
     }
   }
@@ -2701,6 +3249,12 @@ function showCtrlBar() {
   if (isMobile()) $("mobile-chat-btn").style.display = "flex";
   // Show the always-accessible exit button once we are live
   $("btnExitLive").classList.add("visible");
+  // Show contextual safety buttons based on role
+  if (!isHost) $("btn-report-live")?.classList.add("visible");
+  if (isHost)  $("btn-mod-logs")?.classList.add("visible");
+  // Wire mod-logs button here (safe to call multiple times — idempotent)
+  const modBtn = $("btn-mod-logs");
+  if (modBtn && !modBtn._wired) { modBtn._wired = true; modBtn.onclick = () => openModLogs(); }
   // Request fullscreen — gracefully ignored if not supported or denied
   enterFullscreen();
 }
@@ -2735,6 +3289,8 @@ async function confirmLeave() {
   liveActive = false;
   $("ctrl-bar").classList.remove("visible");
   $("btnExitLive").classList.remove("visible");
+  $("btn-report-live")?.classList.remove("visible");
+  $("btn-mod-logs")?.classList.remove("visible");
   if (isMobile()) $("mobile-chat-btn").style.display = "none";
   buildVideoGrid();
   exitFullscreen();

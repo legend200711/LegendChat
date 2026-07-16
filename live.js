@@ -189,6 +189,22 @@ onAuthStateChanged(auth, async user => {
 });
 
 // ─────────────────────────────────────────────────────────────────
+// Fullscreen helpers
+// ─────────────────────────────────────────────────────────────────
+function enterFullscreen() {
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+  if (req) req.call(el).catch(() => {});
+}
+
+function exitFullscreen() {
+  const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+  if (exit && (document.fullscreenElement || document.webkitFullscreenElement)) {
+    exit.call(document).catch(() => {});
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
 // UI init
 // ─────────────────────────────────────────────────────────────────
 function initUI() {
@@ -218,6 +234,7 @@ function initUI() {
 function buildVideoGrid() {
   const grid = $("video-grid");
   grid.innerHTML = "";
+  // ctrl-bar is now a sibling of video-grid in the body; no re-injection needed
   for (let i = 0; i < 8; i++) {
     const box = el("div", `video-box empty-slot${i === 0 ? " host-box" : ""}`, "");
     box.dataset.slot  = i;
@@ -296,8 +313,7 @@ function buildVideoGrid() {
     grid.appendChild(box);
   }
 
-  // Re-inject ctrl-bar into grid
-  grid.appendChild($("ctrl-bar"));
+  // ctrl-bar is a fixed-position element in the body — no DOM injection required
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -491,15 +507,22 @@ async function restartLocalCam() {
 // ─────────────────────────────────────────────────────────────────
 function attachButtonHandlers() {
   $("btnBack").onclick          = handleBack;
+  $("btnExitLive").onclick      = handleBack;
   $("btnGoLive").onclick        = handleGoLive;
   $("btnEndLive").onclick       = handleEndLive;
   $("btnMic").onclick           = toggleMic;
   $("btnCam").onclick           = toggleCam;
   $("btnFlip").onclick          = flipCamera;
   $("btnLock").onclick          = toggleLock;
+  // End Live confirmation modal buttons
+  $("elcBtnEnd").onclick        = async () => { $("endLiveConfirm").classList.remove("open"); await endLive(); };
+  $("elcBtnCancel").onclick     = () => { $("endLiveConfirm").classList.remove("open"); };
   $("btnHostRoom").onclick      = () => startAsHost();
   // btnJoinRoom removed — public discovery is via the Feed
-  $("btnBackHome").onclick      = () => window.location.href = "index.html";
+  $("btnBackHome").onclick      = () => {
+    exitFullscreen();
+    if (window.history.length > 1) { window.history.back(); } else { window.location.href = "index.html"; }
+  };
   $("btnJoinCancel").onclick    = () => { hideOverlay("join-overlay"); showLobby(); };
   $("btnCancelRequest").onclick = cancelJoinRequest;
   $("chat-send").onclick        = sendChat;
@@ -577,10 +600,9 @@ async function handleGoLive() {
   toast("🔴 You are now Live! Your followers can see you on their Feed.");
 }
 
-async function handleEndLive() {
+function handleEndLive() {
   if (!isHost) return;
-  if (!confirm("End the Live for everyone?")) return;
-  await endLive();
+  $("endLiveConfirm").classList.add("open");
 }
 
 async function endLive() {
@@ -601,6 +623,8 @@ async function endLive() {
   $("live-badge").classList.remove("visible");
   $("btnGoLive").style.display  = "";
   $("btnEndLive").style.display = "none";
+  $("btnExitLive").classList.remove("visible");
+  exitFullscreen();
   buildVideoGrid();
   showLobby();
   $("roomTitle").textContent = "Shadow Nexus Live";
@@ -1517,22 +1541,33 @@ function toggleMobileChat() {
 window.toggleMobileChat = toggleMobileChat;
 
 // ─────────────────────────────────────────────────────────────────
-// Ctrl bar visibility
+// Ctrl bar visibility + fullscreen entry
 // ─────────────────────────────────────────────────────────────────
 function showCtrlBar() {
   $("ctrl-bar").classList.add("visible");
   if (isMobile()) $("mobile-chat-btn").style.display = "flex";
+  // Show the always-accessible exit button once we are live
+  $("btnExitLive").classList.add("visible");
+  // Request fullscreen — gracefully ignored if not supported or denied
+  enterFullscreen();
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Back / exit
+// Back / exit — return to Feed without a hard reload
 // ─────────────────────────────────────────────────────────────────
 async function handleBack() {
   if (liveActive) {
     if (!confirm("Leave the Live?")) return;
-    if (isHost) await endLive(); else leaveAsGuest();
+    if (isHost) await endLive(); else await leaveAsGuest();
   }
-  window.location.href = "index.html";
+  exitFullscreen();
+  // Use history.back() if we came from the Feed so state is preserved;
+  // fall back to index.html if there is no history to go back to.
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    window.location.href = "index.html";
+  }
 }
 
 async function leaveAsGuest() {

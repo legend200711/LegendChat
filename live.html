@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Shadow Nexus — Go Live 🔴</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0B1F3A">
+<title>Shadow Nexus — Live 🔴</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <style>
 /* ════════════════════════════════════════════════
-   Shadow Nexus Social — Live.html
-   Design tokens match index.html / feed.html exactly
+   Shadow Nexus Social — Live.html  (Fullscreen Edition)
+   Design tokens match index.html exactly
 ════════════════════════════════════════════════ */
 :root {
   --bg-main:        #0B1F3A;
@@ -31,93 +31,47 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
+
+/* ── Fullscreen shell ── */
 html, body {
   margin: 0; padding: 0;
-  background: var(--bg-main);
+  background: #000;
   color: var(--text-primary);
   font-family: 'Segoe UI', Arial, sans-serif;
-  height: 100%;
+  width: 100%; height: 100%;
   overflow: hidden;
+  /* prevent iOS bounce from showing white */
+  position: fixed;
+  touch-action: none;
 }
 
-/* ── Back bar ── */
-#topbar {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-  height: 52px;
-  background: rgba(7,20,40,0.97);
-  border-bottom: 1px solid rgba(0,174,239,0.22);
-  display: flex; align-items: center; gap: 10px;
-  padding: 0 14px;
-  backdrop-filter: blur(8px);
-}
-#topbar .back-btn {
-  background: none; border: none; color: var(--neon-blue);
-  font-size: 20px; cursor: pointer; padding: 4px 8px;
-  border-radius: 6px; transition: background 0.15s;
-  touch-action: manipulation;
-}
-#topbar .back-btn:hover { background: rgba(0,174,239,0.12); }
-#topbar .room-title {
-  flex: 1; font-size: 15px; font-weight: 700; color: #fff;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-#live-badge {
-  display: none; align-items: center; gap: 5px;
-  background: var(--neon-red); color: #fff;
-  font-size: 11px; font-weight: 800; padding: 3px 9px;
-  border-radius: 20px; letter-spacing: 0.5px;
-  box-shadow: var(--red-glow);
-  animation: livePulse 2s infinite;
-}
-#live-badge.visible { display: flex; }
-#live-badge .live-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: #fff; animation: dotBlink 1.2s infinite;
-}
-#viewer-count {
-  font-size: 12px; color: var(--text-muted);
-  display: flex; align-items: center; gap: 4px;
-}
-#viewer-count svg { flex-shrink: 0; }
-
-/* ── Main layout ── */
-#live-root {
-  display: flex;
-  height: 100vh;
-  padding-top: 52px;
-}
-
-/* ── Video grid (desktop 2-col, mobile active-speaker) ── */
+/* ── Video grid — fills entire viewport ── */
 #video-grid {
-  flex: 1;
+  position: fixed; inset: 0; z-index: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: repeat(4, 1fr);
-  gap: 4px;
-  padding: 4px;
+  gap: 3px;
   background: #000;
-  min-height: 0;
   overflow: hidden;
-  position: relative;
 }
 
-/* ── Individual video box ── */
+/* Desktop: host box spans full left column */
 .video-box {
   position: relative;
   background: var(--bg-deep);
-  border: 1px solid rgba(0,174,239,0.18);
-  border-radius: 8px;
+  border: 1px solid rgba(0,174,239,0.12);
   overflow: hidden;
   transition: border-color 0.2s;
   touch-action: manipulation;
 }
 .video-box.speaking {
   border-color: var(--neon-green);
-  box-shadow: 0 0 0 2px rgba(57,255,20,0.45);
+  box-shadow: inset 0 0 0 2px rgba(57,255,20,0.45);
 }
 .video-box.host-box {
   grid-column: 1; grid-row: 1;
-  border-color: rgba(0,174,239,0.6);
+  border-color: rgba(0,174,239,0.5);
 }
 .video-box video {
   width: 100%; height: 100%;
@@ -125,6 +79,8 @@ html, body {
   display: block;
   background: #000;
 }
+
+/* Name / badge overlay */
 .video-box .box-overlay {
   position: absolute; inset: 0;
   display: flex; flex-direction: column;
@@ -149,20 +105,19 @@ html, body {
 .badge-icon {
   width: 22px; height: 22px; border-radius: 50%;
   background: rgba(0,0,0,0.55); display: flex; align-items: center;
-  justify-content: center; font-size: 11px;
-  pointer-events: none;
+  justify-content: center; font-size: 11px; pointer-events: none;
 }
 .badge-icon.muted   { color: #ff5566; }
 .badge-icon.cam-off { color: #aaa; }
+
 /* Cam-off placeholder */
 .video-box .cam-placeholder {
   position: absolute; inset: 0;
   display: none; align-items: center; justify-content: center;
-  flex-direction: column; gap: 8px;
-  background: var(--bg-deep);
+  flex-direction: column; gap: 8px; background: var(--bg-deep);
 }
 .video-box.cam-off .cam-placeholder { display: flex; }
-.video-box.cam-off video           { visibility: hidden; }
+.video-box.cam-off video { visibility: hidden; }
 .cam-placeholder-avatar {
   width: 60px; height: 60px; border-radius: 50%;
   background: rgba(0,174,239,0.15);
@@ -170,69 +125,141 @@ html, body {
   display: flex; align-items: center; justify-content: center;
   font-size: 26px;
 }
-.cam-placeholder-name {
-  font-size: 12px; color: var(--text-muted);
-}
+.cam-placeholder-name { font-size: 12px; color: var(--text-muted); }
+
 /* Empty slot */
 .video-box.empty-slot {
-  border: 1px dashed rgba(0,174,239,0.18);
+  border: 1px dashed rgba(0,174,239,0.12);
   display: flex; align-items: center; justify-content: center;
 }
-.empty-slot-label {
-  font-size: 12px; color: rgba(255,255,255,0.18);
-}
+.empty-slot-label { font-size: 12px; color: rgba(255,255,255,0.14); }
 
-/* ── Host control bar (overlay on grid, bottom) ── */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   FULLSCREEN HUD — all overlaid on the video grid
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* ── Top HUD bar ── */
+#topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: 52px;
+  background: linear-gradient(rgba(0,0,0,0.72), transparent);
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 14px;
+  pointer-events: auto;
+  /* safe-area for notch phones */
+  padding-top: env(safe-area-inset-top, 0px);
+  height: calc(52px + env(safe-area-inset-top, 0px));
+}
+#topbar .back-btn {
+  background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.2);
+  color: #fff; font-size: 22px; cursor: pointer; padding: 4px 10px;
+  border-radius: 8px; transition: background 0.15s;
+  touch-action: manipulation; flex-shrink: 0;
+}
+#topbar .back-btn:hover { background: rgba(255,255,255,0.15); }
+#topbar .room-title {
+  flex: 1; font-size: 14px; font-weight: 700; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+}
+#live-badge {
+  display: none; align-items: center; gap: 5px;
+  background: #ff0030; color: #fff;
+  font-size: 11px; font-weight: 800; padding: 3px 9px;
+  border-radius: 20px; letter-spacing: 0.5px;
+  box-shadow: var(--red-glow);
+  animation: livePulse 2s infinite;
+  flex-shrink: 0;
+}
+#live-badge.visible { display: flex; }
+#live-badge .live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #fff; animation: dotBlink 1.2s infinite;
+}
+#viewer-count {
+  font-size: 12px; color: rgba(255,255,255,0.85);
+  display: flex; align-items: center; gap: 4px;
+  background: rgba(0,0,0,0.45); padding: 3px 8px; border-radius: 12px;
+  flex-shrink: 0;
+}
+#viewer-count svg { flex-shrink: 0; }
+
+/* ── Bottom control bar (floating pill) ── */
 #ctrl-bar {
-  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+  position: fixed;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  left: 50%; transform: translateX(-50%);
   display: none; flex-direction: row; gap: 8px;
-  background: rgba(7,20,40,0.92);
-  border: 1px solid rgba(0,174,239,0.28);
+  background: rgba(5,12,28,0.88);
+  border: 1px solid rgba(255,255,255,0.18);
   border-radius: 40px; padding: 6px 14px;
-  z-index: 100; backdrop-filter: blur(10px);
-  box-shadow: var(--blue-glow-sm);
+  z-index: 200; backdrop-filter: blur(14px);
+  box-shadow: 0 4px 30px rgba(0,0,0,0.7), var(--blue-glow-sm);
+  white-space: nowrap;
 }
 #ctrl-bar.visible { display: flex; }
+
 .ctrl-btn {
-  width: 44px; height: 44px; border-radius: 50%; border: none;
-  background: rgba(0,174,239,0.1); color: var(--neon-blue);
+  width: 46px; height: 46px; border-radius: 50%; border: none;
+  background: rgba(255,255,255,0.1); color: #fff;
   font-size: 18px; cursor: pointer; display: flex;
   align-items: center; justify-content: center;
   transition: background 0.15s, box-shadow 0.15s;
-  touch-action: manipulation;
-  position: relative;
+  touch-action: manipulation; position: relative;
+  flex-shrink: 0;
 }
-.ctrl-btn:hover  { background: rgba(0,174,239,0.22); box-shadow: var(--blue-glow-sm); }
-.ctrl-btn.active { background: rgba(255,51,85,0.18); color: #ff5566; box-shadow: var(--red-glow); }
+.ctrl-btn:hover  { background: rgba(255,255,255,0.22); }
+.ctrl-btn.active { background: rgba(255,51,85,0.3); color: #ff5566; box-shadow: var(--red-glow); }
 .ctrl-btn.go-live-btn {
-  background: var(--neon-red); color: #fff; box-shadow: var(--red-glow);
+  background: #ff0030; color: #fff; box-shadow: var(--red-glow);
   width: auto; border-radius: 20px; padding: 0 18px;
   font-size: 13px; font-weight: 800; letter-spacing: 0.3px;
 }
-.ctrl-btn.go-live-btn:hover { background: #e02244; }
+.ctrl-btn.go-live-btn:hover { background: #cc0025; }
 .ctrl-btn.end-live-btn {
-  background: rgba(255,51,85,0.18); color: #ff5566;
+  background: rgba(255,51,85,0.22); color: #ff5566;
   width: auto; border-radius: 20px; padding: 0 16px;
   font-size: 13px; font-weight: 700;
 }
+
+/* Exit button — always visible top-right on active live */
+#btnExitLive {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  right: 14px; z-index: 210;
+  display: none;
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(180,0,30,0.55); border: 1px solid rgba(255,30,60,0.55);
+  color: #fff; font-size: 18px; cursor: pointer;
+  align-items: center; justify-content: center;
+  touch-action: manipulation;
+  backdrop-filter: blur(8px);
+  transition: background 0.15s;
+}
+#btnExitLive.visible { display: flex; }
+#btnExitLive:hover { background: rgba(255,30,60,0.75); }
+
 .ctrl-tooltip {
   position: absolute; bottom: calc(100% + 6px);
   left: 50%; transform: translateX(-50%);
-  background: rgba(7,20,40,0.95); color: var(--text-secondary);
+  background: rgba(5,12,28,0.97); color: var(--text-secondary);
   font-size: 11px; padding: 3px 8px; border-radius: 6px;
   white-space: nowrap; pointer-events: none;
   opacity: 0; transition: opacity 0.15s;
-  border: 1px solid rgba(0,174,239,0.2);
+  border: 1px solid rgba(255,255,255,0.14);
 }
 .ctrl-btn:hover .ctrl-tooltip { opacity: 1; }
 
-/* ── Side panel: chat + requests ── */
+/* ── Side panel (desktop chat + requests) ── */
 #side-panel {
-  width: 300px; flex-shrink: 0;
-  background: var(--bg-card);
-  border-left: 1px solid rgba(0,174,239,0.15);
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 150;
+  width: 300px;
+  background: rgba(7,20,42,0.88);
+  border-left: 1px solid rgba(0,174,239,0.18);
   display: flex; flex-direction: column;
   overflow: hidden;
+  backdrop-filter: blur(14px);
+  padding-top: calc(52px + env(safe-area-inset-top, 0px));
 }
 .side-tabs {
   display: flex; border-bottom: 1px solid rgba(0,174,239,0.15);
@@ -252,7 +279,6 @@ html, body {
 }
 .side-tab .tab-badge.has-items { visibility: visible; }
 
-/* Chat */
 #chat-panel, #requests-panel {
   flex: 1; display: none; flex-direction: column; overflow: hidden;
 }
@@ -298,7 +324,6 @@ html, body {
 }
 #chat-send:hover { background: var(--neon-cyan); }
 
-/* Reactions row */
 #reaction-row {
   display: flex; gap: 6px; padding: 0 8px 8px;
   justify-content: center;
@@ -311,7 +336,6 @@ html, body {
 }
 .react-btn:hover { background: rgba(255,255,255,0.12); transform: scale(1.18); }
 
-/* Guest requests */
 #requests-panel { padding: 10px; gap: 8px; overflow-y: auto; }
 .request-card {
   background: rgba(0,0,0,0.3); border: 1px solid rgba(0,174,239,0.2);
@@ -324,10 +348,10 @@ html, body {
 .req-accept { background: var(--neon-green); color: #000; border: none; border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
 .req-deny   { background: rgba(255,51,85,0.2); color: #ff5566; border: 1px solid rgba(255,51,85,0.3); border-radius: 6px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
 
-/* ── Join / waiting overlay ── */
+/* ── Join / waiting / lobby overlays ── */
 #join-overlay, #waiting-overlay, #lobby-overlay {
   position: fixed; inset: 0; z-index: 500;
-  background: rgba(5,15,35,0.97);
+  background: rgba(5,12,28,0.97);
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 16px; padding: 24px;
@@ -357,7 +381,6 @@ html, body {
 }
 .btn-secondary:hover { background: rgba(0,174,239,0.18); }
 
-/* room code input */
 #room-code-input {
   background: var(--bg-input); border: 1px solid rgba(0,174,239,0.35);
   color: #fff; border-radius: 10px; padding: 12px 18px;
@@ -366,7 +389,6 @@ html, body {
 }
 #room-code-input:focus { border-color: var(--neon-blue); }
 
-/* Spinner */
 .spinner {
   width: 40px; height: 40px; border-radius: 50%;
   border: 3px solid rgba(0,174,239,0.2);
@@ -375,13 +397,90 @@ html, body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Host context menu on guest box (long-press / right-click) ── */
+/* ── Mobile active-speaker layout ── */
+@media (max-width: 700px) {
+  #side-panel { display: none; }
+
+  #video-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+  /* Active speaker — dominant full-width slot */
+  #video-grid .video-box[data-active="true"] {
+    grid-column: 1; grid-row: 1;
+    height: 56vw; max-height: 46vh;
+    z-index: 2;
+  }
+  /* Other guests — horizontal scroll strip above ctrl-bar */
+  #mini-strip {
+    position: fixed;
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+    left: 0; right: 0;
+    height: 100px; z-index: 150; display: flex;
+    gap: 4px; padding: 0 6px; overflow-x: auto;
+    scrollbar-width: none;
+  }
+  #mini-strip::-webkit-scrollbar { display: none; }
+  .mini-box {
+    width: 80px; height: 100px; flex-shrink: 0;
+    border-radius: 10px; overflow: hidden; position: relative;
+    border: 2px solid rgba(0,174,239,0.3);
+    background: var(--bg-deep);
+    touch-action: manipulation;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .mini-box:active { transform: scale(0.95); }
+  .mini-box.speaking { border-color: var(--neon-green); }
+  .mini-box video { width:100%; height:100%; object-fit: cover; }
+  .mini-box .mini-name {
+    position: absolute; bottom: 3px; left: 3px; right: 3px;
+    font-size: 10px; color: #fff; font-weight: 700;
+    text-shadow: 0 1px 3px #000;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #ctrl-bar { bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+
+  /* Mobile chat button */
+  #mobile-chat-btn {
+    display: flex;
+    position: fixed;
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    right: 14px; z-index: 160;
+  }
+  #mobile-chat-drawer {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
+    height: 55vh; background: rgba(7,20,42,0.97);
+    border-top: 1px solid rgba(0,174,239,0.25);
+    border-radius: 16px 16px 0 0;
+    display: flex; flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.22,1,0.36,1);
+    backdrop-filter: blur(14px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  #mobile-chat-drawer.open { transform: translateY(0); }
+}
+
+#mobile-chat-btn {
+  display: none;
+  width: 46px; height: 46px; border-radius: 50%;
+  background: rgba(5,12,28,0.75); border: 1px solid rgba(255,255,255,0.2);
+  color: #fff; font-size: 20px; cursor: pointer;
+  align-items: center; justify-content: center;
+  box-shadow: var(--blue-glow-sm);
+  backdrop-filter: blur(8px);
+  touch-action: manipulation;
+}
+
+/* ── Context menu ── */
 #guest-ctx-menu {
   position: fixed; z-index: 600;
   background: rgba(7,20,40,0.97);
   border: 1px solid rgba(0,174,239,0.3);
   border-radius: 10px; padding: 6px 0; min-width: 170px;
   box-shadow: var(--blue-glow-sm); display: none;
+  backdrop-filter: blur(12px);
 }
 #guest-ctx-menu.visible { display: block; }
 .ctx-item {
@@ -393,7 +492,7 @@ html, body {
 .ctx-item.danger { color: #ff5566; }
 .ctx-item.danger:hover { background: rgba(255,51,85,0.1); }
 
-/* ── Per-box control buttons ── */
+/* ── Per-box controls ── */
 .box-controls {
   position: absolute; top: 6px; left: 6px; right: 6px;
   display: none; flex-direction: row; gap: 5px;
@@ -401,7 +500,6 @@ html, body {
 }
 .video-box:hover .box-controls,
 .video-box:focus-within .box-controls { display: flex; }
-/* Always show on touch devices */
 @media (pointer: coarse) { .box-controls { display: flex; } }
 .box-ctrl-btn {
   background: rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.18);
@@ -413,32 +511,29 @@ html, body {
 .box-ctrl-btn:hover  { background: rgba(0,174,239,0.35); transform: scale(1.1); }
 .box-ctrl-remove     { margin-left: auto; background: rgba(255,51,85,0.18); border-color: rgba(255,51,85,0.35); }
 .box-ctrl-remove:hover { background: rgba(255,51,85,0.5); }
-/* Hide remove button for non-host — JS also gates it, this is CSS safety */
 .video-box:not([data-uid]) .box-ctrl-remove { display: none; }
 
-/* ── Per-box connection status bar ── */
+/* ── Per-box connection status ── */
 .box-status-bar {
   position: absolute; bottom: 0; left: 0; right: 0;
   display: flex; align-items: center; gap: 5px;
   padding: 4px 8px; background: rgba(0,0,0,0.55);
   font-size: 11px; color: rgba(255,255,255,0.75);
-  border-radius: 0 0 10px 10px; z-index: 10;
+  border-radius: 0 0 8px 8px; z-index: 10;
   transition: opacity 0.2s;
 }
 .video-box.empty-slot .box-status-bar { display: none; }
-.box-conn-dot {
-  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-}
+.box-conn-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .box-conn-dot.good          { background: var(--neon-green); }
 .box-conn-dot.weak          { background: #ffcc44; }
 .box-conn-dot.reconnecting  { background: #ffcc44; animation: dotBlink 0.9s infinite; }
 .box-conn-dot.error         { background: var(--neon-red); }
 
-/* ── Per-box reconnecting overlay ── */
+/* ── Per-box overlays ── */
 .box-reconnect-overlay {
   position: absolute; inset: 0; z-index: 25;
   display: none; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(0,0,0,0.72); gap: 10px; border-radius: 10px;
+  background: rgba(0,0,0,0.72); gap: 10px; border-radius: 8px;
 }
 .box-reconnect-overlay.visible { display: flex; }
 .box-recon-spinner {
@@ -447,98 +542,66 @@ html, body {
   border-top-color: #ffcc44;
   animation: spin 0.8s linear infinite;
 }
-.box-recon-msg {
-  color: #ffcc44; font-size: 12px; font-weight: 700; text-align: center;
-}
+.box-recon-msg { color: #ffcc44; font-size: 12px; font-weight: 700; text-align: center; }
 
-/* ── Per-box error overlay ── */
 .box-error-overlay {
   position: absolute; inset: 0; z-index: 24;
   display: none; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(0,0,0,0.8); gap: 8px; border-radius: 10px;
+  background: rgba(0,0,0,0.8); gap: 8px; border-radius: 8px;
 }
 .box-error-overlay.visible { display: flex; }
 .box-error-icon { font-size: 28px; }
 .box-error-msg  { color: #ff8899; font-size: 12px; font-weight: 600; text-align: center; padding: 0 8px; }
 
-/* ── Quality indicator (legacy dot) ── */
+/* ── Quality dot ── */
 .quality-dot {
   position: absolute; top: 7px; right: 7px;
   width: 8px; height: 8px; border-radius: 50%;
-  border: 1px solid rgba(0,0,0,0.4);
-  z-index: 5;
+  border: 1px solid rgba(0,0,0,0.4); z-index: 5;
 }
 .quality-dot.good   { background: var(--neon-green); }
 .quality-dot.ok     { background: #ffcc44; }
 .quality-dot.poor   { background: var(--neon-red); }
 
-/* ── Mobile ── */
-@media (max-width: 700px) {
-  #side-panel { display: none; }
-  #live-root  { flex-direction: column; }
-  #video-grid {
-    width: 100%; flex: 1;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-    gap: 3px;
-  }
-  /* Active speaker — full width top slot */
-  #video-grid .video-box[data-active="true"] {
-    grid-column: 1; grid-row: 1;
-    height: 55vw; max-height: 45vh;
-    z-index: 2;
-  }
-  /* Remaining boxes — horizontal scroll strip */
-  #mini-strip {
-    position: fixed; bottom: 72px; left: 0; right: 0;
-    height: 100px; z-index: 50; display: flex;
-    gap: 4px; padding: 0 6px; overflow-x: auto;
-    scrollbar-width: none;
-  }
-  #mini-strip::-webkit-scrollbar { display: none; }
-  .mini-box {
-    width: 80px; height: 100px; flex-shrink: 0;
-    border-radius: 8px; overflow: hidden; position: relative;
-    border: 1px solid rgba(0,174,239,0.25);
-    background: var(--bg-deep);
-    touch-action: manipulation;
-  }
-  .mini-box video { width:100%; height:100%; object-fit: cover; }
-  .mini-box .mini-name {
-    position: absolute; bottom: 3px; left: 3px; right: 3px;
-    font-size: 10px; color: #fff; font-weight: 700;
-    text-shadow: 0 1px 3px #000;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  /* Mobile bottom ctrl bar */
-  #ctrl-bar {
-    bottom: 14px; left: 50%; transform: translateX(-50%);
-    padding: 5px 10px;
-  }
-  /* Mobile chat toggle */
-  #mobile-chat-btn {
-    display: flex;
-    position: fixed; bottom: 80px; right: 12px; z-index: 200;
-  }
-  #mobile-chat-drawer {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
-    height: 55vh; background: var(--bg-card);
-    border-top: 1px solid rgba(0,174,239,0.25);
-    border-radius: 16px 16px 0 0;
-    display: flex; flex-direction: column;
-    transform: translateY(100%);
-    transition: transform 0.28s cubic-bezier(0.22,1,0.36,1);
-  }
-  #mobile-chat-drawer.open { transform: translateY(0); }
+/* ── Reconnect banner (top) ── */
+#reconnect-banner {
+  position: fixed; top: calc(52px + env(safe-area-inset-top, 0px)); left: 0; right: 0; z-index: 400;
+  background: rgba(255,160,0,0.15); border-bottom: 1px solid rgba(255,160,0,0.4);
+  color: #ffcc44; font-size: 13px; font-weight: 600; text-align: center;
+  padding: 8px; display: none;
 }
+#reconnect-banner.visible { display: block; }
 
-#mobile-chat-btn {
-  display: none;
-  width: 44px; height: 44px; border-radius: 50%;
-  background: var(--bg-card); border: 1px solid rgba(0,174,239,0.3);
-  color: var(--neon-blue); font-size: 20px; cursor: pointer;
-  align-items: center; justify-content: center;
-  box-shadow: var(--blue-glow-sm);
+/* ── Toast ── */
+#live-toast {
+  position: fixed; bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  left: 50%; transform: translateX(-50%);
+  background: rgba(5,12,28,0.97); border: 1px solid rgba(255,255,255,0.2);
+  color: #fff; font-size: 13px; padding: 10px 20px;
+  border-radius: 20px; z-index: 700; white-space: nowrap;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.22s ease;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+}
+#live-toast.show { opacity: 1; pointer-events: auto; }
+
+/* ── Floating reactions ── */
+#reaction-stage {
+  position: fixed;
+  bottom: calc(150px + env(safe-area-inset-bottom, 0px));
+  right: 16px;
+  width: 50px; z-index: 600; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center;
+}
+.fly-reaction {
+  font-size: 28px; position: absolute; bottom: 0;
+  animation: flyUp 2.4s ease-out forwards;
+}
+@keyframes flyUp {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  80%  { opacity: 0.7; }
+  100% { opacity: 0; transform: translateY(-180px) scale(0.7); }
 }
 
 /* ── Keyframes ── */
@@ -555,47 +618,54 @@ html, body {
   50%     { box-shadow: 0 0 0 4px rgba(57,255,20,0); }
 }
 
-/* ── Reconnecting banner ── */
-#reconnect-banner {
-  position: fixed; top: 52px; left: 0; right: 0; z-index: 400;
-  background: rgba(255,160,0,0.15); border-bottom: 1px solid rgba(255,160,0,0.4);
-  color: #ffcc44; font-size: 13px; font-weight: 600; text-align: center;
-  padding: 8px; display: none;
+/* Smooth box transition on mobile tap-to-enlarge */
+.video-box {
+  transition: border-color 0.2s, grid-row 0.3s, grid-column 0.3s;
 }
-#reconnect-banner.visible { display: block; }
 
-/* ── Toast ── */
-#live-toast {
-  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-  background: rgba(7,20,40,0.97); border: 1px solid rgba(0,174,239,0.35);
-  color: var(--text-secondary); font-size: 13px; padding: 10px 20px;
-  border-radius: 20px; z-index: 700; white-space: nowrap;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.22s ease, transform 0.22s ease;
-  box-shadow: var(--blue-glow-sm);
+/* ── End Live Confirmation Modal ── */
+#endLiveConfirm {
+  display: none; position: fixed; inset: 0; z-index: 900;
+  background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
+  align-items: center; justify-content: center; padding: 20px;
+  box-sizing: border-box;
 }
-#live-toast.show { opacity: 1; pointer-events: auto; }
-
-/* ── Floating reactions ── */
-#reaction-stage {
-  position: fixed; bottom: 150px; right: 16px;
-  width: 50px; z-index: 600; pointer-events: none;
-  display: flex; flex-direction: column; align-items: center;
+#endLiveConfirm.open { display: flex; }
+.elc-inner {
+  background: #0a0d16; border: 1px solid rgba(255,51,85,0.45);
+  border-radius: 18px; padding: 28px 24px; max-width: 320px; width: 100%;
+  text-align: center; box-shadow: 0 0 60px rgba(255,30,60,0.25);
+  animation: elcIn 0.22s cubic-bezier(0.34,1.56,0.64,1) both;
 }
-.fly-reaction {
-  font-size: 26px; position: absolute; bottom: 0;
-  animation: flyUp 2.4s ease-out forwards;
+@keyframes elcIn {
+  from { opacity: 0; transform: scale(0.9) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
 }
-@keyframes flyUp {
-  0%   { opacity: 1; transform: translateY(0) scale(1); }
-  80%  { opacity: 0.7; }
-  100% { opacity: 0; transform: translateY(-180px) scale(0.7); }
+.elc-icon  { font-size: 44px; margin-bottom: 10px; }
+.elc-title { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+.elc-sub   { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 22px; line-height: 1.5; }
+.elc-btns  { display: flex; flex-direction: column; gap: 10px; }
+.elc-btn-end {
+  background: linear-gradient(135deg,#cc001a,#ff1a3d);
+  border: none; border-radius: 12px; color: #fff;
+  font-size: 14px; font-weight: 800; padding: 13px;
+  cursor: pointer; transition: opacity 0.15s;
 }
+.elc-btn-end:hover { opacity: 0.88; }
+.elc-btn-cancel {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px; color: rgba(255,255,255,0.65);
+  font-size: 13px; padding: 11px; cursor: pointer; transition: background 0.15s;
+}
+.elc-btn-cancel:hover { background: rgba(255,255,255,0.12); }
 </style>
 </head>
 <body>
 
-<!-- ── Top bar ── -->
+<!-- ── Video grid (boxes 0-7 injected by live.js) ── -->
+<div id="video-grid"></div>
+
+<!-- ── Top HUD bar ── -->
 <div id="topbar">
   <button class="back-btn" id="btnBack" aria-label="Go back">‹</button>
   <div class="room-title" id="roomTitle">Shadow Nexus Live</div>
@@ -606,63 +676,56 @@ html, body {
   </div>
 </div>
 
+<!-- ── Exit Live button (always-accessible red X) ── -->
+<button id="btnExitLive" aria-label="Exit Live">✕</button>
+
 <!-- ── Reconnecting banner ── -->
 <div id="reconnect-banner">⚡ Connection lost. Reconnecting…</div>
 
-<!-- ── Main layout ── -->
-<div id="live-root">
-
-  <!-- Video grid -->
-  <div id="video-grid">
-    <!-- Boxes 0-7 are injected by live.js -->
-  </div>
-
-  <!-- Host ctrl bar (injected into video-grid overlay) -->
-  <div id="ctrl-bar">
-    <button class="ctrl-btn" id="btnMic" title="Mute/Unmute" aria-label="Toggle mic">
-      🎙️<span class="ctrl-tooltip">Mute</span>
-    </button>
-    <button class="ctrl-btn" id="btnCam" title="Camera On/Off" aria-label="Toggle camera">
-      📷<span class="ctrl-tooltip">Camera</span>
-    </button>
-    <button class="ctrl-btn go-live-btn" id="btnGoLive">🔴 Go Live</button>
-    <button class="ctrl-btn end-live-btn" id="btnEndLive" style="display:none;">⏹ End Live</button>
-    <button class="ctrl-btn" id="btnFlip" title="Flip camera" aria-label="Flip camera" style="display:none;">🔄<span class="ctrl-tooltip">Flip</span></button>
-    <button class="ctrl-btn" id="btnLock" title="Lock room" aria-label="Lock room">
-      🔓<span class="ctrl-tooltip">Lock room</span>
-    </button>
-  </div>
-
-  <!-- Side panel -->
-  <div id="side-panel">
-    <div class="side-tabs">
-      <button class="side-tab active" data-tab="chat" onclick="switchSideTab('chat')">
-        Chat <span class="tab-badge" id="chat-badge"></span>
-      </button>
-      <button class="side-tab" data-tab="requests" onclick="switchSideTab('requests')">
-        Requests <span class="tab-badge" id="req-badge"></span>
-      </button>
-    </div>
-    <div id="chat-panel" class="active">
-      <div id="chat-messages"></div>
-      <div id="reaction-row">
-        <button class="react-btn" onclick="sendReaction('❤️')">❤️</button>
-        <button class="react-btn" onclick="sendReaction('🔥')">🔥</button>
-        <button class="react-btn" onclick="sendReaction('🤣')">🤣</button>
-        <button class="react-btn" onclick="sendReaction('👏')">👏</button>
-        <button class="react-btn" onclick="sendReaction('😮')">😮</button>
-      </div>
-      <div id="chat-input-row">
-        <input id="chat-input" type="text" placeholder="Say something…" maxlength="200" autocomplete="off">
-        <button id="chat-send">➤</button>
-      </div>
-    </div>
-    <div id="requests-panel"></div>
-  </div>
-
+<!-- ── Bottom control bar (injected into DOM, placed by JS) ── -->
+<div id="ctrl-bar">
+  <button class="ctrl-btn" id="btnMic" title="Mute/Unmute" aria-label="Toggle mic">
+    🎙️<span class="ctrl-tooltip">Mute</span>
+  </button>
+  <button class="ctrl-btn" id="btnCam" title="Camera On/Off" aria-label="Toggle camera">
+    📷<span class="ctrl-tooltip">Camera</span>
+  </button>
+  <button class="ctrl-btn go-live-btn" id="btnGoLive">🔴 Go Live</button>
+  <button class="ctrl-btn end-live-btn" id="btnEndLive" style="display:none;">⏹ End</button>
+  <button class="ctrl-btn" id="btnFlip" title="Flip camera" aria-label="Flip camera" style="display:none;">🔄<span class="ctrl-tooltip">Flip</span></button>
+  <button class="ctrl-btn" id="btnLock" title="Lock room" aria-label="Lock room">
+    🔓<span class="ctrl-tooltip">Lock room</span>
+  </button>
 </div>
 
-<!-- ── Mobile chat button + drawer ── -->
+<!-- ── Desktop side panel: chat + requests ── -->
+<div id="side-panel">
+  <div class="side-tabs">
+    <button class="side-tab active" data-tab="chat" onclick="switchSideTab('chat')">
+      Chat <span class="tab-badge" id="chat-badge"></span>
+    </button>
+    <button class="side-tab" data-tab="requests" onclick="switchSideTab('requests')">
+      Requests <span class="tab-badge" id="req-badge"></span>
+    </button>
+  </div>
+  <div id="chat-panel" class="active">
+    <div id="chat-messages"></div>
+    <div id="reaction-row">
+      <button class="react-btn" onclick="sendReaction('❤️')">❤️</button>
+      <button class="react-btn" onclick="sendReaction('🔥')">🔥</button>
+      <button class="react-btn" onclick="sendReaction('🤣')">🤣</button>
+      <button class="react-btn" onclick="sendReaction('👏')">👏</button>
+      <button class="react-btn" onclick="sendReaction('😮')">😮</button>
+    </div>
+    <div id="chat-input-row">
+      <input id="chat-input" type="text" placeholder="Say something…" maxlength="200" autocomplete="off">
+      <button id="chat-send">➤</button>
+    </div>
+  </div>
+  <div id="requests-panel"></div>
+</div>
+
+<!-- ── Mobile chat button + bottom drawer ── -->
 <button id="mobile-chat-btn" onclick="toggleMobileChat()" aria-label="Open chat">💬</button>
 <div id="mobile-chat-drawer">
   <div class="side-tabs" style="border-radius:16px 16px 0 0;">
@@ -670,7 +733,6 @@ html, body {
     <button class="side-tab" data-tab="requests" onclick="switchSideTab('requests')">Requests</button>
     <button class="side-tab" style="flex:0;padding:12px 14px;color:#ff5566;" onclick="toggleMobileChat()">✕</button>
   </div>
-  <!-- chat messages and input are mirrored by JS -->
   <div id="mobile-chat-messages" style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px;"></div>
   <div id="reaction-row-mobile" style="display:flex;gap:6px;padding:0 8px 8px;justify-content:center;">
     <button class="react-btn" onclick="sendReaction('❤️')">❤️</button>
@@ -680,15 +742,16 @@ html, body {
     <button class="react-btn" onclick="sendReaction('😮')">😮</button>
   </div>
   <div id="chat-input-row-mobile" style="display:flex;gap:6px;padding:8px;border-top:1px solid rgba(0,174,239,0.12);">
-    <input id="chat-input-mobile" type="text" placeholder="Say something…" maxlength="200" autocomplete="off" style="flex:1;background:var(--bg-input);border:1px solid rgba(0,174,239,0.25);color:#fff;border-radius:20px;padding:8px 14px;font-size:13px;outline:none;">
+    <input id="chat-input-mobile" type="text" placeholder="Say something…" maxlength="200" autocomplete="off"
+      style="flex:1;background:var(--bg-input);border:1px solid rgba(0,174,239,0.25);color:#fff;border-radius:20px;padding:8px 14px;font-size:13px;outline:none;">
     <button onclick="sendChatMobile()" style="background:var(--neon-blue);color:#000;border:none;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">➤</button>
   </div>
 </div>
 
-<!-- ── Mobile guest mini-strip ── -->
+<!-- ── Mobile mini guest strip ── -->
 <div id="mini-strip"></div>
 
-<!-- ── Guest context menu ── -->
+<!-- ── Host context menu (long-press / right-click on box) ── -->
 <div id="guest-ctx-menu">
   <div class="ctx-item" id="ctx-mute">🔇 Mute guest</div>
   <div class="ctx-item" id="ctx-cam">📷 Disable cam</div>
@@ -699,12 +762,12 @@ html, body {
 <!-- ── Floating reaction stage ── -->
 <div id="reaction-stage"></div>
 
-<!-- ── Toast ── -->
+<!-- ── Toast notification ── -->
 <div id="live-toast"></div>
 
 <!-- ── Overlays ── -->
 
-<!-- Lobby: choose host or viewer -->
+<!-- Lobby: host or guest entry point -->
 <div id="lobby-overlay">
   <div class="overlay-icon">🔴</div>
   <div class="overlay-title" id="lobbyTitle">Shadow Nexus Live</div>
@@ -713,7 +776,7 @@ html, body {
   <button class="btn-secondary" id="btnBackHome" style="color:var(--text-muted);border-color:transparent;">← Back to Feed</button>
 </div>
 
-<!-- Join: enter room code (kept for deep-link compatibility) -->
+<!-- Join: connecting to a room (deep-link) -->
 <div id="join-overlay" class="hidden">
   <div class="overlay-icon">📡</div>
   <div class="overlay-title">Joining Live…</div>
@@ -730,7 +793,19 @@ html, body {
   <button class="btn-secondary" id="btnCancelRequest">Cancel request</button>
 </div>
 
-<!-- ── Script ── -->
+<!-- ── End Live Confirmation Modal ── -->
+<div id="endLiveConfirm">
+  <div class="elc-inner">
+    <div class="elc-icon">🛑</div>
+    <div class="elc-title">End your Live stream?</div>
+    <div class="elc-sub">This will stop the stream, remove all guests, and return you to the Feed.</div>
+    <div class="elc-btns">
+      <button class="elc-btn-end" id="elcBtnEnd">✅ End Live</button>
+      <button class="elc-btn-cancel" id="elcBtnCancel">❌ Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script type="module" src="live.js"></script>
 </body>
 </html>

@@ -8719,8 +8719,20 @@ body.arcade-fs-ios body::after { display:none !important; }
   }
 
   /* TIMELINE DYNAMIC TIMELINE STREAM ENGINE WITH MEDIA INTERPRETATION */
-  // TTL_MS kept for cleanup-only purposes — posts no longer expire from the feed display.
-  const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours (used only for scheduled cleanup, not for display)
+  const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours — posts auto-expire after this
+
+  /* ── Helper: format a timestamp as "2 hours ago" / "July 16 at 5:30 PM" ── */
+  function _postTimeAgo(ts) {
+      if (!ts) return '';
+      const d   = (ts && ts.toDate) ? ts.toDate() : new Date(ts);
+      const diff = Math.floor((Date.now() - d) / 1000);
+      if (diff < 60)   return diff + 's ago';
+      if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+      if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+      // Older than 24h — shouldn't normally be visible, but format as full date
+      return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+           + ' at ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
 
   function initTimelineStream() {
       // Tear down any existing listener before (re)subscribing with a new limit
@@ -8729,11 +8741,15 @@ body.arcade-fs-ios body::after { display:none !important; }
       const qElements = query(collection(db, "posts"), orderBy("timestamp", "desc"), limit(scrollLimit));
       feedUnsubscribe = onSnapshot(qElements, (snapshot) => {
           const container = document.getElementById("feedPosts");
+          const nowMs = Date.now();
 
-          // All posts in the snapshot are shown — no TTL expiry in the feed display.
-          // Posts are only removed when the owner deletes them or a moderator removes them.
+          // Filter out expired posts (24h TTL) — they may still be in Firestore until
+          // the background cleanup runs, so we skip them here silently.
           const incomingIds = new Set();
           snapshot.forEach(pDoc => {
+              const p = pDoc.data();
+              // Legacy posts (no expiresAt) remain visible indefinitely
+              if (p.expiresAt && p.expiresAt < nowMs) return;
               incomingIds.add(pDoc.id);
           });
 
@@ -8767,8 +8783,8 @@ body.arcade-fs-ios body::after { display:none !important; }
 
               const isLiked = post.likedBy?.includes(currentUser.uid);
               const isOwner = post.uid === currentUser.uid;
-              // Posts are permanent — no expiry label shown
-              const ageLabel = '';
+              // Show "X time ago" beneath the author name
+              const ageLabel = `<span style="font-size:11px;color:#4a7a9a;white-space:nowrap;">${_postTimeAgo(post.createdAt || post.timestamp)}</span>`;
 
               let mediaHTML = '';
               if (post.mediaUrl) {
@@ -9021,6 +9037,36 @@ body.arcade-fs-ios body::after { display:none !important; }
       toastNotification("Post deleted.");
   };
 
+  /* ═══════════════════════════════════════════════════════════════
+     BACKGROUND 24-HOUR POST CLEANUP
+     Silently removes expired posts and their associated data.
+     Runs once on login then every 5 minutes.
+     ═══════════════════════════════════════════════════════════════ */
+  async function _cleanExpiredPosts() {
+      try {
+          const nowMs = Date.now();
+          const snap = await getDocs(
+              query(collection(db, 'posts'), where('expiresAt', '<', nowMs))
+          );
+          const batch = writeBatch(db);
+          let count = 0;
+          snap.forEach(pDoc => {
+              batch.delete(doc(db, 'posts', pDoc.id));
+              count++;
+          });
+          if (count > 0) {
+              await batch.commit();
+              console.log(`[SNX] Cleaned ${count} expired post(s).`);
+          }
+      } catch (err) {
+          console.warn('[SNX] Post cleanup error:', err);
+      }
+  }
+
+  // Run immediately on load, then every 5 minutes
+  _cleanExpiredPosts();
+  setInterval(_cleanExpiredPosts, 5 * 60 * 1000);
+
   // Infinite scroll — rAF-throttled to avoid firing every pixel
   let _feedScrollPending = false;
   window.addEventListener("scroll", () => {
@@ -9158,6 +9204,7 @@ body.arcade-fs-ios body::after { display:none !important; }
       btn.disabled = true; btn.textContent = "Posting…";
       try {
           const now = Date.now();
+          const expiresAt = now + 24 * 60 * 60 * 1000; // auto-delete after 24 hours
           const mediaUrlsRaw = mediaUrl.split(',').map(u => u.trim()).filter(Boolean);
           // Extract tagged usernames from @mentions
           const taggedHandles = [...new Set((text.match(/@([a-zA-Z0-9_]+)/g) || []).map(m => m.slice(1).toLowerCase()))];
@@ -9176,6 +9223,7 @@ body.arcade-fs-ios body::after { display:none !important; }
               mediaUrls: mediaUrlsRaw,
               timestamp: now,
               createdAt: now,
+              expiresAt,
               likes: 0,
               likedBy: [],
               comments: [],
@@ -9317,6 +9365,7 @@ body.arcade-fs-ios body::after { display:none !important; }
       }
 
       const now = Date.now();
+      const expiresAt = now + 24 * 60 * 60 * 1000; // auto-delete after 24 hours
       // Create the repost as a new post document
       await addDoc(collection(db, 'posts'), {
           uid:            currentUser.uid,
@@ -9328,6 +9377,7 @@ body.arcade-fs-ios body::after { display:none !important; }
           mediaUrl:       orig.mediaUrl || '',
           timestamp:      now,
           createdAt:      now,
+          expiresAt,
           likes:          0,
           likedBy:        [],
           comments:       [],
@@ -12460,6 +12510,8 @@ function navTo(pageId) {
     };
     const navEl = document.getElementById(map[pageId]);
     if (navEl) navEl.classList.add('active-nav');
+    // Re-attach story strip listener each time the feed is opened
+    if (pageId === 'feed' && typeof initStoryStrip === 'function') initStoryStrip();
     // Render friends page data on navigation
     if (pageId === 'friendsPage' && typeof renderFriendsPage === 'function') renderFriendsPage();
     // Render admin panel on navigation (re-fetches latest data each time)
@@ -18846,7 +18898,13 @@ function canViewStory(data) {
     if (!me) return false;
     if (data.authorUid === me.uid) return true;
     if (data.privacy === 'private') return data.authorUid === me.uid;
+    if (data.privacy === 'followers') {
+        // Viewer can see if they follow the author (author is in viewer's following list)
+        const following = (_ud().following || []);
+        return following.includes(data.authorUid);
+    }
     if (data.privacy === 'friends') {
+        // Viewer can see if they are mutual friends with the author
         const friends = (_ud().friends || []);
         return friends.includes(data.authorUid);
     }
@@ -20395,7 +20453,8 @@ function _snxToast(msg) {
             <span class="story-option-label">🔒 Privacy:</span>
             <select class="story-privacy-select" id="storyPrivacySelect">
                 <option value="everyone">🌍 Everyone</option>
-                <option value="friends">👥 Friends Only</option>
+                <option value="followers">👥 Followers Only</option>
+                <option value="friends">✅ Friends Only</option>
                 <option value="family">❤️ Family Only</option>
                 <option value="private">🔒 Private (Only Me)</option>
             </select>

@@ -1,11 +1,11 @@
 /**
  * Shadow Nexus Social — script.js
- * Shared JavaScript utilities loaded by index.html
+ * Shared JavaScript utilities loaded by feed.html
  *
  * Responsibilities:
  *  1. Register the app service worker (sw.js)
  *  2. Register the FCM messaging service worker (firebase-messaging-sw.js)
- *  3. Silent background updates — new versions apply automatically, no prompts
+ *  3. Handle SW update notifications (new version available toast)
  *  4. Capture the PWA install prompt and show the install banner
  *  5. Online/offline status handling
  *  6. Misc global utilities used across pages
@@ -33,28 +33,30 @@
       const reg = await navigator.serviceWorker.register(swPath, { scope: base });
       console.log('[SW] Registered, scope:', reg.scope);
 
-      // If a new SW is already waiting when the page loads, activate it silently.
+      // If a new SW is already waiting on first load, show the update toast now
       if (reg.waiting) {
-        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        showUpdateToast(reg.waiting);
       }
 
-      // Watch for a new SW installing while the page is open.
+      // Detect new SW installing while the page is open
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
         if (!newWorker) return;
         newWorker.addEventListener('statechange', () => {
-          // New version is ready — activate it silently in the background.
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            newWorker.postMessage({ type: 'SKIP_WAITING' });
+            // New version ready — prompt user to reload
+            showUpdateToast(newWorker);
           }
         });
       });
 
-      // New SW takes control — do NOT reload automatically.
-      // Reloading here causes a loop on mobile (the new SW triggers
-      // controllerchange before Firebase auth resolves, so the guard
-      // window._snxCurrentUser is always null at that moment).
-      // New assets are served automatically on the next natural page open.
+      // When the new SW takes control, reload so the fresh files are used
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!sessionStorage.getItem('snx-sw-reloading')) {
+          sessionStorage.setItem('snx-sw-reloading', '1');
+          window.location.reload();
+        }
+      });
     } catch (err) {
       console.warn('[SW] Registration failed:', err);
     }
@@ -72,13 +74,25 @@
 })();
 
 /* ═══════════════════════════════════════════════
-   3. SILENT BACKGROUND UPDATES
-   New SW versions are detected, skipWaiting() is
-   sent automatically, and the worker activates
-   silently in the background — no reload, no
-   prompts, no toasts. New assets are served on
-   the next natural page open (tab close/reopen).
+   3. UPDATE AVAILABLE TOAST
    ═══════════════════════════════════════════════ */
+function showUpdateToast(worker) {
+  const toast = document.getElementById('pwa-update-toast');
+  if (!toast) return;
+
+  toast.classList.add('visible');
+
+  const btn = toast.querySelector('.update-btn');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      toast.classList.remove('visible');
+      worker.postMessage({ type: 'SKIP_WAITING' });
+    }, { once: true });
+  }
+
+  // Auto-dismiss after 12 seconds
+  setTimeout(() => toast.classList.remove('visible'), 12000);
+}
 
 /* ═══════════════════════════════════════════════
    4. PWA INSTALL BANNER

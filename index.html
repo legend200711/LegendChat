@@ -15436,8 +15436,83 @@ function _buildGameGrid() {
 /* ─────────────────────────────────────────────
    LAUNCH / CLOSE GAME
    ───────────────────────────────────────────── */
-/* Guard flag: prevents a second in-flight launch while the double-rAF is pending */
+/* Guard flag: prevents a second in-flight launch while the sizing rAF is pending */
 let _arcadeLaunching = false;
+
+/* ── Error display: shows a message + Retry button inside the canvas wrap ── */
+function _arcadeShowError(gameId, msg) {
+  _arcadeShowLoading(false);
+  const wrap = document.querySelector('.arcade-game-canvas-wrap');
+  if (!wrap) return;
+  let el = document.getElementById('arcadeErrorOverlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'arcadeErrorOverlay';
+    el.style.cssText = [
+      'position:absolute','inset:0','display:flex','flex-direction:column',
+      'align-items:center','justify-content:center',
+      'background:rgba(0,5,20,0.94)','z-index:11',
+      'color:#ff6680','font-size:13px','gap:14px','padding:20px',
+      'text-align:center'
+    ].join(';');
+    wrap.appendChild(el);
+  }
+  el.innerHTML = `
+    <div style="font-size:28px;">⚠️</div>
+    <div style="font-weight:700;font-size:15px;color:#ff4466;">Game failed to load</div>
+    <div style="color:#7a90b0;font-size:12px;max-width:280px;line-height:1.5;">${msg || 'An unexpected error occurred.'}</div>
+    <button onclick="arcadeRetryGame('${gameId}')"
+      style="margin-top:6px;background:rgba(0,80,200,0.3);border-color:rgba(0,174,239,0.65);
+             color:#00AEEF;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;
+             min-height:48px;touch-action:manipulation;">
+      🔄 Retry Game
+    </button>`;
+  el.style.display = 'flex';
+}
+
+function _arcadeHideError() {
+  const el = document.getElementById('arcadeErrorOverlay');
+  if (el) el.style.display = 'none';
+}
+
+/* Public retry — reloads only the game component, not the page */
+window.arcadeRetryGame = function(gameId) {
+  _arcadeHideError();
+  const id = gameId || _arcadeCurrentGame;
+  if (!id) return;
+  launchArcadeGame(id);
+};
+
+/* ── Canvas dimension resolver with retry ──
+   On slow Android/iOS the flex layout may not have settled after 2 rAFs.
+   We retry up to MAX_TRIES frames before falling back to window dimensions. */
+function _resolveCanvasDimensions(modal, cb) {
+  const MAX_TRIES = 6;
+  let tries = 0;
+  function attempt() {
+    const wrap = modal.querySelector('.arcade-game-canvas-wrap');
+    const cv   = document.getElementById('arcadeGameCanvas');
+    if (!wrap || !cv) { cb(window.innerWidth, Math.max(200, window.innerHeight - 160)); return; }
+    const W = wrap.clientWidth;
+    const H = wrap.clientHeight;
+    // Valid when both dimensions are non-zero and the modal is still open
+    if (W > 0 && H > 0) {
+      cb(Math.max(W, 200), Math.max(H, 200));
+      return;
+    }
+    tries++;
+    if (tries < MAX_TRIES) {
+      requestAnimationFrame(attempt);
+    } else {
+      // Absolute fallback — use window size minus header/controls estimate
+      const fW = window.innerWidth;
+      const fH = Math.max(200, window.innerHeight - 160);
+      cb(fW, fH);
+    }
+  }
+  // Start after 2 frames so flex layout has time to run
+  requestAnimationFrame(() => requestAnimationFrame(attempt));
+}
 
 window.launchArcadeGame = function(gameId) {
   if (_arcadeLaunching) return;           // ignore re-entrant calls during init
@@ -15464,6 +15539,7 @@ window.launchArcadeGame = function(gameId) {
   document.getElementById('agmScore').textContent = '';
   document.getElementById('agmDesktopHint').textContent = '⌨ ' + g.hint;
   document.getElementById('arcadeGameOver').classList.remove('show');
+  _arcadeHideError();
 
   // Show loading overlay while canvas sizes up
   _arcadeShowLoading(true);
@@ -15472,21 +15548,8 @@ window.launchArcadeGame = function(gameId) {
   _buildMobileControls(g);
 
   _arcadeLaunching = true;
-  // Double-rAF: first frame resolves flex layout, second reads settled dimensions
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    _arcadeLaunching = false;
-    const wrap = modal.querySelector('.arcade-game-canvas-wrap');
-    const cv   = document.getElementById('arcadeGameCanvas');
-    const W = wrap ? (wrap.clientWidth  || window.innerWidth)  : window.innerWidth;
-    const H = wrap ? (wrap.clientHeight || Math.max(200, window.innerHeight - 160)) : Math.max(200, window.innerHeight - 160);
-    cv.width  = Math.max(W, 200);
-    cv.height = Math.max(H, 200);
 
-    _arcadeShowLoading(false);
-    _startGame(gameId);
-  }));
-
-  // Attach resize listener (removeEventListener above ensures no duplicates)
+  // Attach resize listener before rAF chain so no resize events are missed
   window.addEventListener('resize', _arcadeHandleResize, { passive: true });
   // ResizeObserver keeps canvas pixel-perfect when keyboard/browser-chrome resize happens
   if (typeof ResizeObserver !== 'undefined') {
@@ -15496,6 +15559,24 @@ window.launchArcadeGame = function(gameId) {
       wrap._arcadeRO.observe(wrap);
     }
   }
+
+  // Wait for layout to settle, then size canvas and start game
+  _resolveCanvasDimensions(modal, (W, H) => {
+    _arcadeLaunching = false;
+    // If the modal was closed while we were waiting, abort silently
+    if (!_arcadeCurrentGame) return;
+    const cv = document.getElementById('arcadeGameCanvas');
+    if (!cv) return;
+    cv.width  = W;
+    cv.height = H;
+    _arcadeShowLoading(false);
+    try {
+      _startGame(gameId);
+    } catch (err) {
+      console.error('[Arcade] Game init failed:', gameId, err);
+      _arcadeShowError(gameId, err.message || String(err));
+    }
+  });
 };
 
 window.closeArcadeGame = function() {
@@ -15503,6 +15584,7 @@ window.closeArcadeGame = function() {
   if (_arcadeRAF) { cancelAnimationFrame(_arcadeRAF); _arcadeRAF = null; }
   _removeGameListeners();
   _arcadeShowLoading(false);
+  _arcadeHideError();
   // Exit any active fullscreen before closing
   if (_arcadeFsIOS) {
     _arcadeApplyIosFallback(document.getElementById('arcadeGameModal'), false);
@@ -15667,8 +15749,10 @@ function _arcadeHandleResize() {
     const wrap = document.querySelector('.arcade-game-canvas-wrap');
     if (!wrap || !_arcadeCurrentGame) return;
     const cv = document.getElementById('arcadeGameCanvas');
-    const W = wrap.clientWidth  || window.innerWidth;
-    const H = wrap.clientHeight || Math.max(200, window.innerHeight - 160);
+    // Guard: skip if layout hasn't settled (zero dimensions)
+    const W = wrap.clientWidth  > 0 ? wrap.clientWidth  : (window.innerWidth  || 200);
+    const H = wrap.clientHeight > 0 ? wrap.clientHeight : (Math.max(200, window.innerHeight - 160));
+    if (W <= 0 || H <= 0) return;
     // Only reinit if dimensions actually changed by more than a rounding pixel
     if (Math.abs(cv.width - W) > 4 || Math.abs(cv.height - H) > 4) {
       cv.width  = Math.max(W, 200);
@@ -15676,7 +15760,13 @@ function _arcadeHandleResize() {
       if (_arcadeRAF) { cancelAnimationFrame(_arcadeRAF); _arcadeRAF = null; }
       _removeGameListeners();
       document.getElementById('arcadeGameOver').classList.remove('show');
-      _startGame(_arcadeCurrentGame);
+      _arcadeHideError();
+      try {
+        _startGame(_arcadeCurrentGame);
+      } catch (err) {
+        console.error('[Arcade] Resize reinit failed:', _arcadeCurrentGame, err);
+        _arcadeShowError(_arcadeCurrentGame, err.message || String(err));
+      }
     }
   }, 60);
 }
@@ -16593,6 +16683,8 @@ function _snakeInit() {
 
   let lastTime = 0;
   function loop(ts) {
+    // Guard: stop if game was closed or replaced while rAF was in flight
+    if (s !== _arcadeGameState) return;
     if (s.dead) return;
     _arcadeRAF = requestAnimationFrame(loop);
     if (ts - lastTime < s.speed) return;
@@ -16767,6 +16859,8 @@ function _tetrisInit() {
   speed = 522;
 
   function loop(ts) {
+    // Guard: stop if game was closed or replaced while rAF was in flight
+    if (s !== _arcadeGameState) return;
     _arcadeRAF = requestAnimationFrame(loop);
     if (ts - lastDrop > speed) {
       lastDrop = ts;
@@ -16825,6 +16919,8 @@ function _pongInit() {
 
   let _prevTs = 0;
   function loop(ts) {
+    // Guard: stop if game was closed or replaced while rAF was in flight
+    if (s !== _arcadeGameState) return;
     _arcadeRAF = requestAnimationFrame(loop);
     const dt = Math.min((ts - (_prevTs || ts)) / 1000, 0.05); // seconds, capped at 50ms
     _prevTs = ts;
@@ -17391,6 +17487,8 @@ function _poolInit(){
 
   let _poolPrevTs = 0;
   function loop(ts){
+    // Guard: stop if game was closed or replaced while rAF was in flight
+    if (s !== _arcadeGameState) return;
     _arcadeRAF=requestAnimationFrame(loop);
     const dt60 = Math.min((ts - (_poolPrevTs || ts)) / 16.667, 3); // frames elapsed at 60fps
     _poolPrevTs = ts;
@@ -17479,6 +17577,8 @@ function _breakoutInit(){
 
   let _brkPrevTs=0;
   function loop(ts){
+    // Guard: stop if game was closed or replaced while rAF was in flight
+    if (s !== _arcadeGameState) return;
     _arcadeRAF=requestAnimationFrame(loop);
     const dt=Math.min((ts-(_brkPrevTs||ts))/1000, 0.05); // seconds, capped 50ms
     _brkPrevTs=ts;
@@ -17598,21 +17698,29 @@ window._arcadeRenderProfileSection = async function(targetUid, containerEl) {
    ───────────────────────────────────────────── */
 window.addEventListener('orientationchange', () => {
   if (!_arcadeCurrentGame) return;
-  // Preempt the short 60 ms resize debounce — use 350 ms for orientation
+  // Preempt the short 60 ms resize debounce — use 350 ms for orientation to let
+  // the browser fully reflow before we reinit
   if (_arcadeResizeTimer) { clearTimeout(_arcadeResizeTimer); _arcadeResizeTimer = null; }
   _arcadeResizeTimer = setTimeout(() => {
     const wrap = document.querySelector('.arcade-game-canvas-wrap');
     const cv   = document.getElementById('arcadeGameCanvas');
     if (!wrap || !cv || !_arcadeCurrentGame) return;
-    const W = wrap.clientWidth  || window.innerWidth;
-    const H = wrap.clientHeight || Math.max(200, window.innerHeight - 160);
+    const W = wrap.clientWidth  > 0 ? wrap.clientWidth  : (window.innerWidth  || 200);
+    const H = wrap.clientHeight > 0 ? wrap.clientHeight : Math.max(200, window.innerHeight - 160);
+    if (W <= 0 || H <= 0) return;
     if (Math.abs(cv.width - W) > 4 || Math.abs(cv.height - H) > 4) {
       cv.width  = Math.max(W, 200);
       cv.height = Math.max(H, 200);
       if (_arcadeRAF) { cancelAnimationFrame(_arcadeRAF); _arcadeRAF = null; }
       _removeGameListeners();
       document.getElementById('arcadeGameOver').classList.remove('show');
-      _startGame(_arcadeCurrentGame);
+      _arcadeHideError();
+      try {
+        _startGame(_arcadeCurrentGame);
+      } catch (err) {
+        console.error('[Arcade] Orientation reinit failed:', _arcadeCurrentGame, err);
+        _arcadeShowError(_arcadeCurrentGame, err.message || String(err));
+      }
     }
   }, 350);
 });

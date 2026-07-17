@@ -19553,24 +19553,15 @@ window._snxArcadeSubscribeInvites = _subscribeInvites;
      LIVE FEATURE — Firebase RTDB + WebRTC
      ═══════════════════════════════════════════════════════════ -->
 <script type="module">
-import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {
   getDatabase, ref, set, push, onValue, onDisconnect,
   remove, update, get, serverTimestamp, off
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-/* ── Re-use existing Firebase app ── */
-const _LIVE_CFG = {
-  apiKey:            "AIzaSyByZRmp6R9HY17T2_WdJUFWeeaLNOP6y2Y",
-  authDomain:        "horr-a08f4.firebaseapp.com",
-  databaseURL:       "https://horr-a08f4-default-rtdb.firebaseio.com",
-  projectId:         "horr-a08f4",
-  storageBucket:     "horr-a08f4.firebasestorage.app",
-  messagingSenderId: "933810617818",
-  appId:             "1:933810617818:web:efb24f123337dd987c14e3"
-};
-const _liveApp = getApps().find(a => a.name === 'live') || initializeApp(_LIVE_CFG, 'live');
+/* ── Re-use the default Firebase app (already initialised by the main module) ── */
+const _liveApp  = getApp();
 const _liveAuth = getAuth(_liveApp);
 const _liveDb   = getDatabase(_liveApp);
 
@@ -19751,7 +19742,7 @@ function _esc(str) {
    PREVIEW FLOW
    ═══════════════════════════════════ */
 async function liveOpenPreview() {
-  if (!_me()) { _toast('Sign in to go live.'); return; }
+  if (!_liveUser) { _toast('Sign in to go live.'); return; }
 
   _el('livePageContent').style.display = 'none';
   _el('livePreview').style.display     = 'flex';
@@ -19801,7 +19792,7 @@ window.liveTogglePreviewCam = liveTogglePreviewCam;
    HOST: start live stream
    ═══════════════════════════════════ */
 async function liveStartStream() {
-  if (!_me() || !_liveStream) return;
+  if (!_liveUser || !_liveStream) return;
   const btn = _el('liveGoLiveBtn');
   btn.disabled   = true;
   btn.textContent = '⏳ Starting…';

@@ -77,9 +77,8 @@ async function loadIceServers() {
         setTimeout(() => { _iceReady = false; }, ttl * 1000);
       }
     }
-  } catch (err) {
+  } catch (_) {
     // network error — STUN_ONLY fallback stays in place; allow retry next call
-    console.warn("[ICE] TURN worker unreachable — using STUN-only:", err.message);
     _iceReady = false;
   }
 }
@@ -97,8 +96,6 @@ let userData     = {};     // Firestore /users/{uid} doc
 let roomId       = null;   // Firestore doc id of the live
 let isHost       = false;
 let liveActive   = false;
-let _appInited   = false;  // guard: init() must only run once
-let _goingLive   = false;  // guard: goLive() in-flight
 let localStream  = null;
 let micEnabled   = true;
 let camEnabled   = true;
@@ -160,10 +157,6 @@ function isMobile() { return window.innerWidth <= 700; }
 onAuthStateChanged(auth, async user => {
   me = user;
   if (!me) { window.location.href = "index.html"; return; }
-  // Only initialise once — token refreshes and focus events re-fire this
-  // callback but must never re-run init() while the live view is active.
-  if (_appInited) return;
-  _appInited = true;
   // Load user data
   try {
     const snap = await getDoc(doc(db, "users", me.uid));
@@ -182,7 +175,6 @@ function init() {
   isHost = params.get("host") === "1";
   const requestBox = params.get("requestBox") === "1";
 
-  // Wire buttons and chat exactly once; init() is now guaranteed to run once.
   wireButtons();
   wireChat();
 
@@ -193,20 +185,7 @@ function init() {
   }
 
   if (isHost) {
-    // ── Auto-start path ───────────────────────────────────────────────────
-    // When index.html pre-creates the room and redirects here, it sets the
-    // sessionStorage flag below.  In that case we skip the setup preview
-    // screen entirely and go live immediately using a fresh camera stream.
-    // This prevents the "loop back to preview" bug caused by calling
-    // startSetupPreview() (which calls getUserMedia() a second time) even
-    // though the host already went through the preview flow on index.html.
-    const autoStart = sessionStorage.getItem("snx_live_autostart") === "1";
-    if (autoStart && roomId) {
-      sessionStorage.removeItem("snx_live_autostart");
-      _directGoLive();
-      return;
-    }
-    // Normal path: show setup preview screen first.
+    // Host: camera preview → confirm → go live
     // roomId is null if "new", will be created in goLive()
     startSetupPreview();
   } else {
@@ -220,78 +199,6 @@ function init() {
         $("permModal").classList.add("open");
       }
     });
-  }
-}
-
-/* ─────────────────────────────────────────────────
-   Host: direct-start (skips setup preview screen)
-   Used when index.html pre-creates the room and
-   redirects with sessionStorage snx_live_autostart=1.
-   Acquires camera once, marks Firestore liveActive,
-   then jumps straight into startLive().
-───────────────────────────────────────────────── */
-async function _directGoLive() {
-  if (_goingLive || liveActive) return;
-  _goingLive = true;
-
-  // Show a minimal "starting" overlay so the user sees something
-  showOverlay("joinOverlay");
-  const sub = $("joinSub");
-  if (sub) sub.textContent = "Starting your live stream…";
-
-  await loadIceServers();
-
-  // Acquire camera — single getUserMedia() call for the entire session.
-  // On failure: show a clear error and go back to the feed (index.html).
-  // We do NOT fall back to startSetupPreview() here because that would
-  // spin up a second camera preview and recreate the "loop" bug.
-  try {
-    setupStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: true,
-    });
-    if (!setupStream.getVideoTracks().length) {
-      throw new Error("No video track — please allow camera access and try again.");
-    }
-  } catch (err) {
-    _goingLive = false;
-    toast("Camera/mic required: " + (err.message || err));
-    // Return to index.html so the user can retry from the feed without a
-    // second camera preview being opened inside live.html.
-    setTimeout(() => navigateBack(), 2500);
-    return;
-  }
-
-  try {
-    // roomId was pre-created and written to Firestore by index.html with
-    // liveActive:true already set.  We only update the fields live.js owns.
-    const name   = userData.displayName || userData.username || me.displayName || "Host";
-    const avatar = userData.avatarUrl || me.photoURL || "";
-    await updateDoc(doc(db, "stories", roomId), {
-      isLive: true, liveActive: true,
-      authorName: name, authorAvatar: avatar,
-      roomId,
-    });
-
-    // Promote setupStream → localStream (no stopSetupPreview — tracks are live)
-    localStream = setupStream;
-    setupStream = null;
-
-    if (!localStream || !localStream.active) {
-      throw new Error("Camera stream lost. Please try again.");
-    }
-
-    hideAllOverlays();
-    startLive();
-  } catch (err) {
-    _goingLive = false;
-    toast("Failed to start live: " + (err.message || err));
-    // Release camera so it doesn't stay locked
-    if (setupStream) { setupStream.getTracks().forEach(t => t.stop()); setupStream = null; }
-    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-    // Return to the feed — do NOT call startSetupPreview() which would
-    // recreate the camera and show a second preview screen.
-    setTimeout(() => navigateBack(), 2500);
   }
 }
 
@@ -339,8 +246,7 @@ function stopSetupPreview() {
    Host: start live
 ───────────────────────────────────────────────── */
 async function goLive() {
-  if (!me || _goingLive || liveActive) return;
-  _goingLive = true;
+  if (!me) return;
   const btn = $("btnGoLive");
   btn.disabled = true;
   btn.textContent = "Starting…";
@@ -381,18 +287,13 @@ async function goLive() {
     setupStream = null;
     $("setupVideo").srcObject = null;
 
-    if (!localStream || !localStream.active) {
-      throw new Error("Camera stream is no longer active — please refresh and try again.");
-    }
-    if (!localStream.getVideoTracks().length) {
-      throw new Error("Camera stream has no video track — please allow camera access and try again.");
+    if (!localStream || !localStream.getVideoTracks().length) {
+      throw new Error("Camera stream is empty — please allow camera access and try again.");
     }
 
     hideAllOverlays();
     startLive();
   } catch (err) {
-    // Roll back the in-flight flag so the button can be retried
-    _goingLive = false;
     toast("Failed to start live: " + (err.message || err));
     btn.disabled = false;
     btn.textContent = "🔴 Start Live Stream";
@@ -403,10 +304,9 @@ async function goLive() {
    Start live stage (host only)
 ───────────────────────────────────────────────── */
 function startLive() {
-  liveActive  = true;
-  _goingLive  = false; // clear in-flight flag — we are now live
-  liveStart   = Date.now();
-  isHost      = true;
+  liveActive = true;
+  liveStart  = Date.now();
+  isHost     = true;
 
   // Host box
   buildHostBox();
@@ -503,9 +403,7 @@ async function joinAsViewer() {
       // Display incoming host tracks
       pc.ontrack = e => {
         const hostUid = sigData.hostUid || "host";
-        // Prefer exact UID match; fall back to any host-box already in the grid
-        let box = $("videoGrid").querySelector(`[data-uid="${hostUid}"]`)
-               || $("videoGrid").querySelector(".host-box");
+        let box = $("videoGrid").querySelector(`[data-uid="${hostUid}"]`);
         if (!box) {
           box = makeBox(hostUid, data.authorName || "Host", true);
           $("videoGrid").insertBefore(box, $("videoGrid").firstChild);
@@ -528,7 +426,7 @@ async function joinAsViewer() {
             collection(db, "stories", roomId, "ice_viewer_to_host", me.uid, "candidates"),
             ev.candidate.toJSON()
           );
-        } catch (err) { console.warn("[ICE] viewer→host candidate write failed:", err.message); }
+        } catch (_) {}
       };
 
       // Listen for host ICE candidates — buffer until local desc is set
@@ -575,10 +473,7 @@ function buildHostBox() {
 
   const box = makeBox(me.uid, userData.displayName || me.displayName || "You", true);
   const vid = box.querySelector("video");
-  if (localStream) {
-    vid.srcObject = localStream;
-    vid.play().catch(() => {});
-  }
+  if (localStream) vid.srcObject = localStream;
   vid.muted = true;
   grid.appendChild(box);
   updateGridClass();
@@ -727,7 +622,7 @@ async function createViewerPeer(viewerUid, displayName) {
         collection(db, "stories", roomId, "ice_host_to_viewer", viewerUid, "candidates"),
         e.candidate.toJSON()
       );
-    } catch (err) { console.warn("[ICE] host→viewer candidate write failed:", err.message); }
+    } catch (_) {}
   };
 
   pc.onconnectionstatechange = () => {
@@ -923,7 +818,7 @@ async function createHostPeer(guestUid, displayName) {
     if (!e.candidate || !roomId) return;
     try {
       await addDoc(collection(db, "stories", roomId, "ice_host_to_guest", guestUid, "candidates"), e.candidate.toJSON());
-    } catch (err) { console.warn("[ICE] host→guest candidate write failed:", err.message); }
+    } catch (_) {}
   };
 
   // Receive guest's tracks — attach stream before calling play()
@@ -1026,15 +921,13 @@ async function joinAsGuest() {
       if (!e.candidate || !roomId) return;
       try {
         await addDoc(collection(db, "stories", roomId, "ice_guest_to_host", me.uid, "candidates"), e.candidate.toJSON());
-      } catch (err) { console.warn("[ICE] guest→host candidate write failed:", err.message); }
+      } catch (_) {}
     };
 
     // Receive host's tracks
     pc.ontrack = e => {
       const hostUid = data.hostUid || "host";
-      // Prefer exact UID match; fall back to any host-box already in the grid
-      let box = $("videoGrid").querySelector(`[data-uid="${hostUid}"]`)
-             || $("videoGrid").querySelector(".host-box");
+      let box = $("videoGrid").querySelector(`[data-uid="${hostUid}"]`);
       if (!box) {
         box = makeBox(hostUid, "Host", true);
         $("videoGrid").insertBefore(box, $("videoGrid").firstChild);
@@ -1106,7 +999,6 @@ function buildGuestLocalBox() {
 let _recon = {};
 function handlePCState(pc, uid) {
   const state = pc.connectionState;
-  console.log(`[WebRTC] ${uid} → ${state}`);
   if (state === "connected") {
     $("reconnectBanner").classList.remove("show");
     const box = $("videoGrid").querySelector(`[data-uid="${uid}"]`);
@@ -1497,9 +1389,7 @@ function cleanup() {
 
 function navigateBack() {
   const url = isHost ? "index.html?liveEnded=1" : "index.html";
-  // Use replace() so live.html is removed from history — pressing Back
-  // on the feed won't loop the user back into the live page.
-  window.location.replace(url);
+  window.location.href = url;
 }
 
 function showLiveEnded() {

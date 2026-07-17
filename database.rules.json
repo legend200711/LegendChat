@@ -8,11 +8,14 @@
       "$roomId": {
         ".read": "auth != null",
 
-        // Host-only root fields (host, startedAt) — written once when going live
-        "host":       { ".write": "auth != null" },
-        "startedAt":  { ".write": "auth != null" },
+        // Host-only root fields — locked to the host uid stored in host.uid
+        "host":      { ".write": "auth != null" },
+        "startedAt": { ".write": "auth != null" },
+        "messages":  { ".write": "auth != null" },
+        "likes":     { ".write": "auth != null" },
 
         // Viewer count — any authenticated user may increment/decrement
+        // onDisconnect handlers also need write access here
         "viewerCount": { ".write": "auth != null" },
 
         // Per-viewer presence — each user owns only their own slot
@@ -21,17 +24,7 @@
             ".read":  "auth != null",
             ".write": "auth != null && auth.uid === $uid"
           }
-        },
-
-        // Chat messages — any authenticated user may push a new message
-        // (path used by live.js: liveRooms/{roomId}/messages)
-        "messages": {
-          ".read":  "auth != null",
-          "$msgId": { ".write": "auth != null" }
-        },
-
-        // Likes counter — any authenticated user may increment
-        "likes": { ".write": "auth != null" }
+        }
       }
     },
 

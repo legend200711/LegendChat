@@ -360,7 +360,7 @@ async function goLive() {
       docRef = doc(db, "stories", roomId);
       await updateDoc(docRef, { isLive: true, liveActive: true, title, privacy });
     } else {
-      // FIX 1/4: Create Firestore stories doc (room metadata + signaling)
+      // Create Firestore stories doc (room metadata + signaling)
       docRef = await addDoc(collection(db, "stories"), {
         authorUid: me.uid, authorName: name, authorAvatar: avatar,
         text: title, mediaUrl: "", mediaType: "", privacy,
@@ -373,12 +373,7 @@ async function goLive() {
       await updateDoc(docRef, { roomId });
     }
 
-    // FIX 4: Write the RTDB liveRooms node with proper structure
-    //   liveRooms/{roomId}
-    //     ├── host        — host uid + name
-    //     ├── messages    — realtime chat (FIX 6)
-    //     ├── likes       — reaction counter (FIX 7)
-    //     └── viewers     — presence map
+    // Write the RTDB liveRooms node with proper structure
     await rtSet(rtRef(rtdb, `liveRooms/${roomId}`), {
       host: { uid: me.uid, name },
       messages: null,
@@ -392,7 +387,6 @@ async function goLive() {
     sessionStorage.setItem("liveRoomId", roomId);
 
     // Transfer setup stream → live WITHOUT stopping tracks.
-    // detach from preview element, keep tracks running as localStream.
     localStream = setupStream;
     setupStream = null;
     const vid = $("setupVideo");
@@ -403,12 +397,15 @@ async function goLive() {
     localStream.getAudioTracks().forEach(t => { t.enabled = micEnabled; });
     localStream.getVideoTracks().forEach(t => { t.enabled = camEnabled; });
 
+    // ── BACK BUTTON FIX: Replace setup entry in history so pressing back
+    //   from the live room goes directly to the home feed, not the setup screen.
+    history.replaceState({ liveActive: true, roomId }, "", location.href);
+
     // Show countdown, then enter live room
     hideAllOverlays();
     await runCountdown(3);
     startLive();
   } catch (err) {
-    // FIX 8: Enhanced start live error handling
     toast("❌ Failed to start live: " + (err.message || err), 5000);
     btn.disabled = false;
     btn.textContent = "🔴 Start Live Stream";
@@ -503,11 +500,22 @@ function startLive() {
   // Start recording
   startRecording();
 
+  // Mark host user doc as live (shows LIVE ring on profile + stories)
+  if (me && roomId) {
+    updateDoc(doc(db, "users", me.uid), { isLive: true, liveRoomId: roomId }).catch(() => {});
+  }
+
   // Notify followers (best-effort)
   notifyFollowers();
 
   // Name in header
   $("roomName").textContent = userData.displayName || me.displayName || "Live";
+
+  // Show PiP button on supported browsers
+  if (document.pictureInPictureEnabled) {
+    const pipBtn = $("btnPip");
+    if (pipBtn) pipBtn.style.display = "";
+  }
 }
 
 /* ─────────────────────────────────────────────────
@@ -531,6 +539,19 @@ async function joinAsViewer() {
     $("viewerCount").classList.add("show");
     if (isMobile()) $("mobileChatBtn").style.display = "flex";
 
+    // Show viewer-only buttons
+    const followBtn = $("btnFollowHost");
+    const shareBtn  = $("btnShareLive");
+    const reportBtn = $("btnReportLive");
+    if (followBtn) followBtn.style.display = "";
+    if (shareBtn)  shareBtn.style.display  = "";
+    if (reportBtn) reportBtn.style.display = "";
+    // Show PiP if supported
+    if (document.pictureInPictureEnabled) {
+      const pipBtn = $("btnPip");
+      if (pipBtn) pipBtn.style.display = "";
+    }
+
     // Track viewer
     incrementViewerCount();
     startPresence();
@@ -547,6 +568,9 @@ async function joinAsViewer() {
     const hostUid = data.authorUid || "host";
     if (!$("videoGrid").querySelector(`[data-uid="${hostUid}"]`)) {
       const box = makeBox(hostUid, data.authorName || "Host", true);
+      // Viewers must hear the host — never mute the host box on the viewer side
+      const hostVid = box.querySelector("video");
+      hostVid.muted = false;
       $("videoGrid").insertBefore(box, $("videoGrid").firstChild);
       updateGridClass();
     }
@@ -678,6 +702,7 @@ function buildHostBox() {
     localStream.getTracks().forEach(t => { t.enabled = true; });
   }
   vid.muted = true; // host box is always muted locally (echo prevention)
+  box.classList.remove("cam-off"); // ensure video element is visible
   grid.appendChild(box);
   updateGridClass();
   // Force play — autoplay attribute alone is not enough on some browsers
@@ -692,7 +717,7 @@ function makeBox(uid, displayName, isHostBox) {
   const initials = (displayName || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0,2);
 
   box.innerHTML = `
-    <video autoplay playsinline ${isHostBox ? "muted" : ""}></video>
+    <video autoplay playsinline></video>
     <div class="vbox-camoff">
       <div class="vbox-camoff-avatar">${initials}</div>
       <div class="vbox-camoff-name">${esc(displayName)}</div>
@@ -802,7 +827,14 @@ function listenViewerPresence() {
 async function createViewerPeer(viewerUid, displayName) {
   if (!roomId || !localStream) return;
   const peerKey = "view_" + viewerUid;
-  if (peers[peerKey]) return;
+  // Only skip if the peer is already in a healthy state; allow reconnect otherwise
+  if (peers[peerKey]) {
+    const s = peers[peerKey].connectionState;
+    if (s === "new" || s === "connecting" || s === "connected") return;
+    // Stale/failed peer — close it and create a fresh one
+    try { peers[peerKey].close(); } catch (_) {}
+    delete peers[peerKey];
+  }
 
   // Confirm local stream tracks are still active before creating the peer
   const vTracks = localStream.getVideoTracks();
@@ -1206,7 +1238,9 @@ async function joinAsGuest() {
       if (e.streams && e.streams[0]) {
         const vid = box.querySelector("video");
         vid.srcObject = e.streams[0];
+        vid.muted = false; // guest must hear the host
         vid.play().catch(() => {});
+        box.classList.remove("cam-off");
       }
     };
 
@@ -1650,6 +1684,8 @@ async function endLive() {
   // Mark live-notification beacon as ended so followers' banner clears
   if (me) {
     updateDoc(doc(db, "liveNotifications", me.uid), { active: false }).catch(() => {});
+    // Clear LIVE ring + badge from host's profile
+    updateDoc(doc(db, "users", me.uid), { isLive: false, liveRoomId: null }).catch(() => {});
   }
   cleanup();
   const replay = await stopRecording();
@@ -1688,6 +1724,10 @@ function cleanup() {
 }
 
 function navigateBack() {
+  // Exit PiP if active
+  if (document.pictureInPictureElement) {
+    document.exitPictureInPicture().catch(() => {});
+  }
   const url = isHost ? "index.html?liveEnded=1" : "index.html";
   window.location.href = url;
 }
@@ -1806,7 +1846,6 @@ async function notifyFollowers() {
     // 2. Push an in-app notification to every follower
     const hostSnap = await getDoc(doc(db, "users", me.uid));
     const followers = hostSnap.exists() ? (hostSnap.data().followers || []) : [];
-    if (!followers.length) return;
 
     const notif = {
       id:         `live_${roomId}_${Date.now()}`,
@@ -1977,6 +2016,102 @@ window.addEventListener("orientationchange", () => {
 });
 
 /* ─────────────────────────────────────────────────
+   Android / iOS Back Button Handler
+   While LIVE is active, intercept the hardware/gesture
+   back button and show the appropriate confirmation dialog
+   instead of navigating away or re-opening the setup screen.
+───────────────────────────────────────────────── */
+window.addEventListener("popstate", e => {
+  if (!liveActive) return; // stream not active — allow normal navigation
+
+  // Push a new state immediately so the back-stack always has an entry
+  // to intercept the next back press. Without this the browser would
+  // navigate away on the second press before we can stop it.
+  history.pushState({ liveActive: true, roomId }, "", location.href);
+
+  if (isHost) {
+    $("endConfirmModal").classList.add("open");
+  } else {
+    $("leaveConfirmModal").classList.add("open");
+  }
+});
+
+// Push an initial entry so the first back-press is caught by popstate
+// (only needed when live.js loads fresh — replaceState in goLive handles the host path)
+if (!history.state?.liveActive) {
+  history.pushState({ init: true }, "", location.href);
+}
+
+/* ─────────────────────────────────────────────────
+   Picture-in-Picture support (optional)
+───────────────────────────────────────────────── */
+async function togglePiP() {
+  try {
+    if (document.pictureInPictureElement) {
+      await document.exitPictureInPicture();
+    } else {
+      // Find the first visible video element in the grid
+      const vid = document.querySelector("#videoGrid video");
+      if (vid) await vid.requestPictureInPicture();
+    }
+  } catch (_) { toast("Picture-in-Picture not supported."); }
+}
+
+/* ─────────────────────────────────────────────────
+   Viewer: Follow the host
+───────────────────────────────────────────────── */
+async function followHost() {
+  if (!me || !roomId || isHost) return;
+  try {
+    const roomSnap = await getDoc(doc(db, "stories", roomId));
+    if (!roomSnap.exists()) return;
+    const hostUid = roomSnap.data().authorUid;
+    if (!hostUid || hostUid === me.uid) return;
+    await updateDoc(doc(db, "users", me.uid), {
+      following: arrayUnion(hostUid)
+    });
+    await updateDoc(doc(db, "users", hostUid), {
+      followers: arrayUnion(me.uid)
+    });
+    toast("✅ Followed!");
+    const btn = $("btnFollowHost");
+    if (btn) { btn.textContent = "✓ Following"; btn.disabled = true; }
+  } catch (_) { toast("Could not follow. Try again."); }
+}
+
+/* ─────────────────────────────────────────────────
+   Viewer: Share the live stream
+───────────────────────────────────────────────── */
+function shareLive() {
+  const url = location.href;
+  if (navigator.share) {
+    navigator.share({ title: "Shadow Nexus LIVE", url }).catch(() => {});
+  } else {
+    navigator.clipboard?.writeText(url).then(() => toast("🔗 Link copied!")).catch(() => {
+      toast("Share link: " + url);
+    });
+  }
+}
+
+/* ─────────────────────────────────────────────────
+   Viewer: Report the live stream
+───────────────────────────────────────────────── */
+async function reportLive() {
+  if (!me || !roomId) return;
+  try {
+    await addDoc(collection(db, "reports"), {
+      type: "live",
+      roomId,
+      reportedBy: me.uid,
+      ts: serverTimestamp(),
+    });
+    toast("⚑ Report submitted. Thank you.");
+    const btn = $("btnReportLive");
+    if (btn) { btn.disabled = true; btn.textContent = "✓ Reported"; }
+  } catch (_) { toast("Could not submit report."); }
+}
+
+/* ─────────────────────────────────────────────────
    Expose globals used by inline HTML handlers
 ───────────────────────────────────────────────── */
 window.sendReaction    = sendReaction;
@@ -1984,3 +2119,7 @@ window.sendChat        = sendChat;
 window.sendLike        = sendLike;
 window.toggleMobileChat = toggleMobileChat;
 window.switchTab       = switchTab;
+window.togglePiP       = togglePiP;
+window.followHost      = followHost;
+window.shareLive       = shareLive;
+window.reportLive      = reportLive;

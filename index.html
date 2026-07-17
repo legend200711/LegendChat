@@ -2894,6 +2894,7 @@ img, video { max-width: 100%; height: auto; }
     /* On desktop chat panel is always visible side-by-side */
     .msg-chat-panel { display: flex !important; }
     #chatBackBtn { display: none !important; }
+    /* Story strip is now inside the feed — no position override needed */
 }
 
 /* ─── Tablet (769–1024px): sidebar visible but tighter layout ─── */
@@ -2913,12 +2914,13 @@ img, video { max-width: 100%; height: auto; }
     /* User card wraps actions under info on tablet */
     .user-card { flex-wrap: wrap; }
     .user-card-actions { margin-left: auto; }
+    /* Story strip is now inside the feed — no position override needed */
 }
 
 /* ─── Mobile / tablet: hamburger reveals slide-in sidebar ─── */
 @media (max-width: 768px) {
     .menuBtn { display: flex; }
-    .page { padding: 68px 12px 32px; }
+    .page { padding: 80px 12px 32px; }
     .section-card { padding: 14px; }
     /* Profile header — stack avatar below banner on mobile */
     .cover-banner { height: 130px; }
@@ -6021,12 +6023,9 @@ body.arcade-fs-ios body::after { display:none !important; }
 <div class="page" id="feed">
     <h2 class="eclipse-title">⚡ Eclipse Feed</h2>
 
-    <!-- ── Legend Stories Strip ── -->
-    <div class="story-strip-section section-card" id="storyStripSection" style="padding:14px 16px;">
-        <div class="story-strip-label">
-            <span>📖 Legend Stories</span>
-        </div>
-        <div class="story-strip" id="storyStrip">
+    <!-- ── Stories Strip — shown below the feed title ── -->
+    <div id="storyStripSection" style="margin:-8px -15px 18px;padding:8px 12px 4px;background:rgba(7,16,36,0.6);border-bottom:1px solid rgba(0,80,180,0.18);">
+        <div class="story-strip" id="storyStrip" style="padding:0;">
             <!-- Share Story button (always first) -->
             <div class="story-add-btn" id="storyAddBtn" onclick="openStoryChooser()" title="Share a Story">
                 <div class="story-add-circle">📖</div>
@@ -6035,6 +6034,7 @@ body.arcade-fs-ios body::after { display:none !important; }
             <!-- Story circles injected by JS -->
         </div>
     </div>
+
 
     <!-- Active-now strip — only shown when other members exist -->
     <div id="activeUsersStripWrap">
@@ -13391,7 +13391,6 @@ function navTo(pageId) {
     const navEl = document.getElementById(map[pageId]);
     if (navEl) navEl.classList.add('active-nav');
     // Re-attach story strip listener each time the feed is opened
-    if (pageId === 'feed' && typeof initStoryStrip === 'function') initStoryStrip();
     // Render friends page data on navigation
     if (pageId === 'friendsPage' && typeof renderFriendsPage === 'function') renderFriendsPage();
     // Render admin panel on navigation (re-fetches latest data each time)
@@ -19932,11 +19931,16 @@ function renderStoryStrip(snap) {
         return aAllSeen - bAllSeen;
     });
 
-    // Also collect live stories
+    // Collect active live stories (shown first, before regular stories)
     const liveEntries = [];
+    // Track seen live uids to deduplicate (one circle per user)
+    const liveUids = new Set();
     snap.forEach(d => {
         const data = { id: d.id, ...d.data() };
-        if (data.isLive && data.liveActive && canViewStory(data)) liveEntries.push(data);
+        if (data.isLive && data.liveActive && canViewStory(data) && !liveUids.has(data.authorUid)) {
+            liveEntries.push(data);
+            liveUids.add(data.authorUid);
+        }
     });
 
     // Build strip HTML
@@ -19958,10 +19962,9 @@ function renderStoryStrip(snap) {
         strip.appendChild(_buildLiveCircle(live));
     });
 
-    // Regular story circles
+    // Regular story circles (skip users already shown in live section)
     entries.forEach(([uid, stories]) => {
-        // Skip if uid already in live section
-        if (liveEntries.some(l => l.authorUid === uid)) return;
+        if (liveUids.has(uid)) return;
         const allSeen = stories.every(s => seen.has(s.id));
         SNX_STORY.queue.push({ uid, stories });
         strip.appendChild(_buildStoryCircle(stories[0], allSeen, stories.length));
@@ -19992,7 +19995,15 @@ function _buildLiveCircle(story) {
     const div = document.createElement('div');
     div.className = 'story-item';
     div.setAttribute('data-uid', story.authorUid);
-    div.onclick = () => openLiveStreamViewer(story);
+    // Tap a LIVE story → open the join-choice sheet which redirects to live.html for full WebRTC
+    div.onclick = () => {
+        if (typeof openLiveJoinChoice === 'function') {
+            openLiveJoinChoice(story);
+        } else {
+            const roomId = story.roomId || story.id;
+            window.location.href = 'live.html?room=' + encodeURIComponent(roomId);
+        }
+    };
 
     const name = story.authorName || 'User';
     const avatar = story.authorAvatar || '';

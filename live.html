@@ -709,8 +709,14 @@ button:active { transform: scale(0.95); }
     <button class="ctrl-btn" id="btnMic">🎙️</button>
     <button class="ctrl-btn" id="btnCam">📷</button>
     <button class="ctrl-btn" id="btnFlip" style="display:none;">🔄</button>
-    <!-- FIX 7: Like button — both host and viewer write to liveRooms/{id}/likes -->
+    <!-- Like button — both host and viewer write to liveRooms/{id}/likes -->
     <button class="ctrl-btn" id="btnLike" onclick="sendLike()">❤️ <span id="liveLikesCount">0</span></button>
+    <!-- Viewer-only buttons (hidden for host) -->
+    <button class="ctrl-btn" id="btnFollowHost" onclick="followHost()" style="display:none;">➕ Follow</button>
+    <button class="ctrl-btn" id="btnShareLive"  onclick="shareLive()"  style="display:none;">🔗 Share</button>
+    <button class="ctrl-btn" id="btnReportLive" onclick="reportLive()" style="display:none;">⚑ Report</button>
+    <!-- PiP — shown only when browser supports it -->
+    <button class="ctrl-btn" id="btnPip" onclick="togglePiP()" style="display:none;" title="Picture in Picture">⧉</button>
     <button id="btnEndLive">⏹ End</button>
   </div>
 
@@ -815,11 +821,11 @@ button:active { transform: scale(0.95); }
 <!-- End confirm (host) -->
 <div id="endConfirmModal" class="modal">
   <div class="modal-card">
-    <div class="modal-title">⏹ End Your Live?</div>
+    <div class="modal-title">End your live stream?</div>
     <div class="modal-sub">Your stream will end for all viewers. You can save or post a replay.</div>
     <div class="modal-btns">
-      <button class="btn-modal-cancel" id="btnCancelEnd">Keep Going</button>
-      <button class="btn-confirm" id="btnConfirmEnd">End Stream</button>
+      <button class="btn-modal-cancel" id="btnCancelEnd">Continue LIVE</button>
+      <button class="btn-confirm" id="btnConfirmEnd">End LIVE</button>
     </div>
   </div>
 </div>

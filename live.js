@@ -535,6 +535,7 @@ async function joinAsViewer() {
     incrementViewerCount();
     startPresence();
     setupRTDB();
+    startViewerCount(); // FIX: viewers also need the realtime viewer count
     listenRoomDoc();
     listenHostCommands();
 
@@ -551,15 +552,25 @@ async function joinAsViewer() {
     }
 
     // ── Receive host's stream via WebRTC ──
-    // Use a de-duplicating key that matches what createViewerPeer uses on the host side
     const viewerPeerKey = "view_" + me.uid;
     const viewerSignalRef = doc(db, "stories", roomId, "signals_viewer", me.uid);
+
+    // Close any stale peer before (re)subscribing so a fresh offer is always processed
+    if (peers[viewerPeerKey]) {
+      try { peers[viewerPeerKey].close(); } catch (_) {}
+      delete peers[viewerPeerKey];
+    }
 
     const unsubViewerSignal = onSnapshot(viewerSignalRef, async sigSnap => {
       if (!sigSnap.exists()) return;
       const sigData = sigSnap.data();
       if (!sigData.offer) return;
-      if (peers[viewerPeerKey]) return; // already set up — ignore duplicates
+
+      // Close any previous peer for this slot (e.g. host reconnected with a new offer)
+      if (peers[viewerPeerKey]) {
+        try { peers[viewerPeerKey].close(); } catch (_) {}
+        delete peers[viewerPeerKey];
+      }
 
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
       peers[viewerPeerKey] = pc;
@@ -568,17 +579,33 @@ async function joinAsViewer() {
       let localDescSet = false;
       const iceBuf = [];
 
-      // Display incoming host tracks — box was already created above
+      // ── FIX: Display incoming host tracks ──────────────────────────────────
+      // Ensure the host box exists, set srcObject, force play(), confirm tracks enabled.
       pc.ontrack = e => {
-        const box = $("videoGrid").querySelector(`[data-uid="${hostUid}"]`);
-        if (!box) return;
-        const stream = e.streams && e.streams[0] ? e.streams[0] : null;
-        if (!stream) return;
-        const vid = box.querySelector("video");
-        if (vid.srcObject !== stream) {
-          vid.srcObject = stream;
-          vid.play().catch(() => {});
+        // Guarantee the host box is in the DOM
+        let box = $("videoGrid").querySelector(`[data-uid="${hostUid}"]`);
+        if (!box) {
+          box = makeBox(hostUid, data.authorName || "Host", true);
+          $("videoGrid").insertBefore(box, $("videoGrid").firstChild);
+          updateGridClass();
         }
+
+        // Prefer the stream from the event; fall back to building one from the track
+        const stream = (e.streams && e.streams[0]) ? e.streams[0] : new MediaStream([e.track]);
+
+        // Confirm all incoming tracks are enabled
+        stream.getTracks().forEach(t => { t.enabled = true; });
+
+        const vid = box.querySelector("video");
+        // Always reassign — avoids stale srcObject from a previous connection
+        vid.srcObject = stream;
+        vid.muted = false; // viewers must hear the host
+        // Remove any browser autoplay block
+        vid.play().catch(() => {
+          // Autoplay policy: retry on first user interaction
+          const resume = () => { vid.play().catch(() => {}); document.removeEventListener("click", resume); };
+          document.addEventListener("click", resume, { once: true });
+        });
         box.classList.remove("cam-off"); // show video, hide avatar fallback
       };
 
@@ -621,15 +648,12 @@ async function joinAsViewer() {
         }
         await updateDoc(viewerSignalRef, { answer: { type: answer.type, sdp: answer.sdp } });
       } catch (err) {
-        // FIX 8: Enhanced WebRTC error message
         toast("❌ Viewer Connection Failed: " + (err.message || err), 5000);
         if (peers[viewerPeerKey]) {
           try { peers[viewerPeerKey].close(); } catch (_) {}
           delete peers[viewerPeerKey];
         }
       }
-
-      unsubViewerSignal(); // stop listening once offer consumed
     });
     unsubs.push(unsubViewerSignal);
 
@@ -648,10 +672,16 @@ function buildHostBox() {
 
   const box = makeBox(me.uid, userData.displayName || me.displayName || "You", true);
   const vid = box.querySelector("video");
-  if (localStream) vid.srcObject = localStream;
-  vid.muted = true;
+  if (localStream) {
+    vid.srcObject = localStream;
+    // Confirm video + audio tracks are enabled before attaching
+    localStream.getTracks().forEach(t => { t.enabled = true; });
+  }
+  vid.muted = true; // host box is always muted locally (echo prevention)
   grid.appendChild(box);
   updateGridClass();
+  // Force play — autoplay attribute alone is not enough on some browsers
+  vid.play().catch(() => {});
 }
 
 function makeBox(uid, displayName, isHostBox) {
@@ -1028,12 +1058,19 @@ async function createHostPeer(guestUid, displayName) {
 
   // Receive guest's tracks — attach stream before calling play()
   pc.ontrack = e => {
-    addGuestBox(guestUid, displayName);
+    // Add the box first so the video element exists when we assign srcObject
+    if (!$("videoGrid").querySelector(`[data-uid="${guestUid}"]`)) {
+      addGuestBox(guestUid, displayName);
+    }
     const box = $("videoGrid").querySelector(`[data-uid="${guestUid}"]`);
-    if (box && e.streams && e.streams[0]) {
+    if (box) {
+      const stream = (e.streams && e.streams[0]) ? e.streams[0] : new MediaStream([e.track]);
+      // Confirm incoming tracks are enabled
+      stream.getTracks().forEach(t => { t.enabled = true; });
       const vid = box.querySelector("video");
-      vid.srcObject = e.streams[0];
+      vid.srcObject = stream;
       vid.play().catch(() => {});
+      box.classList.remove("cam-off");
     }
     updateMiniStrip();
   };
@@ -1090,6 +1127,9 @@ async function joinAsGuest() {
   // Also stop any lingering local stream from a previous guest attempt
   if (localStream) { releaseStream(localStream); localStream = null; }
   showOverlay("waitingOverlay");
+  // NOTE: setupRTDB() is NOT called here. It is called once from joinAsViewer()
+  // (which always runs first). Calling it again here would create a duplicate
+  // chat listener and double every incoming message.
 
   // Wait for host to write the offer
   const signalRef = doc(db, "stories", roomId, "signals", me.uid);
@@ -1204,7 +1244,8 @@ async function joinAsGuest() {
     // Controls
     $("btnFlip").style.display = "";
     $("btnEndLive").style.display = "none";
-    setupRTDB();
+    // FIX: Do NOT call setupRTDB() here — joinAsViewer() already set up the
+    // chat/likes RTDB listener; calling it again creates a duplicate listener.
     listenHostCommands();
     startPresence();
     setupLiveAudio();

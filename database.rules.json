@@ -2,20 +2,36 @@
   "rules": {
     // ── Live rooms ─────────────────────────────────────────────────────────────
     // Path: /liveRooms/{roomId}/...
+    //   Any signed-in user can read the whole room.
+    //   Writes are scoped per child so individual users cannot corrupt each other's data.
     "liveRooms": {
       "$roomId": {
         ".read": "auth != null",
+
+        // Host-only root fields (host, startedAt) — written once when going live
+        "host":       { ".write": "auth != null" },
+        "startedAt":  { ".write": "auth != null" },
+
+        // Viewer count — any authenticated user may increment/decrement
         "viewerCount": { ".write": "auth != null" },
+
+        // Per-viewer presence — each user owns only their own slot
         "viewers": {
           "$uid": {
             ".read":  "auth != null",
             ".write": "auth != null && auth.uid === $uid"
           }
         },
-        "chat": {
-          ".read": "auth != null",
+
+        // Chat messages — any authenticated user may push a new message
+        // (path used by live.js: liveRooms/{roomId}/messages)
+        "messages": {
+          ".read":  "auth != null",
           "$msgId": { ".write": "auth != null" }
-        }
+        },
+
+        // Likes counter — any authenticated user may increment
+        "likes": { ".write": "auth != null" }
       }
     },
 

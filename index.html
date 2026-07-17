@@ -5502,8 +5502,8 @@ body.arcade-fs-ios body::after { display:none !important; }
             <span class="nav-icon">🕹️</span> Arcade
             <span class="nav-badge" id="sidebarArcadeBadge"></span>
         </button>
-        <button class="nav-item" id="navLive" onclick="navTo('livePage')">
-            <span class="nav-icon">🔴</span> Go Live
+        <button class="nav-item" id="navLive" onclick="openLivePage()">
+            <span class="nav-icon">🔴</span> Go Live / Watch Live
         </button>
         <button class="nav-item" id="navStorm" onclick="navTo('stormRoomsPage')">
             <span class="nav-icon">⚡</span> Storm Rooms
@@ -13105,6 +13105,12 @@ function navTo(pageId) {
     if (pageId === 'communityPage') commInitPage();
     // Auto-close sidebar on mobile after navigation
     closeSidebar();
+}
+
+/* ── Open the standalone live.html page ── */
+function openLivePage() {
+    closeSidebar();
+    window.open('live.html', '_blank');
 }
 
 /* ── Sidebar open/close ── */

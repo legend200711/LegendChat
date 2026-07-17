@@ -2,735 +2,905 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Shadow Nexus — Go Live 🔴</title>
+<title>Shadow Nexus — Live Stream</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0B1F3A">
+<meta name="theme-color" content="#0066FF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <style>
-/* ════════════════════════════════════════════════
-   Shadow Nexus Social — Live.html
-   Design tokens match index.html / feed.html exactly
-════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════
+   SHADOW NEXUS LIVE — live.html stylesheet
+   ═══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; }
+
 :root {
-  --bg-main:        #0B1F3A;
-  --bg-card:        #0d2444;
-  --bg-input:       #0a1c35;
-  --bg-deep:        #071428;
-  --neon-blue:      #00AEEF;
-  --neon-cyan:      #33c8ff;
-  --neon-green:     #39FF14;
-  --neon-red:       #ff3355;
-  --text-primary:   #ffffff;
-  --text-secondary: #b8d4f0;
-  --text-muted:     #6a90b8;
-  --border-color:   #1a3a5c;
-  --blue-glow-sm:   0 0 10px rgba(0,174,239,0.50);
-  --blue-glow-md:   0 0 22px rgba(0,174,239,0.60);
-  --green-glow-sm:  0 0 10px rgba(57,255,20,0.45);
-  --red-glow:       0 0 14px rgba(255,51,85,0.60);
+  --bg:       #03080f;
+  --card:     #080f1d;
+  --border:   rgba(0,174,239,0.22);
+  --blue:     #00AEEF;
+  --green:    #39FF14;
+  --red:      #ff0040;
+  --live-red: rgba(255,0,64,0.85);
+  --text:     #e0f0ff;
+  --muted:    #4a6a8a;
+  --safe-b:   env(safe-area-inset-bottom, 0px);
 }
 
-*, *::before, *::after { box-sizing: border-box; }
 html, body {
   margin: 0; padding: 0;
-  background: var(--bg-main);
-  color: var(--text-primary);
+  height: 100%; width: 100%;
+  background: var(--bg);
+  color: var(--text);
   font-family: 'Segoe UI', Arial, sans-serif;
-  height: 100%;
   overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* ── Back bar ── */
-#topbar {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-  height: 52px;
-  background: rgba(7,20,40,0.97);
-  border-bottom: 1px solid rgba(0,174,239,0.22);
-  display: flex; align-items: center; gap: 10px;
-  padding: 0 14px;
-  backdrop-filter: blur(8px);
+/* ── Utility ── */
+.hidden { display: none !important; }
+button {
+  font-family: inherit; cursor: pointer;
+  border-radius: 8px; font-size: 13px; font-weight: 600;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
 }
-#topbar .back-btn {
-  background: none; border: none; color: var(--neon-blue);
-  font-size: 20px; cursor: pointer; padding: 4px 8px;
-  border-radius: 6px; transition: background 0.15s;
-  touch-action: manipulation;
-}
-#topbar .back-btn:hover { background: rgba(0,174,239,0.12); }
-#topbar .room-title {
-  flex: 1; font-size: 15px; font-weight: 700; color: #fff;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-#live-badge {
-  display: none; align-items: center; gap: 5px;
-  background: var(--neon-red); color: #fff;
-  font-size: 11px; font-weight: 800; padding: 3px 9px;
-  border-radius: 20px; letter-spacing: 0.5px;
-  box-shadow: var(--red-glow);
-  animation: livePulse 2s infinite;
-}
-#live-badge.visible { display: flex; }
-#live-badge .live-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: #fff; animation: dotBlink 1.2s infinite;
-}
-#viewer-count {
-  font-size: 12px; color: var(--text-muted);
-  display: flex; align-items: center; gap: 4px;
-}
-#viewer-count svg { flex-shrink: 0; }
+button:active { transform: scale(0.95); }
 
-/* ── Main layout ── */
-#live-root {
-  display: flex;
-  height: 100vh;
-  padding-top: 52px;
+/* ══════════════════════════════════
+   OVERLAYS (lobby / setup / join / waiting)
+   ══════════════════════════════════ */
+.overlay {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, #03080f 0%, #060f20 100%);
+  flex-direction: column; padding: 20px; text-align: center;
 }
+.overlay.hidden { display: none !important; }
 
-/* ── Video grid (desktop 2-col, mobile active-speaker) ── */
-#video-grid {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: repeat(4, 1fr);
-  gap: 4px;
-  padding: 4px;
-  background: #000;
-  min-height: 0;
-  overflow: hidden;
-  position: relative;
-}
+/* ── Lobby ── */
+#lobbyOverlay .lobby-logo { font-size: 56px; margin-bottom: 12px; }
+#lobbyOverlay h1 { font-size: 22px; font-weight: 800; color: #fff; margin: 0 0 6px; letter-spacing: 0.5px; }
+#lobbyOverlay p  { font-size: 13px; color: var(--muted); margin: 0 0 28px; }
 
-/* ── Individual video box ── */
-.video-box {
-  position: relative;
-  background: var(--bg-deep);
-  border: 1px solid rgba(0,174,239,0.18);
-  border-radius: 8px;
-  overflow: hidden;
-  transition: border-color 0.2s;
-  touch-action: manipulation;
-}
-.video-box.speaking {
-  border-color: var(--neon-green);
-  box-shadow: 0 0 0 2px rgba(57,255,20,0.45);
-}
-.video-box.host-box {
-  grid-column: 1; grid-row: 1;
-  border-color: rgba(0,174,239,0.6);
-}
-.video-box video {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  display: block;
-  background: #000;
-}
-.video-box .box-overlay {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  justify-content: flex-end;
-  padding: 8px;
-  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 55%);
-  pointer-events: none;
-}
-.video-box .box-name {
-  font-size: 12px; font-weight: 700; color: #fff;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.video-box .box-host-tag {
-  font-size: 10px; color: var(--neon-blue);
-  font-weight: 700; text-transform: uppercase;
+.lobby-btns { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 340px; }
+.btn-go-live {
+  padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 800;
+  background: linear-gradient(135deg, #8b0000, #cc0030, #ff0040);
+  border: 2px solid rgba(255,0,64,0.6); color: #fff;
+  box-shadow: 0 0 28px rgba(255,0,64,0.45);
   letter-spacing: 0.5px;
 }
-.video-box .box-badges {
-  display: flex; gap: 5px; margin-bottom: 2px;
+.btn-go-live:hover { box-shadow: 0 0 40px rgba(255,0,64,0.65); }
+.btn-back-home {
+  padding: 12px; border-radius: 12px; font-size: 14px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: var(--muted);
 }
-.badge-icon {
-  width: 22px; height: 22px; border-radius: 50%;
-  background: rgba(0,0,0,0.55); display: flex; align-items: center;
-  justify-content: center; font-size: 11px;
-  pointer-events: none;
-}
-.badge-icon.muted   { color: #ff5566; }
-.badge-icon.cam-off { color: #aaa; }
-/* Cam-off placeholder */
-.video-box .cam-placeholder {
-  position: absolute; inset: 0;
-  display: none; align-items: center; justify-content: center;
-  flex-direction: column; gap: 8px;
-  background: var(--bg-deep);
-}
-.video-box.cam-off .cam-placeholder { display: flex; }
-.video-box.cam-off video           { visibility: hidden; }
-.cam-placeholder-avatar {
-  width: 60px; height: 60px; border-radius: 50%;
-  background: rgba(0,174,239,0.15);
-  border: 2px solid rgba(0,174,239,0.35);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 26px;
-}
-.cam-placeholder-name {
-  font-size: 12px; color: var(--text-muted);
-}
-/* Empty slot */
-.video-box.empty-slot {
-  border: 1px dashed rgba(0,174,239,0.18);
-  display: flex; align-items: center; justify-content: center;
-}
-.empty-slot-label {
-  font-size: 12px; color: rgba(255,255,255,0.18);
-}
+.btn-back-home:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
-/* ── Host control bar (overlay on grid, bottom) ── */
-#ctrl-bar {
-  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
-  display: none; flex-direction: row; gap: 8px;
-  background: rgba(7,20,40,0.92);
-  border: 1px solid rgba(0,174,239,0.28);
-  border-radius: 40px; padding: 6px 14px;
-  z-index: 100; backdrop-filter: blur(10px);
-  box-shadow: var(--blue-glow-sm);
+/* ── Setup ── */
+#setupOverlay {
+  padding: 0; align-items: stretch; justify-content: flex-start;
+  background: #000;
 }
-#ctrl-bar.visible { display: flex; }
-.ctrl-btn {
-  width: 44px; height: 44px; border-radius: 50%; border: none;
-  background: rgba(0,174,239,0.1); color: var(--neon-blue);
-  font-size: 18px; cursor: pointer; display: flex;
-  align-items: center; justify-content: center;
-  transition: background 0.15s, box-shadow 0.15s;
-  touch-action: manipulation;
-  position: relative;
+#setupVideo {
+  width: 100%; height: 100%; object-fit: cover;
+  position: absolute; inset: 0; z-index: 0;
 }
-.ctrl-btn:hover  { background: rgba(0,174,239,0.22); box-shadow: var(--blue-glow-sm); }
-.ctrl-btn.active { background: rgba(255,51,85,0.18); color: #ff5566; box-shadow: var(--red-glow); }
-.ctrl-btn.go-live-btn {
-  background: var(--neon-red); color: #fff; box-shadow: var(--red-glow);
-  width: auto; border-radius: 20px; padding: 0 18px;
-  font-size: 13px; font-weight: 800; letter-spacing: 0.3px;
+.setup-ui {
+  position: relative; z-index: 10; display: flex; flex-direction: column;
+  height: 100%; padding: 20px 16px calc(20px + var(--safe-b));
+  background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 30%, transparent 60%, rgba(0,0,0,0.85) 100%);
 }
-.ctrl-btn.go-live-btn:hover { background: #e02244; }
-.ctrl-btn.end-live-btn {
-  background: rgba(255,51,85,0.18); color: #ff5566;
-  width: auto; border-radius: 20px; padding: 0 16px;
-  font-size: 13px; font-weight: 700;
+.setup-top { display: flex; align-items: center; gap: 10px; margin-bottom: auto; }
+.setup-top h2 { font-size: 18px; color: #fff; margin: 0; flex: 1; }
+.setup-flip-btn {
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+  color: #fff; padding: 8px 14px; border-radius: 20px; font-size: 13px;
 }
-.ctrl-tooltip {
-  position: absolute; bottom: calc(100% + 6px);
-  left: 50%; transform: translateX(-50%);
-  background: rgba(7,20,40,0.95); color: var(--text-secondary);
-  font-size: 11px; padding: 3px 8px; border-radius: 6px;
-  white-space: nowrap; pointer-events: none;
-  opacity: 0; transition: opacity 0.15s;
-  border: 1px solid rgba(0,174,239,0.2);
-}
-.ctrl-btn:hover .ctrl-tooltip { opacity: 1; }
-
-/* ── Side panel: chat + requests ── */
-#side-panel {
-  width: 300px; flex-shrink: 0;
-  background: var(--bg-card);
-  border-left: 1px solid rgba(0,174,239,0.15);
-  display: flex; flex-direction: column;
-  overflow: hidden;
-}
-.side-tabs {
-  display: flex; border-bottom: 1px solid rgba(0,174,239,0.15);
-}
-.side-tab {
-  flex: 1; padding: 12px 6px; background: none; border: none;
-  color: var(--text-muted); font-size: 13px; font-weight: 600;
-  cursor: pointer; transition: color 0.15s, background 0.15s;
-  border-bottom: 2px solid transparent; margin-bottom: -1px;
-}
-.side-tab.active { color: var(--neon-blue); border-bottom-color: var(--neon-blue); }
-.side-tab .tab-badge {
-  display: inline-block; background: var(--neon-red); color: #fff;
-  font-size: 10px; font-weight: 700; border-radius: 8px;
-  padding: 1px 5px; margin-left: 4px; vertical-align: middle;
-  visibility: hidden;
-}
-.side-tab .tab-badge.has-items { visibility: visible; }
-
-/* Chat */
-#chat-panel, #requests-panel {
-  flex: 1; display: none; flex-direction: column; overflow: hidden;
-}
-#chat-panel.active, #requests-panel.active { display: flex; }
-
-#chat-messages {
-  flex: 1; overflow-y: auto; padding: 10px;
-  display: flex; flex-direction: column; gap: 6px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0,174,239,0.2) transparent;
-}
-.chat-msg {
-  background: rgba(0,0,0,0.3); border-radius: 8px; padding: 7px 10px;
-  font-size: 13px; line-height: 1.4;
-  border: 1px solid rgba(255,255,255,0.05);
-  animation: msgIn 0.18s ease;
-}
-.chat-msg .msg-name { font-weight: 700; color: var(--neon-blue); font-size: 12px; }
-.chat-msg .msg-name.host { color: var(--neon-green); }
-.chat-msg .msg-text { color: var(--text-secondary); }
-.chat-msg.reaction-msg { background: none; border: none; font-size: 20px; text-align: center; }
-@keyframes msgIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-#chat-input-row {
-  display: flex; gap: 6px; padding: 8px;
-  border-top: 1px solid rgba(0,174,239,0.12);
-}
-#chat-input {
-  flex: 1; background: var(--bg-input); border: 1px solid rgba(0,174,239,0.25);
-  color: #fff; border-radius: 20px; padding: 8px 14px; font-size: 13px;
-  outline: none;
-}
-#chat-input:focus { border-color: var(--neon-blue); }
-#chat-send {
-  background: var(--neon-blue); color: #000; border: none;
-  border-radius: 50%; width: 36px; height: 36px; font-size: 16px;
-  cursor: pointer; flex-shrink: 0; display: flex;
-  align-items: center; justify-content: center;
+.setup-bottom { margin-top: auto; }
+.setup-meta-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.setup-toggle-btn {
+  flex: 1; padding: 10px; border-radius: 10px; font-size: 12px; font-weight: 700;
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: #fff;
   transition: background 0.15s;
 }
-#chat-send:hover { background: var(--neon-cyan); }
-
-/* Reactions row */
-#reaction-row {
-  display: flex; gap: 6px; padding: 0 8px 8px;
-  justify-content: center;
+.setup-toggle-btn.off { background: rgba(255,60,60,0.2); border-color: rgba(255,60,60,0.4); color: #ff9999; }
+.setup-input {
+  width: 100%; padding: 11px 14px; border-radius: 12px; font-size: 14px;
+  background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); color: #fff;
+  outline: none; margin-bottom: 8px;
 }
-.react-btn {
-  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 20px; padding: 4px 10px; font-size: 16px; cursor: pointer;
-  transition: transform 0.12s, background 0.15s;
-  touch-action: manipulation;
+.setup-input:focus { border-color: rgba(0,180,255,0.6); }
+.setup-input::placeholder { color: rgba(255,255,255,0.35); }
+.setup-select {
+  width: 100%; padding: 11px 14px; border-radius: 12px; font-size: 14px;
+  background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); color: #fff;
+  outline: none; margin-bottom: 10px; cursor: pointer;
 }
-.react-btn:hover { background: rgba(255,255,255,0.12); transform: scale(1.18); }
-
-/* Guest requests */
-#requests-panel { padding: 10px; gap: 8px; overflow-y: auto; }
-.request-card {
-  background: rgba(0,0,0,0.3); border: 1px solid rgba(0,174,239,0.2);
-  border-radius: 10px; padding: 10px 12px;
-  display: flex; align-items: center; gap: 10px;
+.btn-start-live {
+  width: 100%; padding: 15px; border-radius: 14px; font-size: 16px; font-weight: 800;
+  background: linear-gradient(135deg, #8b0000, #cc0030);
+  border: 2px solid rgba(255,0,64,0.5); color: #fff;
+  box-shadow: 0 0 24px rgba(255,0,64,0.4);
 }
-.request-avatar { font-size: 22px; }
-.request-name   { flex: 1; font-size: 13px; font-weight: 700; }
-.request-btns   { display: flex; gap: 6px; }
-.req-accept { background: var(--neon-green); color: #000; border: none; border-radius: 6px; padding: 5px 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
-.req-deny   { background: rgba(255,51,85,0.2); color: #ff5566; border: 1px solid rgba(255,51,85,0.3); border-radius: 6px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
-
-/* ── Join / waiting overlay ── */
-#join-overlay, #waiting-overlay, #lobby-overlay {
-  position: fixed; inset: 0; z-index: 500;
-  background: rgba(5,15,35,0.97);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 16px; padding: 24px;
+.btn-setup-cancel {
+  width: 100%; margin-top: 8px; padding: 10px; border-radius: 10px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--muted);
+  font-size: 13px;
 }
-#join-overlay.hidden,
-#waiting-overlay.hidden,
-#lobby-overlay.hidden { display: none; }
 
-.overlay-icon { font-size: 56px; }
-.overlay-title { font-size: 22px; font-weight: 800; color: #fff; text-align: center; }
-.overlay-sub   { font-size: 14px; color: var(--text-muted); text-align: center; max-width: 320px; line-height: 1.6; }
-
-.btn-primary {
-  background: var(--neon-blue); color: #000; border: none;
-  border-radius: 24px; padding: 12px 32px; font-size: 15px; font-weight: 800;
-  cursor: pointer; box-shadow: var(--blue-glow-sm);
-  transition: background 0.15s, box-shadow 0.15s;
-  touch-action: manipulation;
-}
-.btn-primary:hover { background: var(--neon-cyan); box-shadow: var(--blue-glow-md); }
-.btn-secondary {
-  background: rgba(0,174,239,0.1); color: var(--neon-blue);
-  border: 1px solid rgba(0,174,239,0.35); border-radius: 24px;
-  padding: 11px 28px; font-size: 14px; font-weight: 700;
-  cursor: pointer; transition: background 0.15s;
-  touch-action: manipulation;
-}
-.btn-secondary:hover { background: rgba(0,174,239,0.18); }
-
-/* room code input */
-#room-code-input {
-  background: var(--bg-input); border: 1px solid rgba(0,174,239,0.35);
-  color: #fff; border-radius: 10px; padding: 12px 18px;
-  font-size: 16px; width: 100%; max-width: 320px; outline: none;
-  text-align: center; letter-spacing: 2px; font-weight: 700;
-}
-#room-code-input:focus { border-color: var(--neon-blue); }
-
-/* Spinner */
-.spinner {
-  width: 40px; height: 40px; border-radius: 50%;
-  border: 3px solid rgba(0,174,239,0.2);
-  border-top-color: var(--neon-blue);
-  animation: spin 0.8s linear infinite;
+/* ── Join / Waiting ── */
+#joinOverlay .overlay-icon, #waitingOverlay .overlay-icon { font-size: 48px; margin-bottom: 14px; }
+#joinOverlay h2, #waitingOverlay h2 { font-size: 18px; color: #fff; margin: 0 0 6px; }
+.overlay-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+.overlay-spinner {
+  width: 44px; height: 44px; border: 3px solid rgba(0,174,239,0.2);
+  border-top-color: var(--blue); border-radius: 50%;
+  animation: spin 0.85s linear infinite; margin: 0 auto 16px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+.btn-cancel-join {
+  padding: 10px 28px; border-radius: 10px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: var(--muted);
+}
 
-/* ── Host context menu on guest box (long-press / right-click) ── */
-#guest-ctx-menu {
-  position: fixed; z-index: 600;
-  background: rgba(7,20,40,0.97);
-  border: 1px solid rgba(0,174,239,0.3);
-  border-radius: 10px; padding: 6px 0; min-width: 170px;
-  box-shadow: var(--blue-glow-sm); display: none;
+/* ══════════════════════════════════
+   MAIN LIVE STAGE
+   ══════════════════════════════════ */
+#liveStage {
+  position: fixed; inset: 0;
+  display: grid;
+  background: #000;
 }
-#guest-ctx-menu.visible { display: block; }
-.ctx-item {
-  padding: 10px 16px; font-size: 13px; cursor: pointer;
-  color: var(--text-secondary); transition: background 0.12s, color 0.12s;
-  display: flex; align-items: center; gap: 10px;
-}
-.ctx-item:hover  { background: rgba(0,174,239,0.12); color: #fff; }
-.ctx-item.danger { color: #ff5566; }
-.ctx-item.danger:hover { background: rgba(255,51,85,0.1); }
 
-/* ── Per-box control buttons ── */
-.box-controls {
-  position: absolute; top: 6px; left: 6px; right: 6px;
-  display: none; flex-direction: row; gap: 5px;
-  justify-content: flex-start; z-index: 20;
+/* Video grid */
+#videoGrid {
+  position: relative; width: 100%; height: 100%;
+  display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr;
+  overflow: hidden;
 }
-.video-box:hover .box-controls,
-.video-box:focus-within .box-controls { display: flex; }
-/* Always show on touch devices */
-@media (pointer: coarse) { .box-controls { display: flex; } }
-.box-ctrl-btn {
-  background: rgba(0,0,0,0.65); border: 1px solid rgba(255,255,255,0.18);
-  color: #fff; border-radius: 8px; padding: 4px 7px;
-  font-size: 14px; cursor: pointer; line-height: 1;
-  transition: background 0.14s, transform 0.1s;
-  touch-action: manipulation;
-}
-.box-ctrl-btn:hover  { background: rgba(0,174,239,0.35); transform: scale(1.1); }
-.box-ctrl-remove     { margin-left: auto; background: rgba(255,51,85,0.18); border-color: rgba(255,51,85,0.35); }
-.box-ctrl-remove:hover { background: rgba(255,51,85,0.5); }
-/* Hide remove button for non-host — JS also gates it, this is CSS safety */
-.video-box:not([data-uid]) .box-ctrl-remove { display: none; }
+/* 2–6 boxes */
+#videoGrid.g2 { grid-template-columns: 1fr 1fr; }
+#videoGrid.g3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+#videoGrid.g4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+#videoGrid.g5 { grid-template-columns: repeat(3,1fr); grid-template-rows: 1fr 1fr; }
+#videoGrid.g6 { grid-template-columns: repeat(3,1fr); grid-template-rows: 1fr 1fr; }
 
-/* ── Per-box connection status bar ── */
-.box-status-bar {
+/* Individual video box */
+.vbox {
+  position: relative; overflow: hidden; background: #030810;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.vbox.host-box { border-color: rgba(255,0,64,0.35); }
+.vbox video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vbox.cam-off video { display: none; }
+.vbox-overlay {
   position: absolute; bottom: 0; left: 0; right: 0;
-  display: flex; align-items: center; gap: 5px;
-  padding: 4px 8px; background: rgba(0,0,0,0.55);
-  font-size: 11px; color: rgba(255,255,255,0.75);
-  border-radius: 0 0 10px 10px; z-index: 10;
-  transition: opacity 0.2s;
+  padding: 6px 8px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  pointer-events: none;
 }
-.video-box.empty-slot .box-status-bar { display: none; }
-.box-conn-dot {
-  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+.vbox-name { font-size: 11px; font-weight: 700; color: #fff; }
+.vbox-tag { font-size: 9px; background: var(--red); color: #fff; padding: 1px 5px; border-radius: 4px; margin-left: 5px; }
+.vbox-quality { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; }
+.vbox-quality.good { background: #39FF14; box-shadow: 0 0 6px #39FF14; }
+.vbox-quality.fair { background: #ffcc44; }
+.vbox-quality.poor { background: #ff4444; }
+/* Cam-off placeholder */
+.vbox-camoff {
+  position: absolute; inset: 0; display: none;
+  flex-direction: column; align-items: center; justify-content: center;
+  background: #03080f;
 }
-.box-conn-dot.good          { background: var(--neon-green); }
-.box-conn-dot.weak          { background: #ffcc44; }
-.box-conn-dot.reconnecting  { background: #ffcc44; animation: dotBlink 0.9s infinite; }
-.box-conn-dot.error         { background: var(--neon-red); }
+.vbox.cam-off .vbox-camoff { display: flex; }
+.vbox-camoff-avatar {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: rgba(0,80,180,0.3); border: 2px solid rgba(0,174,239,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 800; color: var(--blue); margin-bottom: 6px;
+}
+.vbox-camoff-name { font-size: 12px; color: var(--muted); }
+/* Reconnect overlay on box */
+.vbox-reconnect {
+  display: none; position: absolute; inset: 0;
+  background: rgba(0,0,0,0.7); align-items: center; justify-content: center;
+  flex-direction: column; gap: 8px;
+}
+.vbox-reconnect.show { display: flex; }
+.vbox-reconnect-spinner {
+  width: 30px; height: 30px; border: 3px solid rgba(0,174,239,0.2);
+  border-top-color: var(--blue); border-radius: 50%;
+  animation: spin 0.85s linear infinite;
+}
+.vbox-reconnect-msg { font-size: 11px; color: var(--muted); }
 
-/* ── Per-box reconnecting overlay ── */
-.box-reconnect-overlay {
-  position: absolute; inset: 0; z-index: 25;
-  display: none; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(0,0,0,0.72); gap: 10px; border-radius: 10px;
+/* ── HUD: top bar ── */
+#liveHud {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+  padding: calc(env(safe-area-inset-top,0px) + 10px) 12px 10px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+  display: flex; align-items: center; gap: 8px; pointer-events: none;
 }
-.box-reconnect-overlay.visible { display: flex; }
-.box-recon-spinner {
-  width: 28px; height: 28px; border-radius: 50%;
-  border: 3px solid rgba(255,255,255,0.2);
-  border-top-color: #ffcc44;
-  animation: spin 0.8s linear infinite;
+#liveHud > * { pointer-events: auto; }
+#liveBadge {
+  display: none; align-items: center; gap: 5px;
+  background: var(--red); color: #fff;
+  font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: 5px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  animation: livePulse 1.4s ease-in-out infinite;
 }
-.box-recon-msg {
-  color: #ffcc44; font-size: 12px; font-weight: 700; text-align: center;
+#liveBadge.show { display: flex; }
+@keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.75} }
+#liveBadge::before { content:''; width:6px; height:6px; border-radius:50%; background:#fff; flex-shrink:0; }
+#roomName { flex:1; font-size: 13px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+#liveTimer { font-size: 12px; color: rgba(255,255,255,0.65); font-variant-numeric: tabular-nums; }
+#viewerCount {
+  display: none; align-items: center; gap: 4px;
+  font-size: 12px; color: rgba(255,255,255,0.75); font-weight: 600;
 }
-
-/* ── Per-box error overlay ── */
-.box-error-overlay {
-  position: absolute; inset: 0; z-index: 24;
-  display: none; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(0,0,0,0.8); gap: 8px; border-radius: 10px;
-}
-.box-error-overlay.visible { display: flex; }
-.box-error-icon { font-size: 28px; }
-.box-error-msg  { color: #ff8899; font-size: 12px; font-weight: 600; text-align: center; padding: 0 8px; }
-
-/* ── Quality indicator (legacy dot) ── */
-.quality-dot {
-  position: absolute; top: 7px; right: 7px;
-  width: 8px; height: 8px; border-radius: 50%;
-  border: 1px solid rgba(0,0,0,0.4);
-  z-index: 5;
-}
-.quality-dot.good   { background: var(--neon-green); }
-.quality-dot.ok     { background: #ffcc44; }
-.quality-dot.poor   { background: var(--neon-red); }
-
-/* ── Mobile ── */
-@media (max-width: 700px) {
-  #side-panel { display: none; }
-  #live-root  { flex-direction: column; }
-  #video-grid {
-    width: 100%; flex: 1;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-    gap: 3px;
-  }
-  /* Active speaker — full width top slot */
-  #video-grid .video-box[data-active="true"] {
-    grid-column: 1; grid-row: 1;
-    height: 55vw; max-height: 45vh;
-    z-index: 2;
-  }
-  /* Remaining boxes — horizontal scroll strip */
-  #mini-strip {
-    position: fixed; bottom: 72px; left: 0; right: 0;
-    height: 100px; z-index: 50; display: flex;
-    gap: 4px; padding: 0 6px; overflow-x: auto;
-    scrollbar-width: none;
-  }
-  #mini-strip::-webkit-scrollbar { display: none; }
-  .mini-box {
-    width: 80px; height: 100px; flex-shrink: 0;
-    border-radius: 8px; overflow: hidden; position: relative;
-    border: 1px solid rgba(0,174,239,0.25);
-    background: var(--bg-deep);
-    touch-action: manipulation;
-  }
-  .mini-box video { width:100%; height:100%; object-fit: cover; }
-  .mini-box .mini-name {
-    position: absolute; bottom: 3px; left: 3px; right: 3px;
-    font-size: 10px; color: #fff; font-weight: 700;
-    text-shadow: 0 1px 3px #000;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  /* Mobile bottom ctrl bar */
-  #ctrl-bar {
-    bottom: 14px; left: 50%; transform: translateX(-50%);
-    padding: 5px 10px;
-  }
-  /* Mobile chat toggle */
-  #mobile-chat-btn {
-    display: flex;
-    position: fixed; bottom: 80px; right: 12px; z-index: 200;
-  }
-  #mobile-chat-drawer {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
-    height: 55vh; background: var(--bg-card);
-    border-top: 1px solid rgba(0,174,239,0.25);
-    border-radius: 16px 16px 0 0;
-    display: flex; flex-direction: column;
-    transform: translateY(100%);
-    transition: transform 0.28s cubic-bezier(0.22,1,0.36,1);
-  }
-  #mobile-chat-drawer.open { transform: translateY(0); }
+#viewerCount.show { display: flex; }
+#btnBack {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  color: #fff; padding: 5px 10px; border-radius: 8px; font-size: 13px;
 }
 
-#mobile-chat-btn {
+/* ── Control bar ── */
+#ctrlBar {
+  display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+  padding: 10px 12px calc(10px + var(--safe-b));
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  gap: 8px; align-items: center; flex-wrap: wrap;
+}
+#ctrlBar.show { display: flex; }
+.ctrl-btn {
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.22);
+  color: #fff; padding: 9px 16px; border-radius: 24px; font-size: 13px;
+}
+.ctrl-btn.off { background: rgba(255,60,60,0.25); border-color: rgba(255,60,60,0.45); color: #ffaaaa; }
+#btnEndLive {
+  background: linear-gradient(135deg, rgba(160,0,30,0.5), rgba(200,0,40,0.5));
+  border: 1px solid rgba(255,30,60,0.6); color: #ff7799; padding: 9px 18px; border-radius: 24px; font-size: 13px;
   display: none;
-  width: 44px; height: 44px; border-radius: 50%;
-  background: var(--bg-card); border: 1px solid rgba(0,174,239,0.3);
-  color: var(--neon-blue); font-size: 20px; cursor: pointer;
-  align-items: center; justify-content: center;
-  box-shadow: var(--blue-glow-sm);
 }
 
-/* ── Keyframes ── */
-@keyframes livePulse {
-  0%,100% { box-shadow: var(--red-glow); }
-  50%     { box-shadow: 0 0 22px rgba(255,51,85,0.85); }
+/* ── Host settings bar ── */
+#reqSettingsBar {
+  display: none; position: fixed; bottom: 56px; left: 0; right: 0; z-index: 19;
+  padding: 6px 12px; gap: 6px; flex-wrap: wrap;
 }
-@keyframes dotBlink {
-  0%,100% { opacity: 1; }
-  50%     { opacity: 0.3; }
+#reqSettingsBar.show { display: flex; }
+.host-ctrl-btn {
+  padding: 5px 12px; border-radius: 16px; font-size: 11px; font-weight: 700;
+  background: rgba(0,10,30,0.7); border: 1px solid rgba(0,174,239,0.3); color: var(--blue);
 }
-@keyframes speakRing {
-  0%,100% { box-shadow: 0 0 0 0 rgba(57,255,20,0.55); }
-  50%     { box-shadow: 0 0 0 4px rgba(57,255,20,0); }
+.host-ctrl-btn.active { background: rgba(255,30,60,0.2); border-color: rgba(255,30,60,0.5); color: #ff7799; }
+.host-ctrl-btn.off    { background: rgba(255,100,0,0.15); border-color: rgba(255,100,0,0.4); color: #ffaa66; }
+#reqBadge {
+  display: none; background: var(--red); color: #fff;
+  font-size: 10px; padding: 1px 5px; border-radius: 8px; margin-left: 4px;
+}
+#reqBadge.has { display: inline; }
+
+/* ── Pinned bar ── */
+#pinnedBar {
+  display: none; position: fixed; top: 52px; left: 0; right: 0; z-index: 18;
+  background: rgba(0,0,0,0.75); border-bottom: 1px solid rgba(0,174,239,0.25);
+  padding: 6px 12px; align-items: center; gap: 8px;
+}
+#pinnedBar.show { display: flex; }
+#pinnedText { flex: 1; font-size: 12px; color: #d8eeff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#btnUnpin { background: none; border: none; color: var(--muted); font-size: 16px; padding: 2px 6px; line-height: 1; }
+
+/* ── Chat status bar ── */
+#chatStatusBar {
+  display: none; position: fixed; top: 52px; left: 0; right: 0; z-index: 17;
+  background: rgba(180,60,0,0.3); border-bottom: 1px solid rgba(255,100,0,0.3);
+  padding: 5px 12px; font-size: 11px; color: #ffbb88; text-align: center;
+}
+#chatStatusBar.show { display: block; }
+
+/* ── Reconnect banner ── */
+#reconnectBanner {
+  display: none; position: fixed; top: 52px; left: 0; right: 0; z-index: 16;
+  background: rgba(0,30,80,0.85); border-bottom: 1px solid rgba(0,174,239,0.3);
+  padding: 6px 12px; font-size: 12px; color: var(--blue); text-align: center;
+}
+#reconnectBanner.show { display: block; }
+
+/* ── Desktop side panel (chat + requests) ── */
+#sidePanel {
+  display: none;
+  position: fixed; top: 0; right: 0; bottom: 0; width: 320px; z-index: 15;
+  background: rgba(3,8,15,0.95); border-left: 1px solid var(--border);
+  flex-direction: column;
+}
+@media (min-width: 900px) { #sidePanel { display: flex; } }
+
+.side-tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.side-tab {
+  flex: 1; padding: 12px 8px; font-size: 12px; font-weight: 700; color: var(--muted);
+  background: none; border: none; border-bottom: 2px solid transparent;
+  cursor: pointer; transition: color 0.15s, border-color 0.15s; font-family: inherit;
+}
+.side-tab:hover { color: #c8e8ff; }
+.side-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+/* Chat panel */
+#chatPanel { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+#chatPanel.active { display: flex; }
+
+#chatMessages {
+  flex: 1; overflow-y: auto; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px;
+  scrollbar-width: thin; scrollbar-color: rgba(0,100,220,0.2) transparent;
+}
+.chat-msg {
+  display: flex; gap: 8px; padding: 4px 6px; border-radius: 8px;
+  transition: background 0.12s;
+}
+.chat-msg:hover { background: rgba(0,40,100,0.3); }
+.chat-msg.reaction-msg { justify-content: center; }
+.chat-msg.pinned-msg { background: rgba(0,100,220,0.12); border: 1px solid rgba(0,174,239,0.2); }
+.chat-msg.deleted-msg { opacity: 0.45; }
+.msg-avatar {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(0,50,120,0.4); border: 1px solid rgba(0,174,239,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: var(--blue); overflow: hidden;
+}
+.msg-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.msg-body { flex: 1; min-width: 0; }
+.msg-meta { display: flex; align-items: baseline; gap: 5px; margin-bottom: 1px; }
+.msg-name { font-size: 11px; font-weight: 700; color: var(--blue); }
+.msg-name.host { color: var(--red); }
+.msg-time { font-size: 10px; color: var(--muted); }
+.msg-reply-quote { font-size: 11px; color: var(--muted); border-left: 2px solid rgba(0,174,239,0.4); padding-left: 6px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msg-text { font-size: 12px; color: #c8e8ff; word-break: break-word; line-height: 1.5; }
+.msg-actions { display: flex; gap: 2px; flex-shrink: 0; opacity: 0; transition: opacity 0.12s; }
+.chat-msg:hover .msg-actions { opacity: 1; }
+.msg-action-btn { background: none; border: none; color: var(--muted); font-size: 13px; padding: 3px 5px; border-radius: 4px; }
+.msg-action-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+.msg-action-btn.danger:hover { color: #ff5577; }
+
+/* Reply preview strip */
+#replyPreview {
+  display: none; background: rgba(0,30,70,0.7); border-top: 1px solid rgba(0,174,239,0.2);
+  padding: 6px 10px; align-items: center; gap: 6px; flex-shrink: 0;
+}
+#replyPreview.show { display: flex; }
+#replyText { flex: 1; font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#btnCancelReply { background: none; border: none; color: var(--muted); font-size: 16px; padding: 2px 6px; line-height: 1; }
+
+/* Chat input row */
+.chat-input-row {
+  display: flex; gap: 6px; padding: 8px 10px; flex-shrink: 0;
+  border-top: 1px solid var(--border); align-items: center;
+}
+#chatInput {
+  flex: 1; padding: 8px 12px; border-radius: 20px;
+  background: rgba(0,20,55,0.8); border: 1px solid rgba(0,174,239,0.3); color: #fff;
+  font-size: 12px; outline: none; font-family: inherit;
+}
+#chatInput:focus { border-color: rgba(0,174,239,0.65); }
+#chatInput::placeholder { color: rgba(255,255,255,0.3); }
+#chatSend {
+  background: linear-gradient(135deg,#003388,#0066cc);
+  border: 1px solid rgba(0,180,255,0.5); color: #fff; padding: 8px 14px;
+  border-radius: 20px; font-size: 12px;
 }
 
-/* ── Reconnecting banner ── */
-#reconnect-banner {
-  position: fixed; top: 52px; left: 0; right: 0; z-index: 400;
-  background: rgba(255,160,0,0.15); border-bottom: 1px solid rgba(255,160,0,0.4);
-  color: #ffcc44; font-size: 13px; font-weight: 600; text-align: center;
-  padding: 8px; display: none;
+/* Requests panel */
+#requestsPanel { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+#requestsPanel.active { display: flex; }
+#reqClosedNotice {
+  display: none; padding: 12px; text-align: center;
+  font-size: 12px; color: #ffaa66; background: rgba(255,100,0,0.1);
 }
-#reconnect-banner.visible { display: block; }
-
-/* ── Toast ── */
-#live-toast {
-  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-  background: rgba(7,20,40,0.97); border: 1px solid rgba(0,174,239,0.35);
-  color: var(--text-secondary); font-size: 13px; padding: 10px 20px;
-  border-radius: 20px; z-index: 700; white-space: nowrap;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.22s ease, transform 0.22s ease;
-  box-shadow: var(--blue-glow-sm);
+#reqClosedNotice.show { display: block; }
+#reqList { flex: 1; overflow-y: auto; padding: 8px 10px; display: flex; flex-direction: column; gap: 8px; }
+.req-card {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0,20,55,0.6); border: 1px solid rgba(0,174,239,0.2);
+  border-radius: 10px; padding: 10px 12px;
 }
-#live-toast.show { opacity: 1; pointer-events: auto; }
+.req-avatar {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(0,50,120,0.5); border: 1.5px solid rgba(0,174,239,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 800; color: var(--blue); overflow: hidden;
+}
+.req-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.req-info { flex: 1; min-width: 0; }
+.req-name { font-size: 12px; font-weight: 700; color: #e0f0ff; }
+.req-meta { font-size: 10px; color: var(--muted); }
+.req-btns { display: flex; gap: 5px; }
+.req-accept { background: rgba(57,255,20,0.15); border: 1px solid rgba(57,255,20,0.45); color: var(--green); padding: 5px 10px; border-radius: 7px; font-size: 12px; }
+.req-deny   { background: rgba(255,30,60,0.1); border: 1px solid rgba(255,30,60,0.35); color: #ff7799; padding: 5px 10px; border-radius: 7px; font-size: 12px; }
 
-/* ── Floating reactions ── */
-#reaction-stage {
-  position: fixed; bottom: 150px; right: 16px;
-  width: 50px; z-index: 600; pointer-events: none;
-  display: flex; flex-direction: column; align-items: center;
+/* ── Mobile chat drawer ── */
+#mobileChatBtn {
+  display: none; position: fixed; bottom: 60px; left: 12px; z-index: 20;
+  background: rgba(0,20,55,0.85); border: 1px solid rgba(0,174,239,0.4);
+  color: var(--blue); width: 44px; height: 44px; border-radius: 50%;
+  align-items: center; justify-content: center; font-size: 18px;
+  box-shadow: 0 0 14px rgba(0,174,239,0.25);
+}
+#mobileChatDrawer {
+  display: none; position: fixed; inset: 0; z-index: 30;
+  flex-direction: column; background: rgba(3,8,15,0.97);
+}
+#mobileChatDrawer.open { display: flex; }
+.mobile-drawer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: calc(env(safe-area-inset-top,0px) + 12px) 14px 10px;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.mobile-drawer-title { font-size: 15px; font-weight: 700; color: #fff; }
+.mobile-drawer-close { background: none; border: none; color: var(--muted); font-size: 24px; padding: 2px 8px; line-height: 1; }
+#mobileChatMessages { flex: 1; overflow-y: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
+#mobileReplyPreview {
+  display: none; background: rgba(0,30,70,0.7); border-top: 1px solid rgba(0,174,239,0.2);
+  padding: 6px 12px; align-items: center; gap: 6px; flex-shrink: 0;
+}
+#mobileReplyPreview.show { display: flex; }
+#mobileReplyText { flex: 1; font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#btnMobileCancelReply { background: none; border: none; color: var(--muted); font-size: 16px; padding: 2px 6px; line-height: 1; }
+#mobileReactionRow { display: flex; gap: 6px; padding: 8px 12px; flex-shrink: 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.react-btn {
+  background: rgba(0,20,55,0.7); border: 1px solid rgba(0,174,239,0.25);
+  border-radius: 20px; padding: 5px 10px; font-size: 16px; cursor: pointer;
+}
+.mobile-chat-input-row {
+  display: flex; gap: 6px; padding: 8px 12px calc(8px + var(--safe-b)); flex-shrink: 0;
+  border-top: 1px solid var(--border); align-items: center;
+}
+#mobileChatInput {
+  flex: 1; padding: 9px 14px; border-radius: 22px;
+  background: rgba(0,20,55,0.8); border: 1px solid rgba(0,174,239,0.3); color: #fff;
+  font-size: 13px; outline: none; font-family: inherit;
+}
+#mobileChatInput::placeholder { color: rgba(255,255,255,0.3); }
+.mobile-send-btn {
+  background: linear-gradient(135deg,#003388,#0066cc);
+  border: 1px solid rgba(0,180,255,0.5); color: #fff; padding: 9px 16px;
+  border-radius: 22px; font-size: 13px;
+}
+/* Mobile chat overlay bubbles */
+#mobileChatOverlay {
+  position: fixed; bottom: 70px; left: 60px; z-index: 15;
+  display: flex; flex-direction: column-reverse; gap: 4px;
+  pointer-events: none; max-width: 220px;
+}
+.mob-bubble {
+  background: rgba(0,0,0,0.6); border-radius: 14px; padding: 5px 10px;
+  font-size: 12px; color: #fff; max-width: 100%;
+  animation: bubbleFadeIn 0.2s ease both;
+}
+@keyframes bubbleFadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+.mob-name { font-weight: 700; color: var(--blue); margin-right: 4px; }
+.mob-name.host { color: var(--red); }
+
+/* Mobile mini strip */
+#miniStrip {
+  display: none; position: fixed; top: 52px; left: 0; right: 0; z-index: 14;
+  gap: 4px; padding: 4px 8px; overflow-x: auto; scrollbar-width: none;
+}
+@media (max-width: 899px) { #miniStrip { display: flex; } }
+.mini-box {
+  flex-shrink: 0; width: 56px; height: 42px; border-radius: 6px;
+  overflow: hidden; position: relative; cursor: pointer;
+  border: 1px solid rgba(0,174,239,0.3);
+}
+.mini-box video { width: 100%; height: 100%; object-fit: cover; }
+.mini-name {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  font-size: 9px; font-weight: 700; color: #fff;
+  background: rgba(0,0,0,0.6); padding: 1px 3px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Reaction stage */
+#reactionStage {
+  position: fixed; inset: 0; z-index: 13; pointer-events: none; overflow: hidden;
 }
 .fly-reaction {
-  font-size: 26px; position: absolute; bottom: 0;
-  animation: flyUp 2.4s ease-out forwards;
+  position: absolute; right: 20px; font-size: 28px;
+  animation: flyUp 2.5s ease-out forwards;
+  pointer-events: none;
 }
 @keyframes flyUp {
-  0%   { opacity: 1; transform: translateY(0) scale(1); }
-  80%  { opacity: 0.7; }
-  100% { opacity: 0; transform: translateY(-180px) scale(0.7); }
+  0%   { opacity: 1;   transform: translateY(0)     scale(1); }
+  80%  { opacity: 0.8; transform: translateY(-200px) scale(1.2); }
+  100% { opacity: 0;   transform: translateY(-280px) scale(0.8); }
+}
+
+/* ══════════════════════════════════
+   MODALS
+   ══════════════════════════════════ */
+.modal {
+  display: none; position: fixed; inset: 0; z-index: 50;
+  background: rgba(0,3,15,0.88); align-items: center; justify-content: center;
+  padding: 20px; backdrop-filter: blur(6px);
+}
+.modal.open { display: flex; }
+.modal-card {
+  background: linear-gradient(160deg,#080f20,#03080f);
+  border: 1px solid rgba(0,174,239,0.3); border-radius: 18px;
+  padding: 26px 22px; max-width: 360px; width: 100%; text-align: center;
+  animation: popIn 0.22s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes popIn { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
+.modal-title { font-size: 17px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+.modal-sub   { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
+.modal-btns  { display: flex; gap: 10px; }
+.modal-btns button { flex: 1; padding: 11px; border-radius: 10px; font-size: 13px; }
+.btn-confirm { background: linear-gradient(135deg,#8b0000,#cc0030); border: 1px solid rgba(255,30,60,0.6); color: #fff; }
+.btn-confirm-leave { background: rgba(0,80,200,0.3); border: 1px solid rgba(0,174,239,0.55); color: var(--blue); }
+.btn-modal-cancel { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: var(--muted); }
+
+/* Live ended modal */
+#liveEndedModal .modal-card { border-color: rgba(255,30,60,0.3); }
+#liveEndedModal .modal-title { color: #ff9999; }
+#btnLiveEndedBack { width: 100%; padding: 12px; border-radius: 10px; background: linear-gradient(135deg,#003388,#0066cc); border-color: rgba(0,180,255,0.5); color: #fff; font-size: 14px; }
+
+/* Replay modal */
+#replayModal .modal-card { max-width: 400px; text-align: left; }
+#replayModal .modal-title { text-align: center; }
+#replayDuration { display: none; font-size: 11px; color: var(--muted); text-align: center; margin-bottom: 12px; }
+#replayDuration.show { display: block; }
+.replay-video-preview {
+  width: 100%; max-height: 200px; border-radius: 10px; background: #000;
+  margin-bottom: 14px; display: none;
+}
+.replay-btns { display: flex; flex-direction: column; gap: 8px; }
+.btn-replay-save {
+  padding: 12px; border-radius: 10px; background: rgba(57,255,20,0.15);
+  border: 1px solid rgba(57,255,20,0.45); color: var(--green); font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-replay-post {
+  padding: 12px; border-radius: 10px; background: linear-gradient(135deg,#003388,#0066cc);
+  border: 1px solid rgba(0,180,255,0.5); color: #fff; font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-replay-discard {
+  padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12); color: var(--muted); font-size: 13px;
+}
+.btn-spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: none; animation: spin 0.8s linear infinite; }
+.btn-spinner.show { display: inline-block; }
+
+/* Permission modal */
+#permModal .modal-card { border-color: rgba(255,30,60,0.3); }
+#permModal .modal-title { color: #ff9999; }
+
+/* Guest context menu */
+#guestCtxMenu {
+  position: fixed; z-index: 60;
+  background: #060d1e; border: 1px solid rgba(0,174,239,0.35);
+  border-radius: 12px; padding: 6px 0; min-width: 180px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7); display: none;
+}
+#guestCtxMenu.show { display: block; }
+.ctx-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; font-size: 13px; color: #d8eeff; cursor: pointer;
+  transition: background 0.12s;
+}
+.ctx-item:hover { background: rgba(0,174,239,0.1); }
+.ctx-item.danger { color: #ff5577; }
+.ctx-item.danger:hover { background: rgba(255,51,102,0.1); }
+.ctx-divider { height: 1px; background: rgba(0,174,239,0.12); margin: 4px 0; }
+
+/* Toast */
+#liveToast {
+  position: fixed; bottom: calc(80px + var(--safe-b)); left: 50%; transform: translateX(-50%);
+  background: rgba(0,10,30,0.95); border: 1px solid rgba(0,174,239,0.4);
+  color: #d8eeff; padding: 10px 18px; border-radius: 22px; font-size: 13px;
+  z-index: 99; white-space: nowrap; opacity: 0; pointer-events: none;
+  transition: opacity 0.2s; box-shadow: 0 4px 20px rgba(0,100,255,0.25);
+}
+#liveToast.show { opacity: 1; }
+
+/* Sidebar push — shift grid left on desktop when side panel is open */
+@media (min-width: 900px) {
+  #videoGrid { margin-right: 320px; }
 }
 </style>
 </head>
 <body>
 
-<!-- ── Top bar ── -->
-<div id="topbar">
-  <button class="back-btn" id="btnBack" aria-label="Go back">‹</button>
-  <div class="room-title" id="roomTitle">Shadow Nexus Live</div>
-  <div id="live-badge"><div class="live-dot"></div> LIVE</div>
-  <div id="viewer-count" style="display:none;">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-    <span id="viewerNum">0</span>
+<!-- ══════════════════════════════════
+     OVERLAYS
+     ══════════════════════════════════ -->
+
+<!-- Lobby -->
+<div id="lobbyOverlay" class="overlay">
+  <div class="lobby-logo">📡</div>
+  <h1>Shadow Nexus Live</h1>
+  <p>Go live or join a stream</p>
+  <div class="lobby-btns">
+    <button class="btn-go-live" id="btnHostRoom">🔴 Go Live</button>
+    <button class="btn-back-home" id="btnBackHome">← Back to Feed</button>
   </div>
 </div>
 
-<!-- ── Reconnecting banner ── -->
-<div id="reconnect-banner">⚡ Connection lost. Reconnecting…</div>
-
-<!-- ── Main layout ── -->
-<div id="live-root">
-
-  <!-- Video grid -->
-  <div id="video-grid">
-    <!-- Boxes 0-7 are injected by live.js -->
-  </div>
-
-  <!-- Host ctrl bar (injected into video-grid overlay) -->
-  <div id="ctrl-bar">
-    <button class="ctrl-btn" id="btnMic" title="Mute/Unmute" aria-label="Toggle mic">
-      🎙️<span class="ctrl-tooltip">Mute</span>
-    </button>
-    <button class="ctrl-btn" id="btnCam" title="Camera On/Off" aria-label="Toggle camera">
-      📷<span class="ctrl-tooltip">Camera</span>
-    </button>
-    <button class="ctrl-btn go-live-btn" id="btnGoLive">🔴 Go Live</button>
-    <button class="ctrl-btn end-live-btn" id="btnEndLive" style="display:none;">⏹ End Live</button>
-    <button class="ctrl-btn" id="btnFlip" title="Flip camera" aria-label="Flip camera" style="display:none;">🔄<span class="ctrl-tooltip">Flip</span></button>
-    <button class="ctrl-btn" id="btnLock" title="Lock room" aria-label="Lock room">
-      🔓<span class="ctrl-tooltip">Lock room</span>
-    </button>
-  </div>
-
-  <!-- Side panel -->
-  <div id="side-panel">
-    <div class="side-tabs">
-      <button class="side-tab active" data-tab="chat" onclick="switchSideTab('chat')">
-        Chat <span class="tab-badge" id="chat-badge"></span>
-      </button>
-      <button class="side-tab" data-tab="requests" onclick="switchSideTab('requests')">
-        Requests <span class="tab-badge" id="req-badge"></span>
-      </button>
+<!-- Setup (camera preview) -->
+<div id="setupOverlay" class="overlay hidden">
+  <video id="setupVideo" autoplay muted playsinline></video>
+  <div class="setup-ui">
+    <div class="setup-top">
+      <h2>🔴 Go Live</h2>
+      <button class="setup-flip-btn" id="btnSetupFlip">🔄 Flip</button>
     </div>
-    <div id="chat-panel" class="active">
-      <div id="chat-messages"></div>
-      <div id="reaction-row">
-        <button class="react-btn" onclick="sendReaction('❤️')">❤️</button>
-        <button class="react-btn" onclick="sendReaction('🔥')">🔥</button>
-        <button class="react-btn" onclick="sendReaction('🤣')">🤣</button>
-        <button class="react-btn" onclick="sendReaction('👏')">👏</button>
-        <button class="react-btn" onclick="sendReaction('😮')">😮</button>
+    <div class="setup-bottom">
+      <div class="setup-meta-row">
+        <button class="setup-toggle-btn" id="btnSetupMic">🎙 Mic: On</button>
+        <button class="setup-toggle-btn" id="btnSetupCam">📷 Cam: On</button>
       </div>
-      <div id="chat-input-row">
-        <input id="chat-input" type="text" placeholder="Say something…" maxlength="200" autocomplete="off">
-        <button id="chat-send">➤</button>
-      </div>
+      <input  class="setup-input"  id="setupTitleInput"   placeholder="Stream title… (optional)" maxlength="80">
+      <select class="setup-select" id="setupPrivacySelect">
+        <option value="everyone">🌍 Everyone</option>
+        <option value="friends">👥 Friends Only</option>
+        <option value="family">❤️ Family Only</option>
+      </select>
+      <button class="btn-start-live" id="btnGoLive">🔴 Start Live Stream</button>
+      <button class="btn-setup-cancel" id="btnSetupCancel">Cancel</button>
     </div>
-    <div id="requests-panel"></div>
-  </div>
-
-</div>
-
-<!-- ── Mobile chat button + drawer ── -->
-<button id="mobile-chat-btn" onclick="toggleMobileChat()" aria-label="Open chat">💬</button>
-<div id="mobile-chat-drawer">
-  <div class="side-tabs" style="border-radius:16px 16px 0 0;">
-    <button class="side-tab active" data-tab="chat" onclick="switchSideTab('chat')">Chat</button>
-    <button class="side-tab" data-tab="requests" onclick="switchSideTab('requests')">Requests</button>
-    <button class="side-tab" style="flex:0;padding:12px 14px;color:#ff5566;" onclick="toggleMobileChat()">✕</button>
-  </div>
-  <!-- chat messages and input are mirrored by JS -->
-  <div id="mobile-chat-messages" style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px;"></div>
-  <div id="reaction-row-mobile" style="display:flex;gap:6px;padding:0 8px 8px;justify-content:center;">
-    <button class="react-btn" onclick="sendReaction('❤️')">❤️</button>
-    <button class="react-btn" onclick="sendReaction('🔥')">🔥</button>
-    <button class="react-btn" onclick="sendReaction('🤣')">🤣</button>
-    <button class="react-btn" onclick="sendReaction('👏')">👏</button>
-    <button class="react-btn" onclick="sendReaction('😮')">😮</button>
-  </div>
-  <div id="chat-input-row-mobile" style="display:flex;gap:6px;padding:8px;border-top:1px solid rgba(0,174,239,0.12);">
-    <input id="chat-input-mobile" type="text" placeholder="Say something…" maxlength="200" autocomplete="off" style="flex:1;background:var(--bg-input);border:1px solid rgba(0,174,239,0.25);color:#fff;border-radius:20px;padding:8px 14px;font-size:13px;outline:none;">
-    <button onclick="sendChatMobile()" style="background:var(--neon-blue);color:#000;border:none;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">➤</button>
   </div>
 </div>
 
-<!-- ── Mobile guest mini-strip ── -->
-<div id="mini-strip"></div>
-
-<!-- ── Guest context menu ── -->
-<div id="guest-ctx-menu">
-  <div class="ctx-item" id="ctx-mute">🔇 Mute guest</div>
-  <div class="ctx-item" id="ctx-cam">📷 Disable cam</div>
-  <div class="ctx-item" id="ctx-restart">🔄 Restart connection</div>
-  <div class="ctx-item danger" id="ctx-remove">🚫 Remove from Live</div>
-</div>
-
-<!-- ── Floating reaction stage ── -->
-<div id="reaction-stage"></div>
-
-<!-- ── Toast ── -->
-<div id="live-toast"></div>
-
-<!-- ── Overlays ── -->
-
-<!-- Lobby: choose host or viewer -->
-<div id="lobby-overlay">
-  <div class="overlay-icon">🔴</div>
-  <div class="overlay-title" id="lobbyTitle">Shadow Nexus Live</div>
-  <div class="overlay-sub" id="lobbySub">Go live and let your followers join instantly.</div>
-  <button class="btn-primary" id="btnHostRoom">🎥 Start Live as Host</button>
-  <button class="btn-secondary" id="btnBackHome" style="color:var(--text-muted);border-color:transparent;">← Back to Feed</button>
-</div>
-
-<!-- Join: enter room code (kept for deep-link compatibility) -->
-<div id="join-overlay" class="hidden">
+<!-- Join (viewer connecting) -->
+<div id="joinOverlay" class="overlay hidden">
   <div class="overlay-icon">📡</div>
-  <div class="overlay-title">Joining Live…</div>
-  <div class="overlay-sub" id="joinOverlaySub">Connecting to live room…</div>
-  <input id="room-code-input" type="text" maxlength="60" placeholder="" autocomplete="off" spellcheck="false" style="display:none;">
-  <button class="btn-secondary" id="btnJoinCancel">Cancel</button>
+  <h2>Joining Live…</h2>
+  <p class="overlay-sub" id="joinSub">Connecting to the stream</p>
+  <div class="overlay-spinner"></div>
+  <button class="btn-cancel-join" id="btnJoinCancel">Cancel</button>
 </div>
 
-<!-- Waiting: pending host approval -->
-<div id="waiting-overlay" class="hidden">
-  <div class="spinner"></div>
-  <div class="overlay-title">Waiting for approval…</div>
-  <div class="overlay-sub" id="waitingSub">The host will accept or deny your request to join.</div>
-  <button class="btn-secondary" id="btnCancelRequest">Cancel request</button>
+<!-- Waiting for host to accept guest box request -->
+<div id="waitingOverlay" class="overlay hidden">
+  <div class="overlay-icon">⏳</div>
+  <h2>Waiting for host…</h2>
+  <p class="overlay-sub">The host will accept your camera request.</p>
+  <div class="overlay-spinner"></div>
+  <button class="btn-cancel-join" id="btnCancelRequest">Cancel</button>
 </div>
 
-<!-- ── Script ── -->
+<!-- ══════════════════════════════════
+     MAIN LIVE STAGE
+     ══════════════════════════════════ -->
+<div id="liveStage">
+
+  <!-- Video grid (filled by JS) -->
+  <div id="videoGrid"></div>
+
+  <!-- HUD top bar -->
+  <div id="liveHud">
+    <div id="liveBadge">LIVE</div>
+    <span id="roomName">Loading…</span>
+    <span id="liveTimer">00:00</span>
+    <div id="viewerCount">👁 <span id="viewerNum">0</span></div>
+    <button id="btnBack">✕</button>
+  </div>
+
+  <!-- Reconnect banner -->
+  <div id="reconnectBanner">🔄 Reconnecting to stream…</div>
+  <!-- Chat status bar -->
+  <div id="chatStatusBar"></div>
+  <!-- Pinned message bar -->
+  <div id="pinnedBar">
+    <span>📌</span>
+    <span id="pinnedText"></span>
+    <button id="btnUnpin">✕</button>
+  </div>
+
+  <!-- Mobile mini strip (guest thumbnails) -->
+  <div id="miniStrip"></div>
+
+  <!-- Floating reactions -->
+  <div id="reactionStage"></div>
+
+  <!-- Mobile chat overlay bubbles -->
+  <div id="mobileChatOverlay"></div>
+
+  <!-- Control bar (bottom) -->
+  <div id="ctrlBar">
+    <button class="ctrl-btn" id="btnMic">🎙️</button>
+    <button class="ctrl-btn" id="btnCam">📷</button>
+    <button class="ctrl-btn" id="btnFlip" style="display:none;">🔄</button>
+    <!-- Like button — both host and viewer write to liveRooms/{id}/likes -->
+    <button class="ctrl-btn" id="btnLike" onclick="sendLike()">❤️ <span id="liveLikesCount">0</span></button>
+    <!-- Viewer-only buttons (hidden for host) -->
+    <button class="ctrl-btn" id="btnFollowHost" onclick="followHost()" style="display:none;">➕ Follow</button>
+    <button class="ctrl-btn" id="btnShareLive"  onclick="shareLive()"  style="display:none;">🔗 Share</button>
+    <button class="ctrl-btn" id="btnReportLive" onclick="reportLive()" style="display:none;">⚑ Report</button>
+    <!-- PiP — shown only when browser supports it -->
+    <button class="ctrl-btn" id="btnPip" onclick="togglePiP()" style="display:none;" title="Picture in Picture">⧉</button>
+    <button id="btnEndLive">⏹ End</button>
+  </div>
+
+  <!-- Host settings bar -->
+  <div id="reqSettingsBar">
+    <button class="host-ctrl-btn" id="btnChatToggle">💬 Chat on</button>
+    <button class="host-ctrl-btn" id="btnSlowMode">🐢 Slow mode</button>
+    <button class="host-ctrl-btn" id="btnToggleRequests">✅ Open</button>
+    <span style="font-size:10px;color:var(--muted);">Requests:</span>
+    <span id="reqBadge">0</span>
+  </div>
+
+  <!-- Host chat bar (desktop) — on mobile the side panel handles it -->
+  <div id="hostChatBar" style="display:none;"></div>
+
+</div><!-- /#liveStage -->
+
+<!-- ══════════════════════════════════
+     DESKTOP SIDE PANEL
+     ══════════════════════════════════ -->
+<div id="sidePanel">
+  <!-- Tabs -->
+  <div class="side-tabs">
+    <button class="side-tab active" data-tab="chat"     onclick="switchTab('chat')">💬 Chat</button>
+    <button class="side-tab"        data-tab="requests" onclick="switchTab('requests')">📩 Requests</button>
+  </div>
+
+  <!-- Chat panel -->
+  <div id="chatPanel" class="active">
+    <div id="chatMessages"></div>
+
+    <!-- Reply preview -->
+    <div id="replyPreview">
+      <span id="replyText"></span>
+      <button id="btnCancelReply">✕</button>
+    </div>
+
+    <!-- Reaction bar -->
+    <div style="display:flex;gap:5px;padding:5px 10px;flex-shrink:0;border-top:1px solid var(--border);">
+      <button class="react-btn" onclick="sendReaction('❤️')">❤️</button>
+      <button class="react-btn" onclick="sendReaction('🔥')">🔥</button>
+      <button class="react-btn" onclick="sendReaction('😂')">😂</button>
+      <button class="react-btn" onclick="sendReaction('👏')">👏</button>
+      <button class="react-btn" onclick="sendReaction('⚡')">⚡</button>
+      <button class="react-btn" onclick="sendReaction('🎉')">🎉</button>
+    </div>
+
+    <!-- Input -->
+    <div class="chat-input-row">
+      <input id="chatInput" placeholder="Say something…" maxlength="200">
+      <button id="chatSend">Send</button>
+    </div>
+  </div>
+
+  <!-- Requests panel -->
+  <div id="requestsPanel">
+    <div id="reqClosedNotice">🚫 Requests are closed</div>
+    <div id="reqList"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MOBILE CHAT BUTTON + DRAWER
+     ══════════════════════════════════ -->
+<button id="mobileChatBtn" onclick="toggleMobileChat()">💬</button>
+
+<div id="mobileChatDrawer">
+  <div class="mobile-drawer-header">
+    <span class="mobile-drawer-title">💬 Live Chat</span>
+    <button class="mobile-drawer-close" onclick="toggleMobileChat()">✕</button>
+  </div>
+
+  <div id="mobileChatMessages"></div>
+
+  <!-- Reply preview -->
+  <div id="mobileReplyPreview">
+    <span id="mobileReplyText"></span>
+    <button id="btnMobileCancelReply">✕</button>
+  </div>
+
+  <!-- Reactions -->
+  <div id="mobileReactionRow">
+    <button class="react-btn">❤️</button>
+    <button class="react-btn">🔥</button>
+    <button class="react-btn">😂</button>
+    <button class="react-btn">👏</button>
+    <button class="react-btn">⚡</button>
+    <button class="react-btn">🎉</button>
+  </div>
+
+  <!-- Input -->
+  <div class="mobile-chat-input-row">
+    <input id="mobileChatInput" placeholder="Say something…" maxlength="200">
+    <button class="mobile-send-btn" onclick="sendChat(true)">Send</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     MODALS
+     ══════════════════════════════════ -->
+
+<!-- End confirm (host) -->
+<div id="endConfirmModal" class="modal">
+  <div class="modal-card">
+    <div class="modal-title">End your live stream?</div>
+    <div class="modal-sub">Your stream will end for all viewers. You can save or post a replay.</div>
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" id="btnCancelEnd">Continue LIVE</button>
+      <button class="btn-confirm" id="btnConfirmEnd">End LIVE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Leave confirm (viewer/guest) -->
+<div id="leaveConfirmModal" class="modal">
+  <div class="modal-card">
+    <div class="modal-title">Leave Live?</div>
+    <div class="modal-sub">You'll disconnect from the stream.</div>
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" id="btnCancelLeave">Stay</button>
+      <button class="btn-confirm-leave" id="btnConfirmLeave">Leave</button>
+    </div>
+  </div>
+</div>
+
+<!-- Live ended (viewer) -->
+<div id="liveEndedModal" class="modal">
+  <div class="modal-card">
+    <div class="modal-title">🔴 Stream Ended</div>
+    <div class="modal-sub">The host has ended this live stream.</div>
+    <button id="btnLiveEndedBack">← Back to Feed</button>
+  </div>
+</div>
+
+<!-- Camera permission (guest joining box) -->
+<div id="permModal" class="modal">
+  <div class="modal-card">
+    <div class="modal-title">🎥 Enable Camera</div>
+    <div class="modal-sub">The host accepted your request. Your camera and microphone will turn on. Allow access when prompted.</div>
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" id="btnPermCancel">Cancel</button>
+      <button class="btn-confirm-leave" id="btnPermConfirm">Go On Camera</button>
+    </div>
+  </div>
+</div>
+
+<!-- Replay modal (host, after ending) -->
+<div id="replayModal" class="modal">
+  <div class="modal-card">
+    <div class="modal-title">🎬 Save Your Replay</div>
+    <div id="replayDuration"></div>
+    <div class="replay-btns">
+      <button class="btn-replay-save" id="btnReplaySave">
+        💾 Save to Device
+        <div class="btn-spinner" id="saveSpinner"></div>
+      </button>
+      <button class="btn-replay-post" id="btnReplayPost">
+        📤 Post to Feed
+        <div class="btn-spinner" id="postSpinner"></div>
+      </button>
+      <button class="btn-replay-discard" id="btnReplayDiscard">Discard Replay</button>
+    </div>
+  </div>
+</div>
+
+<!-- Guest context menu -->
+<div id="guestCtxMenu">
+  <div class="ctx-item" id="ctxMute">🔇 Mute Mic</div>
+  <div class="ctx-item" id="ctxCam">📷 Turn Off Cam</div>
+  <div class="ctx-item" id="ctxRestart">🔄 Restart Connection</div>
+  <div class="ctx-divider"></div>
+  <div class="ctx-item danger" id="ctxRemove">✕ Remove from Live</div>
+  <div class="ctx-item danger" id="ctxBlock">🚫 Block User</div>
+  <div class="ctx-divider"></div>
+  <div class="ctx-item" id="ctxReport">⚑ Report</div>
+</div>
+
+<!-- Toast -->
+<div id="liveToast"></div>
+
+<!-- ══════════════════════════════════
+     FIREBASE + LIVE ENGINE
+     ══════════════════════════════════ -->
 <script type="module" src="live.js"></script>
+
 </body>
 </html>

@@ -7,6 +7,3 @@ account_id = "f276c4406b82d3c1e35efed1ef486235"
 binding = "BUCKET"
 bucket_name = "legend"
 
-# TURN shared secret — set with:  wrangler secret put TURN_SECRET
-# Must match the secret configured on your TURN server (Metered, coturn, etc.)
-# [vars]  is for non-sensitive values only; secrets are stored encrypted by Cloudflare.

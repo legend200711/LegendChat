@@ -144,13 +144,14 @@ onAuthStateChanged(auth, async user => {
 ───────────────────────────────────────────────── */
 function init() {
   const params = new URLSearchParams(location.search);
-  roomId = params.get("room") || null;
+  const rawRoom = params.get("room") || null;
+  roomId = (rawRoom && rawRoom !== "new") ? rawRoom : null;
   isHost = params.get("host") === "1";
 
   wireButtons();
   wireChat();
 
-  if (!roomId) {
+  if (!rawRoom) {
     // No room param — show lobby
     showLobby();
     return;
@@ -158,8 +159,10 @@ function init() {
 
   if (isHost) {
     // Host: camera preview → confirm → go live
+    // roomId is null if "new", will be created in goLive()
     startSetupPreview();
   } else {
+    if (!roomId) { showLobby(); return; }
     // Viewer/guest: join the room
     showOverlay("joinOverlay");
     $("joinSub").textContent = "Connecting to live stream…";

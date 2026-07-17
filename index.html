@@ -5715,61 +5715,9 @@ body.arcade-fs-ios body::after { display:none !important; }
      screen from flashing for returning (logged-in) users.
      ══════════════════════════════════════════════════════════ -->
 <style>
-#snx-auth-gate {
-    position: fixed;
-    inset: 0;
-    z-index: 99999;
-    background: #0B1F3A;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    /* Gate fades out instead of snapping away */
-    transition: opacity 0.28s ease, visibility 0.28s ease;
-}
-#snx-auth-gate.resolved {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-}
-.snx-gate-logo {
-    width: 76px;
-    height: 76px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 38% 35%, #003d99 0%, #071428 100%);
-    border: 2.5px solid rgba(0,174,239,0.72);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 36px;
-    box-shadow: 0 0 36px rgba(0,174,239,0.58), 0 0 0 1px rgba(0,174,239,0.14);
-    animation: blueFlame 3s infinite;
-}
-.snx-gate-spinner {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 3px solid rgba(0,174,239,0.18);
-    border-top-color: #00AEEF;
-    animation: spin360 0.75s linear infinite;
-}
-.snx-gate-label {
-    font-size: 12px;
-    color: #3a6a9a;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-}
 </style>
 
 <body>
-
-<!-- Auth gate — rendered before anything else, removed after Firebase resolves -->
-<div id="snx-auth-gate" aria-hidden="true">
-    <div class="snx-gate-logo">🌑</div>
-    <div class="snx-gate-spinner"></div>
-    <div class="snx-gate-label">Loading…</div>
-</div>
 
 <canvas id="bg-canvas"></canvas>
 
@@ -8760,8 +8708,6 @@ body.arcade-fs-ios body::after { display:none !important; }
               if (typeof window._showRolePanels === 'function') window._showRolePanels();
           } catch(_) {}
           // Dismiss auth gate + login loading overlay, then navigate to feed
-          const _gate = document.getElementById('snx-auth-gate');
-          if (_gate) _gate.classList.add('resolved');
           _hideLoginLoading();
           navTo('feed');
           initTimelineStream();
@@ -8793,9 +8739,7 @@ body.arcade-fs-ios body::after { display:none !important; }
               } catch(_) { /* best-effort */ }
           }, 1500);
       } else {
-          // Dismiss the auth gate unconditionally — we now know the auth state.
-          const _gate = document.getElementById('snx-auth-gate');
-          if (_gate) _gate.classList.add('resolved');
+          // Auth state resolved.
           // Genuine sign-out, expired session, or first load with no saved session.
           _hideLoginLoading();
           if (_firstCall) {

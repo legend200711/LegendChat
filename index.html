@@ -20585,6 +20585,19 @@ function _syncLiveCtrlBtns() {
 let _liveCountdownTimer = null;
 
 window.startCountdownAndGoLive = function() {
+    // ── Check 1: Verify camera stream is active before countdown ──
+    if (!SNX_STORY.liveStream) {
+        _toast('Camera not ready. Please wait for the camera to start.');
+        return;
+    }
+    const videoTracks = SNX_STORY.liveStream.getVideoTracks();
+    if (!videoTracks.length || videoTracks[0].readyState === 'ended') {
+        _toast('Camera is not available. Please allow camera access and try again.');
+        const camStatus = document.getElementById('liveCamStatus');
+        if (camStatus) { camStatus.textContent = '⚠️ Camera unavailable — tap Switch Camera to retry'; camStatus.style.display = 'flex'; }
+        return;
+    }
+
     const btn = document.getElementById('liveStartBtn');
     if (btn) btn.disabled = true;
 
@@ -20685,8 +20698,10 @@ window.startLiveStream = async function() {
             await updateDoc(docFn(db, 'stories', docId), { roomId: docId });
         } catch(_) {}
 
-        // Stop setup stream — live.html will re-acquire
-        _stopLiveStream();
+        // ── Check 2: Do NOT stop the stream before navigating ──
+        // Stopping tracks here causes a black screen in live.html because the
+        // browser holds a hardware-release delay between stop() and a new getUserMedia().
+        // We simply let the page unload naturally — the browser releases tracks on unload.
         document.getElementById('storyLiveModal').classList.remove('open');
         const badge = document.getElementById('livePreviewBadge');
         if (badge) badge.classList.remove('visible');

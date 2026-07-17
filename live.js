@@ -829,8 +829,29 @@ async function startAsHost(code) {
   roomId = code || genRoomCode();
   $("roomTitle").textContent = `🔴 Live`;
   hideAll();
-  await acquireLocalStream();
-  assignSlot(currentUser.uid, myDisplayName + " (you)", localStream, true);
+
+  // ── Check 3 & 5: Acquire the local stream and show a clear error if it fails ──
+  try {
+    await acquireLocalStream();
+  } catch (e) {
+    // acquireLocalStream() already called toast() with the error message.
+    // Show the error in the host box and stop here — don't show a black screen.
+    const msg = getMediaErrorMessage(e);
+    toast("❌ Cannot start live: " + msg);
+    return;
+  }
+
+  // ── Check 3: Attach the stream to the host video box immediately ──
+  const hostSlot = assignSlot(currentUser.uid, myDisplayName + " (you)", localStream, true);
+  // Force the video element to play after stream attachment
+  if (hostSlot) {
+    const vid = hostSlot.querySelector("video");
+    if (vid && localStream) {
+      vid.srcObject = localStream;
+      vid.play().catch(() => {});
+    }
+  }
+
   showCtrlBar();
   _showHostRequestControls();
   listenForJoinRequests();
@@ -881,7 +902,21 @@ function _syncRequestsOpenUI() {
 async function handleGoLive() {
   if (!isHost) return;
   if (liveActive) return;          // already live — no double-start
-  if (!localStream) await acquireLocalStream();
+
+  // ── Check 4: If stream is missing or tracks ended, re-acquire and re-attach ──
+  if (!localStream || localStream.getVideoTracks().every(t => t.readyState === "ended")) {
+    try {
+      await acquireLocalStream();
+      const hostSlot = slotFor(currentUser?.uid);
+      if (hostSlot) {
+        const vid = hostSlot.querySelector("video");
+        if (vid && localStream) { vid.srcObject = localStream; vid.play().catch(() => {}); }
+      }
+    } catch (e) {
+      toast("❌ Camera unavailable: " + getMediaErrorMessage(e));
+      return;
+    }
+  }
   liveActive = true;
   $("btnGoLive").style.display  = "none";
   $("btnEndLive").style.display = "";

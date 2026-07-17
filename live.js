@@ -20,7 +20,7 @@ import { getAuth, onAuthStateChanged, browserLocalPersistence, setPersistence }
 import {
   getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc,
   collection, addDoc, onSnapshot, serverTimestamp, query,
-  where, getDocs, writeBatch, increment as fsIncrement
+  where, getDocs, writeBatch, increment as fsIncrement, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import {
   getDatabase, ref as rtRef, set as rtSet, push as rtPush,
@@ -147,6 +147,7 @@ function init() {
   const rawRoom = params.get("room") || null;
   roomId = (rawRoom && rawRoom !== "new") ? rawRoom : null;
   isHost = params.get("host") === "1";
+  const requestBox = params.get("requestBox") === "1";
 
   wireButtons();
   wireChat();
@@ -166,7 +167,12 @@ function init() {
     // Viewer/guest: join the room
     showOverlay("joinOverlay");
     $("joinSub").textContent = "Connecting to live stream…";
-    joinAsViewer();
+    joinAsViewer().then(() => {
+      if (requestBox) {
+        // Auto-open the permission modal so the viewer can request to join on camera
+        $("permModal").classList.add("open");
+      }
+    });
   }
 }
 
@@ -224,7 +230,7 @@ async function goLive() {
     if (roomId) {
       // roomId was pre-created by index.html
       docRef = doc(db, "stories", roomId);
-      await updateDoc(docRef, { liveActive: true, title, privacy });
+      await updateDoc(docRef, { isLive: true, liveActive: true, title, privacy });
     } else {
       docRef = await addDoc(collection(db, "stories"), {
         authorUid: me.uid, authorName: name, authorAvatar: avatar,
@@ -294,6 +300,7 @@ function startLive() {
   listenRoomDoc();
   startPresence();
   startViewerCount();
+  listenViewerPresence();
 
   // Start recording
   startRecording();
@@ -335,6 +342,64 @@ async function joinAsViewer() {
     liveActive = true;
     liveStart  = data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now();
     timerInt   = setInterval(updateTimer, 1000);
+
+    // ── Receive host's stream via WebRTC ──
+    // Listen for the offer the host will write when it sees us join
+    const viewerSignalRef = doc(db, "stories", roomId, "signals_viewer", me.uid);
+    const unsubViewerSignal = onSnapshot(viewerSignalRef, async snap => {
+      if (!snap.exists()) return;
+      const sigData = snap.data();
+      if (!sigData.offer) return;
+      if (peers[me.uid + "_view"]) return; // already set up
+
+      const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+      peers[me.uid + "_view"] = pc;
+
+      // Display incoming host tracks
+      pc.ontrack = e => {
+        const hostUid = sigData.hostUid || "host";
+        let box = $("videoGrid").querySelector(`[data-uid="${hostUid}"]`);
+        if (!box) {
+          box = makeBox(hostUid, data.authorName || "Host", true);
+          $("videoGrid").insertBefore(box, $("videoGrid").firstChild);
+          updateGridClass();
+        }
+        if (e.streams && e.streams[0]) {
+          box.querySelector("video").srcObject = e.streams[0];
+        }
+      };
+
+      pc.onconnectionstatechange = () => handlePCState(pc, me.uid + "_view");
+
+      // Send our ICE candidates to host
+      pc.onicecandidate = async ev => {
+        if (!ev.candidate || !roomId) return;
+        try {
+          await addDoc(
+            collection(db, "stories", roomId, "ice_viewer_to_host", me.uid, "candidates"),
+            ev.candidate.toJSON()
+          );
+        } catch (_) {}
+      };
+
+      await pc.setRemoteDescription(new RTCSessionDescription(sigData.offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await updateDoc(viewerSignalRef, { answer: { type: answer.type, sdp: answer.sdp } });
+
+      // Listen for host ICE candidates
+      const hostIceRef = collection(db, "stories", roomId, "ice_host_to_viewer", me.uid, "candidates");
+      const unsubIce = onSnapshot(hostIceRef, snap => {
+        snap.docChanges().forEach(change => {
+          if (change.type === "added") {
+            try { pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); } catch (_) {}
+          }
+        });
+      });
+      unsubs.push(unsubIce);
+      unsubViewerSignal(); // stop listening once offer consumed
+    });
+    unsubs.push(unsubViewerSignal);
 
   } catch (err) {
     toast("Could not join: " + (err.message || err));
@@ -452,6 +517,85 @@ function startViewerCount() {
     const n = snap.val() || 0;
     $("viewerNum").textContent = n;
   });
+}
+
+/* ─────────────────────────────────────────────────
+   Host: watch viewer presence and stream to each viewer
+───────────────────────────────────────────────── */
+function listenViewerPresence() {
+  if (!isHost || !roomId) return;
+  const presRef = rtRef(rtdb, `liveRooms/${roomId}/viewers`);
+  onValue(presRef, snap => {
+    const viewers = snap.val() || {};
+    Object.entries(viewers).forEach(([uid, info]) => {
+      // Skip self (host) and already-connected peers and accepted guests
+      if (uid === me.uid) return;
+      if (peers["view_" + uid]) return;
+      if (peers[uid]) return; // this uid is an accepted guest — skip
+      createViewerPeer(uid, info.name || "Viewer");
+    });
+  });
+}
+
+async function createViewerPeer(viewerUid, displayName) {
+  if (!roomId || !localStream) return;
+  if (peers["view_" + viewerUid]) return;
+
+  const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+  peers["view_" + viewerUid] = pc;
+
+  // Send host's stream to this viewer (send-only)
+  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+
+  // Host ICE → Firestore
+  pc.onicecandidate = async e => {
+    if (!e.candidate || !roomId) return;
+    try {
+      await addDoc(
+        collection(db, "stories", roomId, "ice_host_to_viewer", viewerUid, "candidates"),
+        e.candidate.toJSON()
+      );
+    } catch (_) {}
+  };
+
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === "failed" || pc.connectionState === "closed") {
+      delete peers["view_" + viewerUid];
+    }
+  };
+
+  // Create offer
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  const sigRef = doc(db, "stories", roomId, "signals_viewer", viewerUid);
+  await setDoc(sigRef, {
+    offer:   { type: offer.type, sdp: offer.sdp },
+    hostUid: me.uid,
+    createdAt: serverTimestamp(),
+  });
+
+  // Wait for viewer's answer
+  const unsubAnswer = onSnapshot(sigRef, async snap => {
+    if (!snap.exists()) return;
+    const d = snap.data();
+    if (d.answer && !pc.remoteDescription) {
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(d.answer));
+      } catch (_) {}
+    }
+  });
+  unsubs.push(unsubAnswer);
+
+  // Listen for viewer ICE candidates
+  const viewerIceRef = collection(db, "stories", roomId, "ice_viewer_to_host", viewerUid, "candidates");
+  const unsubIce = onSnapshot(viewerIceRef, snap => {
+    snap.docChanges().forEach(change => {
+      if (change.type === "added") {
+        try { pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); } catch (_) {}
+      }
+    });
+  });
+  unsubs.push(unsubIce);
 }
 
 async function incrementViewerCount() {
@@ -1085,6 +1229,10 @@ async function endLive() {
   try {
     await updateDoc(doc(db, "stories", roomId), { liveActive: false, endedAt: serverTimestamp() });
   } catch (_) {}
+  // Mark live-notification beacon as ended so followers' banner clears
+  if (me) {
+    updateDoc(doc(db, "liveNotifications", me.uid), { active: false }).catch(() => {});
+  }
   cleanup();
   const replay = await stopRecording();
   if (replay) {
@@ -1220,11 +1368,33 @@ function replayDiscard() {
 async function notifyFollowers() {
   if (!me || !roomId) return;
   try {
-    const name = userData.displayName || me.displayName || "User";
-    // Write a live notification to Firestore for followers to pick up
+    const name   = userData.displayName || me.displayName || "User";
+    const avatar = userData.avatarUrl   || me.photoURL    || "";
+
+    // 1. Write the live-notification beacon (index.html listens here)
     await setDoc(doc(db, "liveNotifications", me.uid), {
-      hostUid: me.uid, hostName: name, roomId,
+      hostUid: me.uid, hostName: name, hostAvatar: avatar, roomId,
       startedAt: serverTimestamp(), active: true,
+    });
+
+    // 2. Push an in-app notification to every follower
+    const hostSnap = await getDoc(doc(db, "users", me.uid));
+    const followers = hostSnap.exists() ? (hostSnap.data().followers || []) : [];
+    if (!followers.length) return;
+
+    const notif = {
+      id:         `live_${roomId}_${Date.now()}`,
+      type:       "live",
+      fromUid:    me.uid,
+      fromName:   name,
+      fromAvatar: avatar,
+      roomId,
+      ts:         Date.now(),
+      read:       false,
+    };
+    // Push to each follower's notifications array (best-effort, non-blocking)
+    followers.forEach(uid => {
+      updateDoc(doc(db, "users", uid), { notifications: arrayUnion(notif) }).catch(() => {});
     });
   } catch (_) {}
 }

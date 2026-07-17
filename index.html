@@ -3702,6 +3702,42 @@ img, video { max-width: 100%; height: auto; }
     animation: liveBadgePulse 1.2s ease-in-out infinite;
 }
 @keyframes liveBadgePulse { 0%,100%{opacity:1}50%{opacity:0.55} }
+
+/* ── Going-Live notification banner ── */
+#goingLiveBanner {
+    position: fixed; top: -80px; left: 50%; transform: translateX(-50%);
+    z-index: 9500; width: calc(100% - 32px); max-width: 440px;
+    background: linear-gradient(135deg, #1a0010, #3d0020);
+    border: 1px solid rgba(255,30,60,0.6);
+    border-radius: 14px; padding: 10px 14px;
+    display: flex; align-items: center; gap: 11px;
+    box-shadow: 0 4px 28px rgba(255,20,50,0.45);
+    transition: top 0.4s cubic-bezier(0.34,1.3,0.64,1);
+    cursor: pointer;
+}
+#goingLiveBanner.show { top: 12px; }
+#goingLiveBanner .glb-avatar {
+    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+    background: #0B1F3A center/cover no-repeat;
+    border: 2px solid rgba(255,30,60,0.7);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; color: #ff6688;
+}
+#goingLiveBanner .glb-text { flex: 1; min-width: 0; }
+#goingLiveBanner .glb-name { font-size: 13px; font-weight: 700; color: #fff; }
+#goingLiveBanner .glb-sub  { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 1px; }
+#goingLiveBanner .glb-badge {
+    background: #ff0040; color: #fff;
+    font-size: 9px; font-weight: 800; padding: 3px 8px; border-radius: 6px;
+    text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;
+    animation: liveBadgePulse 1.2s ease-in-out infinite;
+}
+#goingLiveBanner .glb-close {
+    background: none; border: none; color: rgba(255,255,255,0.4);
+    font-size: 16px; cursor: pointer; flex-shrink: 0; padding: 0 2px;
+    line-height: 1;
+}
+#goingLiveBanner .glb-close:hover { color: #fff; }
 .live-preview-badge.visible { display: inline-block; }
 
 /* Live controls row */
@@ -5782,6 +5818,17 @@ body.arcade-fs-ios body::after { display:none !important; }
 <div id="sidebarOverlay"></div>
 
 <div id="notification-toast"></div>
+
+<!-- ── Going-Live banner: slides in when a followed user goes live ── -->
+<div id="goingLiveBanner">
+    <div class="glb-avatar" id="glbAvatar"></div>
+    <div class="glb-text">
+        <div class="glb-name" id="glbName"></div>
+        <div class="glb-sub">is now live — tap to watch</div>
+    </div>
+    <span class="glb-badge">● LIVE</span>
+    <button class="glb-close" id="glbClose" title="Dismiss">✕</button>
+</div>
 
 <!-- ═══════════════════ NAVIGATION SIDE PANEL ═══════════════════ -->
 <nav class="sidebar" id="side" aria-label="Main navigation">
@@ -8775,8 +8822,9 @@ body.arcade-fs-ios body::after { display:none !important; }
           setTimeout(initPushNotifications, 2500);
 
           // ── Startup Live Check ──
-          // On index.html the user is never actively live.  Reset any stale liveActive:true
-          // story docs so the LIVE badge doesn't ghost on the Feed after a crashed session.
+          // Reset stale liveActive:true docs after a crashed session, but only if
+          // the doc is older than 2 minutes (prevents killing a live that just launched
+          // on live.html before index.html had a chance to unload).
           setTimeout(async () => {
               try {
                   const staleSnap = await getDocs(query(
@@ -8784,7 +8832,12 @@ body.arcade-fs-ios body::after { display:none !important; }
                       where('authorUid', '==', user.uid),
                       where('liveActive', '==', true)
                   ));
+                  const twoMinAgo = Date.now() - 2 * 60 * 1000;
                   staleSnap.forEach(d => {
+                      const data = d.data();
+                      const createdMs = data.createdAt?.toMillis ? data.createdAt.toMillis() : 0;
+                      // Skip docs created in the last 2 minutes — they belong to an active live.html session
+                      if (createdMs > twoMinAgo) return;
                       updateDoc(doc(db, 'stories', d.id), {
                           liveActive: false,
                           endedAt:    serverTimestamp(),
@@ -9618,7 +9671,7 @@ body.arcade-fs-ios body::after { display:none !important; }
           follow: '👤 New Follower', friendRequest: '🦋 Friend Request',
           mention: '@ You were mentioned', repost: '🔄 Post Reposted',
           wallPost: '📝 New Wall Post', announcement: '📢 Announcement',
-          tag: '🏷️ You were tagged',
+          tag: '🏷️ You were tagged', live: '🔴 Going Live!',
       };
       const pushBodies = {
           message:       `${notif.fromName || 'Someone'} sent you a message`,
@@ -9632,6 +9685,7 @@ body.arcade-fs-ios body::after { display:none !important; }
           wallPost:      `${notif.fromName || 'Someone'} posted on your wall`,
           announcement:  notif.body || 'New announcement from admin',
           tag:           `${notif.fromName || 'Someone'} tagged you in a post`,
+          live:          `${notif.fromName || 'Someone'} is now live — tap to watch!`,
       };
       sendPushToUser(targetUid, {
           title: pushTitles[notif.type] || '🔔 Shadow Nexus Social',
@@ -10511,6 +10565,10 @@ body.arcade-fs-ios body::after { display:none !important; }
               icon = '📢';
               text = `<b>Admin</b>: ${escFeed(n.body || 'New announcement')}`;
               navFn = `navTo('notificationsPage')`;
+          } else if (n.type === 'live') {
+              icon = '🔴';
+              text = `<b>${escFeed(n.fromName)}</b> is live now — tap to watch!`;
+              navFn = n.roomId ? `window.openLiveJoinChoice&&window.openLiveJoinChoice({id:'${n.roomId}',roomId:'${n.roomId}',authorUid:'${n.fromUid}',authorName:'${escFeed(n.fromName)}',authorAvatar:'${escFeed(n.fromAvatar||'')}',text:'',liveActive:true,isLive:true})` : `navTo('feed')`;
           }
 
          if (!text) return; // skip unknown types
@@ -20432,6 +20490,7 @@ document.getElementById('storyChooserModal').addEventListener('click', function(
 window._snxOnAuthReady(function() {
     initStoryStrip();
     initLiveFeedCards();
+    initGoingLiveBanner();
     setTimeout(_sweepExpiredStories, 3000);
 
     // ── "Live ended" confirmation — shown after returning from live.html ──
@@ -20491,6 +20550,94 @@ function initLiveFeedCards() {
     );
 }
 window.initLiveFeedCards = initLiveFeedCards;
+
+/* ════════════════════════════════════════════════════
+   GOING-LIVE BANNER — notify viewer when a followed user goes live
+   ════════════════════════════════════════════════════ */
+let _liveNotifUnsub = null;
+let _glbStory       = null;
+let _glbDismissTimer = null;
+
+function initGoingLiveBanner() {
+    const mods = _fbDB2();
+    if (!mods) return;
+    const me = _fbAuth2();
+    if (!me) return;
+    const ud = _fbUD2();
+    const following = ud.following || [];
+    if (!following.length) return;
+
+    const { db, collection, query, where, onSnapshot } = mods;
+    const seenIds = new Set();
+
+    if (_liveNotifUnsub) _liveNotifUnsub();
+    _liveNotifUnsub = onSnapshot(
+        query(collection(db, 'liveNotifications'), where('active', '==', true)),
+        snap => {
+            snap.docChanges().forEach(change => {
+                if (change.type !== 'added' && change.type !== 'modified') return;
+                const data = change.doc.data();
+                // Only show for people the current user follows (not self)
+                if (data.hostUid === me.uid) return;
+                if (!following.includes(data.hostUid)) return;
+                const notifKey = data.hostUid + '_' + (data.roomId || '');
+                if (seenIds.has(notifKey)) return;
+                seenIds.add(notifKey);
+                _showGoingLiveBanner(data);
+            });
+        },
+        () => {}
+    );
+}
+window.initGoingLiveBanner = initGoingLiveBanner;
+
+function _showGoingLiveBanner(data) {
+    const banner  = document.getElementById('goingLiveBanner');
+    const nameEl  = document.getElementById('glbName');
+    const avatarEl = document.getElementById('glbAvatar');
+    const closeBtn = document.getElementById('glbClose');
+    if (!banner || !nameEl) return;
+
+    const name   = data.hostName   || 'Someone';
+    const avatar = data.hostAvatar || '';
+    nameEl.textContent = name;
+    if (avatar) {
+        avatarEl.style.backgroundImage = `url('${_esc2(avatar)}')`;
+        avatarEl.style.backgroundSize  = 'cover';
+        avatarEl.style.backgroundPosition = 'center';
+        avatarEl.textContent = '';
+    } else {
+        avatarEl.style.backgroundImage = '';
+        avatarEl.textContent = _initials2(name);
+    }
+
+    // Click banner → open join sheet for that live
+    _glbStory = data;
+    banner.onclick = (e) => {
+        if (e.target === closeBtn) return;
+        if (!_glbStory) return;
+        // Build a minimal story object to pass to the join sheet
+        openLiveJoinChoice({
+            id: _glbStory.roomId, roomId: _glbStory.roomId,
+            authorUid: _glbStory.hostUid, authorName: _glbStory.hostName || name,
+            authorAvatar: _glbStory.hostAvatar || avatar,
+            text: '', liveActive: true, isLive: true,
+        });
+        _hideGoingLiveBanner();
+    };
+
+    closeBtn.onclick = (e) => { e.stopPropagation(); _hideGoingLiveBanner(); };
+
+    clearTimeout(_glbDismissTimer);
+    banner.classList.add('show');
+    _glbDismissTimer = setTimeout(_hideGoingLiveBanner, 8000);
+}
+
+function _hideGoingLiveBanner() {
+    const banner = document.getElementById('goingLiveBanner');
+    if (banner) banner.classList.remove('show');
+    clearTimeout(_glbDismissTimer);
+}
 
 function _renderLiveFeedCards(snap) {
     _activeLives = [];
@@ -20585,31 +20732,21 @@ function closeLiveJoinChoice() {
 }
 window.closeLiveJoinChoice = closeLiveJoinChoice;
 
-/* User chose "Watch Live" */
+/* User chose "Watch Live" — redirect to live.html for full WebRTC stream */
 function ljcWatchLive() {
     if (!_ljcStory) return;
-    const story = _ljcStory;
+    const roomId = _ljcStory.roomId || _ljcStory.id;
     closeLiveJoinChoice();
-    _isHostViewer = false;
-    window.openLiveStreamViewer(story);
-    // Show the "Request to Join Box" button for viewers
-    setTimeout(() => {
-        const btn = $id('lvJoinBoxBtn');
-        if (btn) btn.style.display = '';
-    }, 300);
+    window.location.href = `live.html?room=${encodeURIComponent(roomId)}`;
 }
 window.ljcWatchLive = ljcWatchLive;
 
-/* User chose "Request to Join Box" */
+/* User chose "Request to Join Box" — redirect to live.html, request box there */
 function ljcRequestBox() {
     if (!_ljcStory) return;
-    const story = _ljcStory;
+    const roomId = _ljcStory.roomId || _ljcStory.id;
     closeLiveJoinChoice();
-    // Open viewer first (so they can watch while waiting)
-    _isHostViewer = false;
-    window.openLiveStreamViewer(story);
-    // Immediately submit the request
-    setTimeout(() => lvRequestBox(), 300);
+    window.location.href = `live.html?room=${encodeURIComponent(roomId)}&requestBox=1`;
 }
 window.ljcRequestBox = ljcRequestBox;
 

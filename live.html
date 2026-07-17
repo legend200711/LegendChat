@@ -822,9 +822,9 @@ html, body {
     <div class="setup-preview-badge" id="setupBadge">● LIVE</div>
   </div>
   <div class="setup-controls">
-    <button class="setup-ctrl-btn" id="btnSetupFlip">🔄 Flip</button>
-    <button class="setup-ctrl-btn" id="btnSetupMic">🎙 Mic: On</button>
-    <button class="setup-ctrl-btn" id="btnSetupCam">📷 Cam: On</button>
+    <button type="button" class="setup-ctrl-btn" id="btnSetupFlip">🔄 Flip</button>
+    <button type="button" class="setup-ctrl-btn" id="btnSetupMic">🎙 Mic: On</button>
+    <button type="button" class="setup-ctrl-btn" id="btnSetupCam">📷 Cam: On</button>
   </div>
   <input id="setupTitleInput" type="text" placeholder="Live title… (optional)" maxlength="80" autocomplete="off">
   <select id="setupPrivacySelect">
@@ -832,8 +832,8 @@ html, body {
     <option value="friends">👥 Friends Only</option>
     <option value="family">❤️ Family Only</option>
   </select>
-  <button class="btn-primary" id="btnGoLive">🔴 Start Live Stream</button>
-  <button class="btn-secondary" id="btnSetupCancel">Cancel</button>
+  <button type="button" class="btn-primary" id="btnGoLive">🔴 Start Live Stream</button>
+  <button type="button" class="btn-secondary" id="btnSetupCancel">Cancel</button>
 </div>
 
 <!-- JOIN (connecting as viewer/guest via URL) -->

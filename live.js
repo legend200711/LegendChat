@@ -241,21 +241,24 @@ async function _directGoLive() {
 
   await loadIceServers();
 
-  // Acquire camera — single getUserMedia() call for the entire session
+  // Acquire camera — single getUserMedia() call for the entire session.
+  // On failure: show a clear error and go back to the feed (index.html).
+  // We do NOT fall back to startSetupPreview() here because that would
+  // spin up a second camera preview and recreate the "loop" bug.
   try {
     setupStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
       audio: true,
     });
     if (!setupStream.getVideoTracks().length) {
-      throw new Error("No video track — please allow camera access.");
+      throw new Error("No video track — please allow camera access and try again.");
     }
   } catch (err) {
     _goingLive = false;
     toast("Camera/mic required: " + (err.message || err));
-    // Fall back to the setup preview so the user can retry
-    showOverlay("setupOverlay");
-    startSetupPreview();
+    // Return to index.html so the user can retry from the feed without a
+    // second camera preview being opened inside live.html.
+    setTimeout(() => navigateBack(), 2500);
     return;
   }
 
@@ -285,8 +288,10 @@ async function _directGoLive() {
     toast("Failed to start live: " + (err.message || err));
     // Release camera so it doesn't stay locked
     if (setupStream) { setupStream.getTracks().forEach(t => t.stop()); setupStream = null; }
-    // Fall back to the setup screen so the user can retry
-    startSetupPreview();
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    // Return to the feed — do NOT call startSetupPreview() which would
+    // recreate the camera and show a second preview screen.
+    setTimeout(() => navigateBack(), 2500);
   }
 }
 
@@ -1492,7 +1497,9 @@ function cleanup() {
 
 function navigateBack() {
   const url = isHost ? "index.html?liveEnded=1" : "index.html";
-  window.location.href = url;
+  // Use replace() so live.html is removed from history — pressing Back
+  // on the feed won't loop the user back into the live page.
+  window.location.replace(url);
 }
 
 function showLiveEnded() {

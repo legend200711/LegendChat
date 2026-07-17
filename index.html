@@ -19545,6 +19545,7 @@ function _initials(name) {
    ════════════════════════════════════════════════════ */
 let _storyUnsub = null;
 let _storyInitPending = false; // guard against redundant re-inits
+let _storyRetryTimer  = null;  // clearable retry timer
 
 function initStoryStrip(force) {
     // ── Idempotent guard ─────────────────────────────────────────
@@ -19557,15 +19558,20 @@ function initStoryStrip(force) {
         // Firebase not ready yet — keep skeleton visible and retry once it is
         if (_storyInitPending) return;
         _storyInitPending = true;
-        const _retryTimer = setInterval(() => {
+        // Clear any previous timer so there is never more than one running
+        if (_storyRetryTimer) { clearInterval(_storyRetryTimer); _storyRetryTimer = null; }
+        _storyRetryTimer = setInterval(() => {
             if (_db()) {
-                clearInterval(_retryTimer);
+                clearInterval(_storyRetryTimer);
+                _storyRetryTimer  = null;
                 _storyInitPending = false;
                 initStoryStrip(force);
             }
         }, 300);
         return;
     }
+    // Clear any leftover retry timer now that Firebase is available
+    if (_storyRetryTimer) { clearInterval(_storyRetryTimer); _storyRetryTimer = null; }
     _storyInitPending = false;
     const { db, collection, query, where, orderBy, onSnapshot } = _db();
     // Use Firestore Timestamps for the cutoff so comparisons are consistent
@@ -19574,7 +19580,7 @@ function initStoryStrip(force) {
     // Tear down any previous listener before creating a new one
     if (_storyUnsub) { _storyUnsub(); _storyUnsub = null; }
 
-    // Show loading skeleton only when starting fresh (no circles yet)
+    // Always show the loading skeleton while the first snapshot is in flight
     const strip = document.getElementById('storyStrip');
     const hasCircles = strip && strip.querySelector('.story-item');
     const loadEl = document.getElementById('storyStripLoading');
@@ -19591,7 +19597,7 @@ function initStoryStrip(force) {
     }
 
     function _onErr(err) {
-        // Composite index missing or permission error — fall back to unordered query
+        // Composite index missing or permission error — fall back to simpler query
         if (_storyUnsub) { _storyUnsub(); _storyUnsub = null; }
         const cutoffDate = new Date(cutoffMs);
         _storyUnsub = onSnapshot(
@@ -19736,14 +19742,13 @@ function canViewStory(data) {
     if (!data.privacy || data.privacy === 'everyone') return true;
     if (!me) return false;
     if (data.authorUid === me.uid) return true;
-    if (data.privacy === 'private') return data.authorUid === me.uid;
-    if (data.privacy === 'followers') {
-        // Viewer can see if they follow the author (author is in viewer's following list)
+    if (data.privacy === 'private') return false;
+    // Both 'followers' and 'following' mean "people who follow the author"
+    if (data.privacy === 'followers' || data.privacy === 'following') {
         const following = (_ud().following || []);
         return following.includes(data.authorUid);
     }
     if (data.privacy === 'friends') {
-        // Viewer can see if they are mutual friends with the author
         const friends = (_ud().friends || []);
         return friends.includes(data.authorUid);
     }
@@ -19751,7 +19756,8 @@ function canViewStory(data) {
         const family = (_ud().family || []);
         return family.includes(data.authorUid);
     }
-    return false;
+    // Unknown privacy value — show to everyone signed in (safe default)
+    return true;
 }
 
 function _esc(str) {
@@ -20415,13 +20421,17 @@ function _syncLiveCtrlBtns() {
     }
 }
 
+let _startingLive = false; // guard: prevent double-tap launching two navigations
+
 window.startLiveStream = async function() {
     const me = _me();
     if (!me) { _toast('Sign in to go live.'); return; }
-    if (!SNX_STORY.liveStream) { _toast('Camera not ready.'); return; }
+    if (!SNX_STORY.liveStream) { _toast('Camera not ready — please wait.'); return; }
+    if (_startingLive) return; // already in-flight
+    _startingLive = true;
 
     const btn = document.getElementById('liveStartBtn');
-    if (btn) btn.disabled = true;
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Starting…'; }
 
     const title   = (document.getElementById('liveTitleInput').value || '').trim();
     const privacy = document.getElementById('livePrivacySelect').value || 'everyone';
@@ -20431,8 +20441,9 @@ window.startLiveStream = async function() {
         const { db, collection, addDoc, serverTimestamp } = _db();
         const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000); // 4h max live
 
-        // Create the room doc first so roomId is stable before the page navigation.
-        // liveActive is set to true here so followers see the ring immediately.
+        // Create the Firestore room doc so roomId is stable before navigation.
+        // All required fields are written here so the story strip and live feed
+        // pick up the new doc immediately via their real-time listeners.
         const ref = await addDoc(collection(db, 'stories'), {
             authorUid    : me.uid,
             authorName   : ud.displayName || ud.username || me.displayName || 'User',
@@ -20474,11 +20485,13 @@ window.startLiveStream = async function() {
         _stopLiveStream();
         document.getElementById('storyLiveModal').classList.remove('open');
 
-        // Navigate to the full WebRTC room
-        window.location.href = `live.html?room=${encodeURIComponent(docId)}&host=1`;
+        // Navigate to the full WebRTC room — use replace so Back button on
+        // live.html goes to feed, not back to the setup modal.
+        window.location.replace(`live.html?room=${encodeURIComponent(docId)}&host=1`);
     } catch(err) {
+        _startingLive = false;
         _toast('Failed to start live: ' + (err.message || err));
-        if (btn) btn.disabled = false;
+        if (btn) { btn.disabled = false; btn.textContent = '🔴 Start Live Stream'; }
     }
 };
 
@@ -21523,9 +21536,9 @@ function _snxToast(msg) {
 
         <!-- Controls -->
         <div class="live-controls-row">
-            <button class="live-ctrl-btn" id="liveBtnFlipCam" onclick="liveFlipCamera()">🔄 Flip Camera</button>
-            <button class="live-ctrl-btn" id="liveBtnToggleMic" onclick="liveToggleMic()">🎙 Mic: On</button>
-            <button class="live-ctrl-btn" id="liveBtnToggleCam" onclick="liveToggleCam()">📷 Camera: On</button>
+            <button type="button" class="live-ctrl-btn" id="liveBtnFlipCam" onclick="liveFlipCamera()">🔄 Flip Camera</button>
+            <button type="button" class="live-ctrl-btn" id="liveBtnToggleMic" onclick="liveToggleMic()">🎙 Mic: On</button>
+            <button type="button" class="live-ctrl-btn" id="liveBtnToggleCam" onclick="liveToggleCam()">📷 Camera: On</button>
         </div>
 
         <!-- Live title -->
@@ -21539,7 +21552,7 @@ function _snxToast(msg) {
         </select>
 
         <!-- Start streaming -->
-        <button class="live-start-btn" id="liveStartBtn" onclick="startLiveStream()">🔴 Start Live Stream</button>
+        <button type="button" class="live-start-btn" id="liveStartBtn" onclick="startLiveStream()">🔴 Start Live Stream</button>
     </div>
 </div>
 

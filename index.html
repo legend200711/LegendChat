@@ -14394,6 +14394,9 @@ window._showFounderUI = window._showRolePanels;
    ══════════════════════════════════════════════════════════════ */
 const R2_UPLOAD_URL = 'https://yellow-term-11e6.nthntjrn.workers.dev';
 
+/* ── Expose R2 worker URL to other module scripts (e.g. live feature) ── */
+window._snxR2Url = R2_UPLOAD_URL;
+
 /**
  * Upload a File to R2 via the Cloudflare Worker.
  * @param {File}     file        - The file to upload
@@ -19586,6 +19589,9 @@ let _livePreviewMuted  = false;
 let _livePreviewCamOff = false;
 let _liveUnsubs     = [];     // RTDB off() cleanup refs
 
+/* ── Cloudflare R2 worker URL (bridged from main script) ── */
+const _LIVE_R2_URL = window._snxR2Url || 'https://yellow-term-11e6.nthntjrn.workers.dev';
+
 /* ICE servers (public STUNs — enough for most NATs) */
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
@@ -19629,6 +19635,57 @@ function _closePc() {
   if (_livePc) { try { _livePc.close(); } catch(_) {} _livePc = null; }
 }
 
+/* ─────────────────────────────────────────
+   R2 THUMBNAIL HELPERS
+   Capture a JPEG frame from the host preview
+   video and upload it to the Cloudflare R2
+   worker so room browser cards show a preview.
+   ───────────────────────────────────────── */
+
+/**
+ * Draw the current frame of a <video> element onto a canvas
+ * and return a JPEG Blob (max 640×360, ~50 KB).
+ */
+async function _captureThumbBlob(videoEl) {
+  return new Promise(resolve => {
+    try {
+      const W = 640, H = 360;
+      const cvs = document.createElement('canvas');
+      cvs.width  = W;
+      cvs.height = H;
+      const ctx = cvs.getContext('2d');
+      /* Mirror the frame to match the mirrored preview (scaleX(-1)) */
+      ctx.translate(W, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(videoEl, 0, 0, W, H);
+      cvs.toBlob(resolve, 'image/jpeg', 0.75);
+    } catch(e) {
+      console.warn('[LIVE] captureThumb failed', e);
+      resolve(null);
+    }
+  });
+}
+
+/**
+ * Upload a Blob to the Cloudflare R2 worker.
+ * Returns the public URL string, or null on failure.
+ */
+async function _uploadThumbToR2(blob) {
+  if (!blob) return null;
+  try {
+    const uid  = _uid() || 'live';
+    const fd   = new FormData();
+    fd.append('file', new File([blob], 'live-thumb.jpg', { type: 'image/jpeg' }));
+    fd.append('uid', uid);
+    const res  = await fetch(_LIVE_R2_URL, { method: 'POST', body: fd });
+    const json = await res.json();
+    return json?.url || null;
+  } catch(e) {
+    console.warn('[LIVE] uploadThumb failed', e);
+    return null;
+  }
+}
+
 /* ═══════════════════════════════════
    LOBBY: browse active rooms
    ═══════════════════════════════════ */
@@ -19651,20 +19708,23 @@ async function liveRefreshRooms() {
 
     browser.innerHTML = '';
     for (const room of rooms) {
-      const initial = (room.host?.username || '?').charAt(0).toUpperCase();
-      const avatarStyle = room.host?.avatar
-        ? `background-image:url('${room.host.avatar}');background-size:cover;background-position:center;`
+      const initial   = (room.host?.username || '?').charAt(0).toUpperCase();
+      /* Prefer R2 thumbnail, fall back to avatar, fall back to initial */
+      const imgSrc    = room.host?.thumbnail || room.host?.avatar || '';
+      const avatarStyle = imgSrc
+        ? `background-image:url('${imgSrc}');background-size:cover;background-position:center;`
         : '';
-      const viewers = room.viewerCount || 0;
+      const viewers   = room.viewerCount || 0;
+      const likes     = room.likes?.count || 0;
       const card = document.createElement('div');
       card.className = 'live-room-card';
       card.innerHTML = `
         <div class="live-room-avatar" style="${avatarStyle}">${avatarStyle ? '' : initial}</div>
         <div class="live-room-info">
           <div class="live-room-host">${_esc(room.host?.username || 'Unknown')}</div>
-          <div class="live-room-meta">👁 ${viewers} watching</div>
+          <div class="live-room-meta">👁 ${viewers} watching · ❤️ ${likes}</div>
         </div>
-        <button class="live-room-join-btn" onclick="liveJoinRoom('${room.id}')">Watch</button>
+        <button class="live-room-join-btn" onclick="liveJoinRoom('${room.id}')">▶ Watch</button>
       `;
       browser.appendChild(card);
     }
@@ -19758,6 +19818,7 @@ async function liveStartStream() {
         username: _name(),
         avatar:   _avatar(),
         isLive:   true,
+        thumbnail: '',   // filled in after R2 upload below
       },
       startedAt:   Date.now(),
       viewerCount: 0,
@@ -19792,6 +19853,12 @@ async function liveStartStream() {
 
     _el('liveRoomHostName').textContent = _name();
 
+    /* 8. Capture a thumbnail from the preview video and upload to R2.
+          Done after entering the room so the stream is already rendering.
+          We read the preview video element — it still has the srcObject
+          from getUserMedia since we only hid the preview div.            */
+    _captureAndStoreThumbnail();
+
   } catch(err) {
     console.error('[LIVE] liveStartStream error', err);
     _toast('Could not start live. Please try again.');
@@ -19800,6 +19867,22 @@ async function liveStartStream() {
   }
 }
 window.liveStartStream = liveStartStream;
+
+/* Capture frame from preview video → upload to R2 → write URL into RTDB */
+async function _captureAndStoreThumbnail() {
+  try {
+    const previewVid = _el('livePreviewVideo');
+    if (!previewVid || !_liveRoomId) return;
+    const blob = await _captureThumbBlob(previewVid);
+    const url  = await _uploadThumbToR2(blob);
+    if (url && _liveRoomId) {
+      await update(ref(_liveDb, `liveRooms/${_liveRoomId}/host`), { thumbnail: url });
+      console.log('[LIVE] Thumbnail uploaded:', url);
+    }
+  } catch(e) {
+    console.warn('[LIVE] _captureAndStoreThumbnail failed', e);
+  }
+}
 
 /* ═══════════════════════════════════
    HOST: listen for viewer offers (WebRTC)

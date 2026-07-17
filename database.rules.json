@@ -1,6 +1,6 @@
-{
+﻿{
   "rules": {
-    // ── Live rooms ─────────────────────────────────────────────────────────────
+    // ΓöÇΓöÇ Live rooms ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     // Path: /liveRooms/{roomId}/...
     //   Any signed-in user can read the whole room.
     //   Writes are scoped per child so individual users cannot corrupt each other's data.
@@ -8,65 +8,33 @@
       "$roomId": {
         ".read": "auth != null",
 
-        // Host-only root fields — locked to the host uid stored in host.uid
+        // Host-only root fields ΓÇö locked to the host uid stored in host.uid
         "host":      { ".write": "auth != null" },
         "startedAt": { ".write": "auth != null" },
         "messages":  { ".write": "auth != null" },
         "likes":     { ".write": "auth != null" },
 
-        // Viewer count — any authenticated user may increment/decrement
+        // Viewer count ΓÇö any authenticated user may increment/decrement
         // onDisconnect handlers also need write access here
         "viewerCount": { ".write": "auth != null" },
 
-        // Per-viewer presence — each user owns only their own slot
+        // Per-viewer presence ΓÇö each user owns only their own slot
         "viewers": {
           "$uid": {
             ".read":  "auth != null",
             ".write": "auth != null && auth.uid === $uid"
           }
-        },
-
-        // WebRTC signalling — offers from viewers
-        "offers": {
-          "$viewerUid": {
-            ".read":  "auth != null",
-            ".write": "auth != null && auth.uid === $viewerUid"
-          }
-        },
-
-        // WebRTC signalling — answers from host
-        "answers": {
-          "$viewerUid": {
-            ".read":  "auth != null",
-            ".write": "auth != null"
-          }
-        },
-
-        // ICE candidates from host (one list per viewer)
-        "hostCandidates": {
-          "$viewerUid": {
-            ".read":  "auth != null",
-            ".write": "auth != null"
-          }
-        },
-
-        // ICE candidates from viewers (each viewer writes only their own)
-        "viewerCandidates": {
-          "$viewerUid": {
-            ".read":  "auth != null",
-            ".write": "auth != null && auth.uid === $viewerUid"
-          }
         }
       }
     },
 
-    // ── Storm Rooms ─────────────────────────────────────────────────────────────
+    // ΓöÇΓöÇ Storm Rooms ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     // Path: /stormRooms/{roomId}/...
-    //   presence/{key}  — online user presence (anonymous, no auth required)
-    //   messages/{msgId} — chat messages
+    //   presence/{key}  ΓÇö online user presence (anonymous, no auth required)
+    //   messages/{msgId} ΓÇö chat messages
     "stormRooms": {
       "$roomId": {
-        // Anyone can read storm rooms — they're public/code-gated
+        // Anyone can read storm rooms ΓÇö they're public/code-gated
         ".read": true,
 
         "presence": {
@@ -92,7 +60,7 @@
       }
     },
 
-    // ── Support Rooms ───────────────────────────────────────────────────────────
+    // ΓöÇΓöÇ Support Rooms ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
     "supportRooms": {
       "$roomId": {
         // Publicly readable so lobby counts work without sign-in

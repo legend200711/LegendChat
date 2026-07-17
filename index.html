@@ -5025,10 +5025,15 @@ body.arcade-fs-ios body::after { display:none !important; }
     box-shadow: 0 0 28px rgba(255,30,30,0.5) !important;
     width: 100%;
     max-width: 340px;
+    cursor: pointer;
 }
 .live-start-btn:hover {
     box-shadow: 0 0 44px rgba(255,30,30,0.7) !important;
     background: linear-gradient(135deg, #dd0000, #ff3333) !important;
+}
+.live-start-btn:disabled {
+    opacity: 0.5;
+    pointer-events: none;
 }
 .live-cam-error {
     color: #ff6688;
@@ -5055,14 +5060,16 @@ body.arcade-fs-ios body::after { display:none !important; }
 .live-preview-ctrl-btn:hover { background: rgba(0,80,200,0.3); }
 .live-preview-ctrl-btn.muted { border-color: rgba(255,60,60,0.6); color: #ff6666; }
 
-/* ── Live room: full-screen container ── */
+/* ── Live room: full-screen container — fixed so it escapes the page scroll context ── */
 #liveRoom {
     display: none;
-    position: relative;
+    position: fixed;
+    inset: 0;
     width: 100%;
-    height: 100vh;
+    height: 100%;
     background: #000;
     overflow: hidden;
+    z-index: 9000;
 }
 
 /* Host video fills screen */
@@ -19600,11 +19607,12 @@ let _liveUnsubs     = [];     // RTDB off() cleanup refs
 /* ── Cloudflare R2 worker URL (bridged from main script) ── */
 const _LIVE_R2_URL = window._snxR2Url || 'https://yellow-term-11e6.nthntjrn.workers.dev';
 
-/* ICE servers (public STUNs — enough for most NATs) */
+/* ICE servers (public STUN servers — cover most NAT types) */
 const ICE_SERVERS = [
-  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun.l.google.com:19302'  },
   { urls: 'stun:stun1.l.google.com:19302' },
   { urls: 'stun:stun2.l.google.com:19302' },
+  { urls: 'stun:stun.cloudflare.com:3478' },
 ];
 
 /* ═══════════════════════════════════
@@ -19759,20 +19767,32 @@ function _esc(str) {
    PREVIEW FLOW
    ═══════════════════════════════════ */
 async function liveOpenPreview() {
-  if (!_me()) { _toast('Sign in to go live.'); return; }
+  /* If auth hasn't resolved yet but the main app's user is available, use it */
+  const currentUser = _me();
+  if (!currentUser) {
+    _toast('Sign in to go live.');
+    return;
+  }
+
+  /* Stop any previous stream before opening preview */
+  _stopStream();
 
   _el('livePageContent').style.display = 'none';
   _el('livePreview').style.display     = 'flex';
   _el('liveGoLiveBtn').disabled        = true;
+  _el('liveCamError').style.display    = 'none';
 
   try {
-    _liveStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    _liveStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 1280 } },
+      audio: { echoCancellation: true, noiseSuppression: true },
+    });
     _el('livePreviewVideo').srcObject = _liveStream;
-    _el('liveCamError').style.display = 'none';
     _el('liveGoLiveBtn').disabled     = false;
   } catch(err) {
-    console.warn('[LIVE] Camera permission denied', err);
+    console.warn('[LIVE] Camera/mic permission denied', err);
     _el('liveCamError').style.display = 'block';
+    /* Don't hide the preview — let the user see the error and decide to cancel */
   }
 }
 window.liveOpenPreview = liveOpenPreview;
@@ -19842,8 +19862,9 @@ async function liveStartStream() {
 
     /* 4. Attach local stream to host video element */
     const hv = _el('liveHostVideo');
-    hv.srcObject = _liveStream;
+    hv.srcObject     = _liveStream;
     hv.style.display = 'block';
+    hv.play().catch(() => {});   /* iOS requires explicit play() even for muted video */
     _el('liveRemoteVideo').style.display = 'none';
 
     /* 5. Show host controls */
@@ -19897,14 +19918,18 @@ async function _captureAndStoreThumbnail() {
    ═══════════════════════════════════ */
 function _hostListenForOffers() {
   const offersRef = ref(_liveDb, `liveRooms/${_liveRoomId}/offers`);
-  const unsub = { r: offersRef };
-  _liveUnsubs.push(unsub);
+  _liveUnsubs.push({ r: offersRef });
+
+  /* Track which viewer offers have already been processed so RTDB onValue
+     re-fires don't create duplicate peer connections */
+  const _handledOffers = new Set();
 
   onValue(offersRef, async snap => {
     if (!snap.exists()) return;
     snap.forEach(child => {
       const offer = child.val();
-      if (offer?.sdp && !offer.answered) {
+      if (offer?.sdp && !offer.answered && !_handledOffers.has(child.key)) {
+        _handledOffers.add(child.key);
         _handleViewerOffer(child.key, offer);
       }
     });
@@ -19913,43 +19938,41 @@ function _hostListenForOffers() {
 
 async function _handleViewerOffer(viewerKey, offer) {
   try {
-    /* One RTCPeerConnection per viewer is ideal, but for simplicity
-       we create one shared connection — this supports one active viewer
-       stream at a time (adequate for basic live). */
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
-    /* Add local stream tracks */
+    /* Add all local stream tracks to this peer connection */
     _liveStream.getTracks().forEach(t => pc.addTrack(t, _liveStream));
 
-    /* Collect ICE candidates and send to RTDB */
+    /* Collect host ICE candidates and send to RTDB for this viewer */
     pc.onicecandidate = e => {
       if (!e.candidate) return;
       push(ref(_liveDb, `liveRooms/${_liveRoomId}/hostCandidates/${viewerKey}`), e.candidate.toJSON());
     };
 
-    /* Set remote description (viewer's offer) */
+    /* Set viewer's offer as remote description */
     await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: offer.sdp }));
 
-    /* Create answer */
+    /* Create and send answer */
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 
-    /* Write answer to RTDB */
     await set(ref(_liveDb, `liveRooms/${_liveRoomId}/answers/${viewerKey}`), {
       sdp:  answer.sdp,
       type: 'answer',
     });
 
-    /* Mark offer answered */
+    /* Mark offer as answered so it isn't re-processed */
     await update(ref(_liveDb, `liveRooms/${_liveRoomId}/offers/${viewerKey}`), { answered: true });
 
-    /* Listen for viewer ICE candidates */
+    /* Apply incoming viewer ICE candidates with deduplication */
+    const _seenViewerIce = new Set();
     const vcRef = ref(_liveDb, `liveRooms/${_liveRoomId}/viewerCandidates/${viewerKey}`);
-    const vcUnsub = { r: vcRef };
-    _liveUnsubs.push(vcUnsub);
+    _liveUnsubs.push({ r: vcRef });
     onValue(vcRef, snap => {
-      snap.forEach(c => {
-        try { pc.addIceCandidate(new RTCIceCandidate(c.val())); } catch(_) {}
+      snap.forEach(child => {
+        if (_seenViewerIce.has(child.key)) return;
+        _seenViewerIce.add(child.key);
+        try { pc.addIceCandidate(new RTCIceCandidate(child.val())); } catch(_) {}
       });
     });
 
@@ -19963,6 +19986,8 @@ async function _handleViewerOffer(viewerKey, offer) {
    ═══════════════════════════════════ */
 async function liveJoinRoom(roomId) {
   if (!_me()) { _toast('Sign in to watch live streams.'); return; }
+  /* Leave any current room first (handles double-tap on watch button) */
+  if (_liveRoomId) { try { await liveLeaveStream(); } catch(_) {} }
 
   /* Verify room is still active */
   const snap = await get(ref(_liveDb, `liveRooms/${roomId}/host`));
@@ -20008,18 +20033,32 @@ async function _viewerConnect(roomId) {
   const viewerKey = _uid();
   _livePc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
-  /* Collect ICE candidates */
+  /* Build a shared MediaStream so ontrack works across all browsers */
+  const remoteStream = new MediaStream();
+  const rv = _el('liveRemoteVideo');
+  rv.srcObject = remoteStream;
+
+  /* Collect viewer ICE candidates and forward to host */
   _livePc.onicecandidate = e => {
     if (!e.candidate) return;
     push(ref(_liveDb, `liveRooms/${roomId}/viewerCandidates/${viewerKey}`), e.candidate.toJSON());
   };
 
-  /* Receive remote tracks (host video/audio) */
+  /* Receive remote tracks — add to shared stream instead of relying on e.streams[0] */
   _livePc.ontrack = e => {
-    const rv = _el('liveRemoteVideo');
-    rv.srcObject = e.streams[0];
+    remoteStream.addTrack(e.track);
+    /* Show video element as soon as any track arrives */
     rv.style.display = 'block';
     _el('liveHostVideo').style.display = 'none';
+    /* Ensure video plays (autoplay policy) */
+    rv.play().catch(() => {});
+  };
+
+  /* ICE connection recovery */
+  _livePc.oniceconnectionstatechange = () => {
+    if (_livePc.iceConnectionState === 'failed') {
+      try { _livePc.restartIce(); } catch(_) {}
+    }
   };
 
   /* Create offer */
@@ -20032,36 +20071,56 @@ async function _viewerConnect(roomId) {
     answered: false,
   });
 
+  /* Buffer for ICE candidates that arrive before remoteDescription is set */
+  const _icePendingQueue = [];
+  let _remoteDescSet = false;
+
+  async function _flushIceQueue() {
+    while (_icePendingQueue.length) {
+      const c = _icePendingQueue.shift();
+      try { await _livePc.addIceCandidate(new RTCIceCandidate(c)); } catch(_) {}
+    }
+  }
+
   /* Listen for host answer */
   const ansRef = ref(_liveDb, `liveRooms/${roomId}/answers/${viewerKey}`);
-  const ansUnsub = { r: ansRef };
-  _liveUnsubs.push(ansUnsub);
+  _liveUnsubs.push({ r: ansRef });
   onValue(ansRef, async snap => {
     if (!snap.exists()) return;
     const ans = snap.val();
-    if (ans?.sdp && _livePc.remoteDescription === null) {
-      try { await _livePc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: ans.sdp })); }
-      catch(_) {}
+    if (ans?.sdp && !_remoteDescSet) {
+      _remoteDescSet = true;
+      try {
+        await _livePc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: ans.sdp }));
+        await _flushIceQueue();
+      } catch(_) {}
     }
   });
 
-  /* Listen for host ICE candidates */
+  /* Listen for host ICE candidates — queue until remoteDescription is applied */
+  const _seenHostIce = new Set();
   const hcRef = ref(_liveDb, `liveRooms/${roomId}/hostCandidates/${viewerKey}`);
-  const hcUnsub = { r: hcRef };
-  _liveUnsubs.push(hcUnsub);
+  _liveUnsubs.push({ r: hcRef });
   onValue(hcRef, snap => {
-    snap.forEach(c => {
-      try { _livePc.addIceCandidate(new RTCIceCandidate(c.val())); } catch(_) {}
+    snap.forEach(child => {
+      /* Deduplicate: RTDB onValue replays the full snapshot on every change */
+      if (_seenHostIce.has(child.key)) return;
+      _seenHostIce.add(child.key);
+      const c = child.val();
+      if (_remoteDescSet) {
+        try { _livePc.addIceCandidate(new RTCIceCandidate(c)); } catch(_) {}
+      } else {
+        _icePendingQueue.push(c);
+      }
     });
   });
 
-  /* If stream isn't delivered in 10s, show a fallback message */
+  /* If stream isn't delivered in 12s, show a fallback message */
   setTimeout(() => {
-    const rv = _el('liveRemoteVideo');
-    if (!rv.srcObject && _liveRoomId === roomId) {
-      _appendComment({ username: '📡 System', message: 'Connecting to stream…' });
+    if (!rv.srcObject?.getTracks().length && _liveRoomId === roomId) {
+      _appendComment({ username: '📡 System', message: 'Connecting to stream… please wait.' });
     }
-  }, 10000);
+  }, 12000);
 }
 
 /* ═══════════════════════════════════
@@ -20072,6 +20131,9 @@ function _enterLiveRoom(isHost) {
   _el('livePageContent').style.display = 'none';
   _el('livePreview').style.display     = 'none';
   _el('liveRoom').style.display        = 'block';
+
+  /* Push history entry so Android/PWA back button fires popstate */
+  _pushLiveHistoryEntry();
 
   /* Reset comment area */
   _el('liveCommentsArea').innerHTML = '';
@@ -20207,33 +20269,40 @@ window.liveToggleCam = liveToggleCam;
 async function liveEndStream() {
   if (!_liveIsHost || !_liveRoomId) return;
 
-  /* Mark room as ended */
-  try {
-    await update(ref(_liveDb, `liveRooms/${_liveRoomId}/host`), { isLive: false });
-  } catch(_) {}
-
+  /* Snapshot then clear to prevent double-fire */
+  const roomId = _liveRoomId;
   _liveCleanup();
   _liveReturnToLobby();
+
+  try {
+    await update(ref(_liveDb, `liveRooms/${roomId}/host`), { isLive: false });
+  } catch(_) {}
+
   _toast('Your live stream has ended.');
 }
 window.liveEndStream = liveEndStream;
 
 async function liveLeaveStream() {
-  if (!_liveRoomId || !_uid()) { _liveReturnToLobby(); return; }
+  const roomId = _liveRoomId;
+  const uid    = _uid();
+  if (!roomId) { _liveReturnToLobby(); return; }
 
-  /* Remove viewer presence */
+  /* Clear state and UI first — avoid double-cleanup */
+  _liveCleanup();
+  _liveReturnToLobby();
+
+  if (!uid) return;
+
+  /* Remove viewer presence from RTDB */
   try {
-    await remove(ref(_liveDb, `liveRooms/${_liveRoomId}/viewers/${_uid()}`));
-    const vcRef = ref(_liveDb, `liveRooms/${_liveRoomId}/viewerCount`);
+    await remove(ref(_liveDb, `liveRooms/${roomId}/viewers/${uid}`));
+    const vcRef = ref(_liveDb, `liveRooms/${roomId}/viewerCount`);
     const snap  = await get(vcRef);
     await set(vcRef, Math.max(0, (snap.val() || 1) - 1));
     /* Clean up own signalling data */
-    await remove(ref(_liveDb, `liveRooms/${_liveRoomId}/offers/${_uid()}`));
-    await remove(ref(_liveDb, `liveRooms/${_liveRoomId}/viewerCandidates/${_uid()}`));
+    await remove(ref(_liveDb, `liveRooms/${roomId}/offers/${uid}`));
+    await remove(ref(_liveDb, `liveRooms/${roomId}/viewerCandidates/${uid}`));
   } catch(_) {}
-
-  _liveCleanup();
-  _liveReturnToLobby();
 }
 window.liveLeaveStream = liveLeaveStream;
 
@@ -20267,31 +20336,52 @@ function _liveReturnToLobby() {
 const _origNavTo = window.navTo;
 if (typeof _origNavTo === 'function') {
   window.navTo = function(pageId) {
-    /* If navigating AWAY while in a live room, leave gracefully */
+    /* If navigating AWAY while in a live room, clean up synchronously then navigate */
     if (pageId !== 'livePage' && _liveRoomId) {
-      if (_liveIsHost) liveEndStream();
-      else             liveLeaveStream();
+      const wasHost = _liveIsHost;
+      const wasRoom = _liveRoomId;
+      const wasUid  = _uid();
+      /* _liveCleanup sets _liveRoomId = null internally — call it directly */
+      _liveCleanup();
+      _liveReturnToLobby();
+      /* Fire-and-forget RTDB cleanup so navigation isn't blocked */
+      if (wasHost) {
+        update(ref(_liveDb, `liveRooms/${wasRoom}/host`), { isLive: false }).catch(() => {});
+      } else if (wasUid) {
+        remove(ref(_liveDb, `liveRooms/${wasRoom}/viewers/${wasUid}`)).catch(() => {});
+        remove(ref(_liveDb, `liveRooms/${wasRoom}/offers/${wasUid}`)).catch(() => {});
+        remove(ref(_liveDb, `liveRooms/${wasRoom}/viewerCandidates/${wasUid}`)).catch(() => {});
+      }
     }
     _origNavTo(pageId);
     /* Refresh room list when entering the live page */
     if (pageId === 'livePage') {
-      setTimeout(liveRefreshRooms, 120);
+      setTimeout(liveRefreshRooms, 150);
     }
   };
 }
 
-/* ── Back-button (popstate) should leave the live room, not reopen preview ── */
-window.addEventListener('popstate', () => {
+/* ── Android/PWA back button — leave live room gracefully instead of navigating away ── */
+window.addEventListener('popstate', e => {
   if (_liveRoomId) {
+    /* Prevent browser from navigating away; stay in-app */
+    history.pushState(null, '', location.href);
     if (_liveIsHost) liveEndStream();
     else             liveLeaveStream();
   }
 });
 
-/* Also clean up on page unload */
+/* Push a history entry when entering a live room so popstate fires on back press */
+function _pushLiveHistoryEntry() {
+  history.pushState({ livePage: true }, '', location.href);
+}
+
+/* Also clean up on page unload (fires onDisconnect via Firebase SDK) */
 window.addEventListener('beforeunload', () => {
   if (_liveRoomId && _liveIsHost) {
-    navigator.sendBeacon && navigator.sendBeacon('/noop'); // trigger onDisconnect
+    update(ref(_liveDb, `liveRooms/${_liveRoomId}/host`), { isLive: false }).catch(() => {});
+  } else if (_liveRoomId && _uid()) {
+    remove(ref(_liveDb, `liveRooms/${_liveRoomId}/viewers/${_uid()}`)).catch(() => {});
   }
 });
 

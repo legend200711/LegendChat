@@ -258,7 +258,6 @@ function initUI() {
   buildVideoGrid();
   attachButtonHandlers();
   attachKeyboardHandlers();
-  showLobby();
 
   const params = new URLSearchParams(location.search);
   if (params.has("room")) {
@@ -271,6 +270,9 @@ function initUI() {
       enterAsViewer(code);
     }
   }
+  // No showLobby() call — the lobby landing screen is removed.
+  // Host arrives via ?room=...&host=1, viewer via ?room=...
+  // Both paths are handled above; there is no standalone entry.
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -746,7 +748,7 @@ function attachKeyboardHandlers() {
 // ─────────────────────────────────────────────────────────────────
 // Overlay helpers
 // ─────────────────────────────────────────────────────────────────
-function showLobby()      { hideAll(); $("lobby-overlay").classList.remove("hidden"); hideRequestJoinBtn(); }
+function showLobby()      { hideAll(); hideRequestJoinBtn(); }
 function showJoinOverlay(){ hideAll(); $("join-overlay").classList.remove("hidden"); }
 function hideOverlay(id)  { $(id).classList.add("hidden"); }
 function hideAll()        { ["lobby-overlay","join-overlay","waiting-overlay"].forEach(hideOverlay); }

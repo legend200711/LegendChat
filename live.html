@@ -1647,13 +1647,10 @@ html, body {
 
 <!-- ── Overlays ── -->
 
-<!-- Lobby: host or guest entry point -->
-<div id="lobby-overlay">
-  <div class="overlay-icon">🔴</div>
-  <div class="overlay-title" id="lobbyTitle">Shadow Nexus Live</div>
-  <div class="overlay-sub" id="lobbySub">Go live and let your followers join instantly.</div>
-  <button class="btn-primary" id="btnHostRoom">🎥 Start Live as Host</button>
-  <button class="btn-secondary" id="btnBackHome" style="color:var(--text-muted);border-color:transparent;">← Back to Feed</button>
+<!-- Lobby overlay (hidden — host flow goes directly to live, viewer flow uses join-overlay) -->
+<div id="lobby-overlay" class="hidden">
+  <button class="btn-secondary" id="btnHostRoom" style="display:none;"></button>
+  <button class="btn-secondary" id="btnBackHome" style="display:none;"></button>
 </div>
 
 <!-- Join: connecting to a room (deep-link) -->

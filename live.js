@@ -215,8 +215,14 @@ function hideAllOverlays(){ ["lobbyOverlay","setupOverlay","joinOverlay","waitin
 async function startSetupPreview() {
   showOverlay("setupOverlay");
   try {
-    setupStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: true });
-    $("setupVideo").srcObject = setupStream;
+    setupStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: true,
+    });
+    if (!setupStream.getVideoTracks().length) throw new Error("No video track returned by camera");
+    const vid = $("setupVideo");
+    vid.srcObject = setupStream;
+    vid.play().catch(() => {});
     syncSetupBtns();
   } catch (err) {
     toast("Camera/mic access required: " + (err.message || err));
@@ -273,12 +279,18 @@ async function goLive() {
       await updateDoc(docRef, { roomId });
     }
 
-    // Transfer setup stream → live
+    // Transfer setup stream → live.
+    // NOTE: do NOT call stopSetupPreview() here — that would stop() the tracks
+    // we just transferred.  Instead, just detach the preview element and null
+    // the reference so the stream keeps running as localStream.
     localStream = setupStream;
     setupStream = null;
     $("setupVideo").srcObject = null;
 
-    stopSetupPreview();
+    if (!localStream || !localStream.getVideoTracks().length) {
+      throw new Error("Camera stream is empty — please allow camera access and try again.");
+    }
+
     hideAllOverlays();
     startLive();
   } catch (err) {
@@ -384,6 +396,10 @@ async function joinAsViewer() {
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
       peers[me.uid + "_view"] = pc;
 
+      // ICE candidate buffer — candidates from host may arrive before answer is set
+      let localDescSet = false;
+      const iceBuf = [];
+
       // Display incoming host tracks
       pc.ontrack = e => {
         const hostUid = sigData.hostUid || "host";
@@ -413,21 +429,31 @@ async function joinAsViewer() {
         } catch (_) {}
       };
 
-      await pc.setRemoteDescription(new RTCSessionDescription(sigData.offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      await updateDoc(viewerSignalRef, { answer: { type: answer.type, sdp: answer.sdp } });
-
-      // Listen for host ICE candidates
+      // Listen for host ICE candidates — buffer until local desc is set
       const hostIceRef = collection(db, "stories", roomId, "ice_host_to_viewer", me.uid, "candidates");
       const unsubIce = onSnapshot(hostIceRef, snap => {
         snap.docChanges().forEach(change => {
-          if (change.type === "added") {
-            try { pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); } catch (_) {}
+          if (change.type !== "added") return;
+          const cand = change.doc.data();
+          if (localDescSet) {
+            try { pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (_) {}
+          } else {
+            iceBuf.push(cand);
           }
         });
       });
       unsubs.push(unsubIce);
+
+      await pc.setRemoteDescription(new RTCSessionDescription(sigData.offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      // Flush buffered host candidates now that both descriptions are set
+      localDescSet = true;
+      while (iceBuf.length) {
+        try { await pc.addIceCandidate(new RTCIceCandidate(iceBuf.shift())); } catch (_) {}
+      }
+      await updateDoc(viewerSignalRef, { answer: { type: answer.type, sdp: answer.sdp } });
+
       unsubViewerSignal(); // stop listening once offer consumed
     });
     unsubs.push(unsubViewerSignal);
@@ -572,8 +598,18 @@ async function createViewerPeer(viewerUid, displayName) {
   if (!roomId || !localStream) return;
   if (peers["view_" + viewerUid]) return;
 
+  await loadIceServers();
   const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
   peers["view_" + viewerUid] = pc;
+
+  // ICE candidate buffer — holds candidates that arrive before setRemoteDescription
+  let remoteDescSet = false;
+  const iceBuf = [];
+  async function drainIceBuf() {
+    while (iceBuf.length) {
+      try { await pc.addIceCandidate(new RTCIceCandidate(iceBuf.shift())); } catch (_) {}
+    }
+  }
 
   // Send host's stream to this viewer (send-only)
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
@@ -613,17 +649,23 @@ async function createViewerPeer(viewerUid, displayName) {
     if (d.answer && !pc.remoteDescription) {
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(d.answer));
+        remoteDescSet = true;
+        await drainIceBuf();
       } catch (_) {}
     }
   });
   unsubs.push(unsubAnswer);
 
-  // Listen for viewer ICE candidates
+  // Listen for viewer ICE candidates — buffer until remote desc is set
   const viewerIceRef = collection(db, "stories", roomId, "ice_viewer_to_host", viewerUid, "candidates");
   const unsubIce = onSnapshot(viewerIceRef, snap => {
     snap.docChanges().forEach(change => {
-      if (change.type === "added") {
-        try { pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); } catch (_) {}
+      if (change.type !== "added") return;
+      const cand = change.doc.data();
+      if (remoteDescSet) {
+        try { pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (_) {}
+      } else {
+        iceBuf.push(cand);
       }
     });
   });
@@ -755,8 +797,18 @@ async function denyGuest(uid) {
 async function createHostPeer(guestUid, displayName) {
   if (peers[guestUid]) { peers[guestUid].close(); delete peers[guestUid]; }
 
+  await loadIceServers();
   const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
   peers[guestUid] = pc;
+
+  // ICE candidate buffer — holds candidates that arrive before setRemoteDescription
+  let remoteDescSet = false;
+  const iceBuf = [];
+  async function drainIceBuf() {
+    while (iceBuf.length) {
+      try { await pc.addIceCandidate(new RTCIceCandidate(iceBuf.shift())); } catch (_) {}
+    }
+  }
 
   // Send local tracks to guest
   if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
@@ -769,11 +821,11 @@ async function createHostPeer(guestUid, displayName) {
     } catch (_) {}
   };
 
-  // Receive guest's tracks
+  // Receive guest's tracks — attach stream before calling play()
   pc.ontrack = e => {
     addGuestBox(guestUid, displayName);
     const box = $("videoGrid").querySelector(`[data-uid="${guestUid}"]`);
-    if (box) {
+    if (box && e.streams && e.streams[0]) {
       const vid = box.querySelector("video");
       vid.srcObject = e.streams[0];
       vid.play().catch(() => {});
@@ -786,31 +838,37 @@ async function createHostPeer(guestUid, displayName) {
   // Create offer
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
-  await setDoc(doc(db, "stories", roomId, "signals", guestUid), {
+  const signalRef = doc(db, "stories", roomId, "signals", guestUid);
+  await setDoc(signalRef, {
     offer: { type: offer.type, sdp: offer.sdp },
     hostUid: me.uid,
     createdAt: serverTimestamp(),
   });
 
   // Listen for guest answer
-  const signalRef = doc(db, "stories", roomId, "signals", guestUid);
   const unsubAnswer = onSnapshot(signalRef, async snap => {
     if (!snap.exists()) return;
     const data = snap.data();
     if (data.answer && !pc.remoteDescription) {
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+        remoteDescSet = true;
+        await drainIceBuf();
       } catch (_) {}
     }
   });
   unsubs.push(unsubAnswer);
 
-  // Listen for guest ICE candidates
+  // Listen for guest ICE candidates — buffer until remote desc is set
   const guestIceRef = collection(db, "stories", roomId, "ice_guest_to_host", guestUid, "candidates");
   const unsubIce = onSnapshot(guestIceRef, snap => {
     snap.docChanges().forEach(change => {
-      if (change.type === "added") {
-        try { pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); } catch (_) {}
+      if (change.type !== "added") return;
+      const cand = change.doc.data();
+      if (remoteDescSet) {
+        try { pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (_) {}
+      } else {
+        iceBuf.push(cand);
       }
     });
   });
@@ -839,16 +897,21 @@ async function joinAsGuest() {
 
     try {
       localStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: true
       });
     } catch (err) {
       toast("Camera/mic required: " + (err.message || err));
       return;
     }
+    if (!localStream.getVideoTracks().length) {
+      toast("Camera stream is empty — check permissions.");
+      return;
+    }
 
     buildGuestLocalBox();
 
+    await loadIceServers();
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     peers[me.uid] = pc;
 
@@ -879,21 +942,34 @@ async function joinAsGuest() {
 
     pc.onconnectionstatechange = () => handlePCState(pc, me.uid);
 
-    await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    await updateDoc(signalRef, { answer: { type: answer.type, sdp: answer.sdp } });
+    // ICE candidate buffer — buffer host candidates until local desc is set
+    let localDescSet = false;
+    const iceBuf = [];
 
-    // Listen for host ICE
+    // Listen for host ICE candidates — register BEFORE setRemoteDescription
     const hostIceRef = collection(db, "stories", roomId, "ice_host_to_guest", me.uid, "candidates");
     const unsubIce = onSnapshot(hostIceRef, snap => {
       snap.docChanges().forEach(change => {
-        if (change.type === "added") {
-          try { pc.addIceCandidate(new RTCIceCandidate(change.doc.data())); } catch (_) {}
+        if (change.type !== "added") return;
+        const cand = change.doc.data();
+        if (localDescSet) {
+          try { pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (_) {}
+        } else {
+          iceBuf.push(cand);
         }
       });
     });
     unsubs.push(unsubIce);
+
+    await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    // Flush buffered ICE candidates now that both descriptions are set
+    localDescSet = true;
+    while (iceBuf.length) {
+      try { await pc.addIceCandidate(new RTCIceCandidate(iceBuf.shift())); } catch (_) {}
+    }
+    await updateDoc(signalRef, { answer: { type: answer.type, sdp: answer.sdp } });
 
     // Controls
     $("btnFlip").style.display = "";

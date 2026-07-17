@@ -14942,11 +14942,11 @@ window.clearBannerUpload   = clearBannerUpload;
         _renderChallenge();
         toastNotification('⚡ Challenge complete! Keep being legendary.');
         // Persist to Firestore if user is logged in
-        if (typeof db !== 'undefined' && typeof currentUser !== 'undefined' && currentUser) {
-            db.collection('community').doc('challenges').collection('completions')
-              .doc(currentUser.uid + '_' + _todayKey())
-              .set({ uid: currentUser.uid, ts: firebase.firestore.FieldValue.serverTimestamp() })
-              .catch(() => {});
+        const _fs1 = window._snxFirestore; const _cu1 = window._snxCurrentUser;
+        if (_fs1 && _cu1) {
+            const { db: _db1, doc: _doc1, setDoc: _setDoc1, collection: _col1, serverTimestamp: _st1 } = _fs1;
+            _setDoc1(_doc1(_col1(_doc1(_col1(_db1,'community'),'challenges'),'completions'), _cu1.uid + '_' + _todayKey()),
+              { uid: _cu1.uid, ts: _st1() }).catch(() => {});
         }
     };
 
@@ -14998,9 +14998,11 @@ window.clearBannerUpload   = clearBannerUpload;
             </button>
         `).join('');
         // Load live counts from Firestore
-        if (typeof db !== 'undefined') {
-            db.collection('community').doc('reactions').get().then(doc => {
-                const data = doc.exists ? doc.data() : {};
+        const _fs2 = window._snxFirestore;
+        if (_fs2) {
+            const { db: _db2, doc: _doc2, getDoc: _getDoc2, collection: _col2 } = _fs2;
+            _getDoc2(_doc2(_col2(_db2,'community'),'reactions')).then(snap => {
+                const data = snap.exists() ? snap.data() : {};
                 REACTIONS.forEach(r => {
                     _reactCache[r.key] = data[r.key] || 0;
                     const cnt = document.getElementById('commReactCount_' + r.key);
@@ -15030,10 +15032,10 @@ window.clearBannerUpload   = clearBannerUpload;
             fe.addEventListener('animationend', () => fe.remove());
         }
         // Persist to Firestore
-        if (typeof db !== 'undefined') {
-            db.collection('community').doc('reactions')
-              .set({ [key]: firebase.firestore.FieldValue.increment(1) }, { merge: true })
-              .catch(() => {});
+        const _fs3 = window._snxFirestore;
+        if (_fs3) {
+            const { db: _db3, doc: _doc3, setDoc: _setDoc3, collection: _col3, increment: _inc3 } = _fs3;
+            _setDoc3(_doc3(_col3(_db3,'community'),'reactions'), { [key]: _inc3(1) }, { merge: true }).catch(() => {});
         }
     };
 
@@ -15042,14 +15044,14 @@ window.clearBannerUpload   = clearBannerUpload;
         if (_anonUnsub) { _anonUnsub(); _anonUnsub = null; }
         const feed = document.getElementById('commAnonFeed');
         if (!feed) return;
-        if (typeof db === 'undefined') {
+        const _fs4 = window._snxFirestore;
+        if (!_fs4) {
             feed.innerHTML = '<div style="text-align:center;color:#334;font-size:13px;padding:20px;">Sign in to view posts.</div>';
             return;
         }
         feed.innerHTML = '<div style="text-align:center;color:#334;font-size:13px;padding:20px;">Loading…</div>';
-        _anonUnsub = db.collection('community').doc('anonBoard').collection('posts')
-            .orderBy('ts', 'desc').limit(30)
-            .onSnapshot(snap => {
+        const { db: _db4, doc: _doc4, collection: _col4, query: _q4, orderBy: _ob4, limit: _lim4, onSnapshot: _ons4 } = _fs4;
+        _anonUnsub = _ons4(_q4(_col4(_doc4(_col4(_db4,'community'),'anonBoard'),'posts'), _ob4('ts','desc'), _lim4(30)), snap => {
                 if (snap.empty) {
                     feed.innerHTML = '<div style="text-align:center;color:#334;font-size:13px;padding:20px;">No posts yet. Be the first to share 💙</div>';
                     return;
@@ -15089,18 +15091,20 @@ window.clearBannerUpload   = clearBannerUpload;
         const text = input.value.trim();
         const isAnon = anon ? anon.checked : true;
         const tagVal = tag ? tag.value : 'sharing';
-        if (typeof db === 'undefined' || !currentUser) { toastNotification('Sign in to post.'); return; }
+        const _fs5 = window._snxFirestore; const _cu5 = window._snxCurrentUser;
+        const _ud5 = window._snxUserData;
+        if (!_fs5 || !_cu5) { toastNotification('Sign in to post.'); return; }
+        const { db: _db5, doc: _doc5, addDoc: _add5, collection: _col5, serverTimestamp: _st5 } = _fs5;
         const payload = {
             text, tag: tagVal, anon: isAnon,
-            ts: firebase.firestore.FieldValue.serverTimestamp(),
+            ts: _st5(),
             hugs: 0,
-            uid: isAnon ? null : currentUser.uid,
-            displayName: isAnon ? null : (userData?.displayName || 'Member'),
-            initials: isAnon ? null : (userData?.displayName?.[0] || '?').toUpperCase(),
+            uid: isAnon ? null : _cu5.uid,
+            displayName: isAnon ? null : (_ud5?.displayName || 'Member'),
+            initials: isAnon ? null : (_ud5?.displayName?.[0] || '?').toUpperCase(),
         };
         input.value = '';
-        db.collection('community').doc('anonBoard').collection('posts')
-          .add(payload)
+        _add5(_col5(_doc5(_col5(_db5,'community'),'anonBoard'),'posts'), payload)
           .then(() => toastNotification('Posted 🤍 You\'re not alone.'))
           .catch(e => toastNotification('Could not post: ' + e.message));
     };
@@ -15108,9 +15112,11 @@ window.clearBannerUpload   = clearBannerUpload;
     window.commHugPost = function(docId, btn) {
         if (btn.classList.contains('hugged')) return;
         btn.classList.add('hugged');
-        if (typeof db !== 'undefined') {
-            db.collection('community').doc('anonBoard').collection('posts').doc(docId)
-              .update({ hugs: firebase.firestore.FieldValue.increment(1) }).catch(() => {});
+        const _fs6 = window._snxFirestore;
+        if (_fs6) {
+            const { db: _db6, doc: _doc6, updateDoc: _upd6, collection: _col6, increment: _inc6 } = _fs6;
+            _upd6(_doc6(_col6(_doc6(_col6(_db6,'community'),'anonBoard'),'posts'), docId),
+              { hugs: _inc6(1) }).catch(() => {});
         }
         const floatEl = document.createElement('div');
         floatEl.className = 'floating-emoji';

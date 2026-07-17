@@ -776,11 +776,10 @@ async function startAsHost(code) {
   assignSlot(currentUser.uid, myDisplayName + " (you)", localStream, true);
   showCtrlBar();
   _showHostRequestControls();
-  toast(`🔴 Live started — your followers can join from the Feed!`);
-  listenForJoinRequests();
   setupRTDB();
   startHostStreamGuard();
-  markPresenceLive(roomId);
+  // Publish the liveRooms doc, show LIVE badge, start viewer count listener
+  await handleGoLive();
 }
 
 // Show host-only request controls (settings bar + ctrl-bar button)

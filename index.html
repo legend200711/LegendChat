@@ -3342,6 +3342,8 @@ img, video { max-width: 100%; height: auto; }
     flex-shrink: 0; cursor: pointer; min-width: 64px;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+    position: relative; z-index: 2;
+    user-select: none;
 }
 .story-golive-circle {
     width: 64px; height: 64px; border-radius: 50%;
@@ -3706,6 +3708,8 @@ img, video { max-width: 100%; height: auto; }
     animation: deleteModalIn 0.22s cubic-bezier(0.34,1.56,0.64,1) both;
     -webkit-overflow-scrolling: touch;
     box-shadow: 0 0 50px rgba(255,30,60,0.2);
+    touch-action: manipulation;
+    pointer-events: auto;
 }
 .live-modal-header {
     display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
@@ -20117,32 +20121,67 @@ window.svToggleReplies = async function() {
    GO LIVE — Setup & Preview
    ════════════════════════════════════════════════════ */
 window.openGoLive = async function() {
-    if (!_me()) { _toast('Sign in to go live.'); return; }
+    // If auth hasn't resolved yet, wait for it then retry
+    if (!_me()) {
+        if (!window._snxAuthResolved) {
+            window._snxOnAuthReady(function() { window.openGoLive(); });
+            return;
+        }
+        _toast('Sign in to go live.');
+        return;
+    }
 
-    // Request camera + mic permissions
+    // Open modal immediately so user sees a response
     const modal = document.getElementById('storyLiveModal');
     modal.classList.add('open');
 
+    // Re-enable Start Live button in case it was disabled from a previous session
+    const startBtn = document.getElementById('liveStartBtn');
+    if (startBtn) startBtn.disabled = false;
+
+    // Reset title / privacy fields
+    const titleInput = document.getElementById('liveTitleInput');
+    if (titleInput) titleInput.value = '';
+
     try {
+        // Stop any leftover stream first
+        _stopLiveStream();
+
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: SNX_STORY.liveFacing },
             audio: true
         });
         SNX_STORY.liveStream = stream;
+
         const preview = document.getElementById('livePreviewVideo');
-        if (preview) { preview.srcObject = stream; }
+        if (preview) {
+            preview.srcObject = stream;
+            preview.play().catch(() => {}); // explicit play for mobile
+        }
+
+        // Show PREVIEW badge
+        const badge = document.getElementById('livePreviewBadge');
+        if (badge) badge.classList.add('visible');
+
         // Reset UI state
         SNX_STORY.liveMicOn = true;
         SNX_STORY.liveCamOn = true;
         _syncLiveCtrlBtns();
     } catch(err) {
-        _toast('Camera/mic permission required: ' + (err.message || err));
+        _toast('Camera/mic access required: ' + (err.message || err));
+        // Don't close modal — let user see the error and retry or cancel
     }
 };
 
 window.closeGoLive = function() {
     document.getElementById('storyLiveModal').classList.remove('open');
     _stopLiveStream();
+    // Hide preview badge
+    const badge = document.getElementById('livePreviewBadge');
+    if (badge) badge.classList.remove('visible');
+    // Re-enable start button for next open
+    const startBtn = document.getElementById('liveStartBtn');
+    if (startBtn) startBtn.disabled = false;
 };
 
 function _stopLiveStream() {
@@ -20165,7 +20204,7 @@ window.liveFlipCamera = async function() {
             audio: SNX_STORY.liveMicOn
         });
         const preview = document.getElementById('livePreviewVideo');
-        if (preview) preview.srcObject = newStream;
+        if (preview) { preview.srcObject = newStream; preview.play().catch(() => {}); }
         // Replace video track in existing stream
         if (SNX_STORY.liveStream) {
             const oldAudio = SNX_STORY.liveStream.getAudioTracks();
@@ -20214,13 +20253,32 @@ function _syncLiveCtrlBtns() {
 window.startLiveStream = async function() {
     const me = _me();
     if (!me) { _toast('Sign in to go live.'); return; }
-    if (!SNX_STORY.liveStream) { _toast('Camera not ready.'); return; }
+    if (!SNX_STORY.liveStream) {
+        // Camera not ready — try to acquire it again then retry
+        _toast('Starting camera…');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: SNX_STORY.liveFacing }, audio: true
+            });
+            SNX_STORY.liveStream = stream;
+            const preview = document.getElementById('livePreviewVideo');
+            if (preview) { preview.srcObject = stream; preview.play().catch(() => {}); }
+            const badge = document.getElementById('livePreviewBadge');
+            if (badge) badge.classList.add('visible');
+            SNX_STORY.liveMicOn = true;
+            SNX_STORY.liveCamOn = true;
+            _syncLiveCtrlBtns();
+        } catch(err) {
+            _toast('Camera/mic access required: ' + (err.message || err));
+        }
+        return; // Let user tap Start Live again once camera is ready
+    }
 
     const btn = document.getElementById('liveStartBtn');
     if (btn) btn.disabled = true;
 
-    const title   = (document.getElementById('liveTitleInput').value || '').trim();
-    const privacy = document.getElementById('livePrivacySelect').value || 'everyone';
+    const title   = (document.getElementById('liveTitleInput')?.value || '').trim();
+    const privacy = document.getElementById('livePrivacySelect')?.value || 'everyone';
     const ud = _ud();
 
     try {
@@ -20258,6 +20316,8 @@ window.startLiveStream = async function() {
         // Stop setup stream — live.html will re-acquire
         _stopLiveStream();
         document.getElementById('storyLiveModal').classList.remove('open');
+        const badge = document.getElementById('livePreviewBadge');
+        if (badge) badge.classList.remove('visible');
 
         // Redirect host to full WebRTC room
         window.location.href = `live.html?room=${encodeURIComponent(docId)}&host=1`;

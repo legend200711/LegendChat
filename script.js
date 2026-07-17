@@ -33,19 +33,13 @@
       const reg = await navigator.serviceWorker.register(swPath, { scope: base });
       console.log('[SW] Registered, scope:', reg.scope);
 
-      // If a new SW is already waiting on first load, show the update toast now
-      if (reg.waiting) {
-        showUpdateToast(reg.waiting);
-      }
-
       // Detect new SW installing while the page is open
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
         if (!newWorker) return;
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            // New version ready — prompt user to reload
-            showUpdateToast(newWorker);
+            // New version is ready — it will take over on next load
           }
         });
       });
@@ -72,27 +66,6 @@
   });
 
 })();
-
-/* ═══════════════════════════════════════════════
-   3. UPDATE AVAILABLE TOAST
-   ═══════════════════════════════════════════════ */
-function showUpdateToast(worker) {
-  const toast = document.getElementById('pwa-update-toast');
-  if (!toast) return;
-
-  toast.classList.add('visible');
-
-  const btn = toast.querySelector('.update-btn');
-  if (btn) {
-    btn.addEventListener('click', () => {
-      toast.classList.remove('visible');
-      worker.postMessage({ type: 'SKIP_WAITING' });
-    }, { once: true });
-  }
-
-  // Auto-dismiss after 12 seconds
-  setTimeout(() => toast.classList.remove('visible'), 12000);
-}
 
 /* ═══════════════════════════════════════════════
    4. PWA INSTALL BANNER

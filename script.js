@@ -50,21 +50,12 @@
         });
       });
 
-      // When the new SW takes control, reload so the fresh files are used.
-      // Guard: skip the reload if the user is currently on the login page or
-      // mid-login (auth gate not yet resolved) to avoid interrupting sign-in.
+      // When the new SW takes control, reload so the fresh files are used
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (sessionStorage.getItem('snx-sw-reloading')) return;
-        const onLoginPage = !!document.getElementById('login')?.offsetParent ||
-                            document.body.dataset.page === 'login';
-        const authGateActive = !window._snxAuthResolved;
-        if (onLoginPage || authGateActive) {
-          // Don't reload mid-login — the new SW cache will be used on the next
-          // natural navigation instead.
-          return;
+        if (!sessionStorage.getItem('snx-sw-reloading')) {
+          sessionStorage.setItem('snx-sw-reloading', '1');
+          window.location.reload();
         }
-        sessionStorage.setItem('snx-sw-reloading', '1');
-        window.location.reload();
       });
     } catch (err) {
       console.warn('[SW] Registration failed:', err);

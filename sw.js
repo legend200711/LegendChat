@@ -10,7 +10,7 @@
  * GitHub Pages (/ShadowNexusSocial/) and any local dev server (/).
  */
 
-const CACHE_VERSION = 'v10';
+const CACHE_VERSION = 'v7';
 const CACHE_NAME    = `shadow-nexus-${CACHE_VERSION}`;
 
 // Detect base path from the SW's own URL (e.g. /ShadowNexusSocial/ or /)
@@ -22,7 +22,6 @@ const OFFLINE = BASE + 'offline.html';
 const SHELL_FILES = [
   '',            // root / index
   'index.html',
-  'live.html',
   'offline.html',
   'style.css',
   'script.js',

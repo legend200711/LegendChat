@@ -2,33 +2,79 @@
   "rules": {
     // ── Live rooms ─────────────────────────────────────────────────────────────
     // Path: /liveRooms/{roomId}/...
-    //   viewerCount — incremented by viewers on join
-    //   viewers/{uid} — presence entries (name, joinedAt, onDisconnect cleanup)
-    //   chat/{msgId}  — live chat messages
     "liveRooms": {
       "$roomId": {
-        // Any authenticated user can read the whole room node
         ".read": "auth != null",
-
-        "viewerCount": {
-          // Any authenticated user can update the viewer counter
-          ".write": "auth != null"
-        },
-
+        "viewerCount": { ".write": "auth != null" },
         "viewers": {
           "$uid": {
-            // A user can only write their own presence entry
-            ".write": "auth != null && auth.uid === $uid",
-            ".read":  "auth != null"
+            ".read":  "auth != null",
+            ".write": "auth != null && auth.uid === $uid"
+          }
+        },
+        "chat": {
+          ".read": "auth != null",
+          "$msgId": { ".write": "auth != null" }
+        }
+      }
+    },
+
+    // ── Storm Rooms ─────────────────────────────────────────────────────────────
+    // Path: /stormRooms/{roomId}/...
+    //   presence/{key}  — online user presence (anonymous, no auth required)
+    //   messages/{msgId} — chat messages
+    "stormRooms": {
+      "$roomId": {
+        // Anyone can read storm rooms — they're public/code-gated
+        ".read": true,
+
+        "presence": {
+          "$key": {
+            ".write": true,
+            ".validate": "newData.hasChildren(['name','joined'])"
           }
         },
 
-        "chat": {
-          // Any authenticated user can read chat
-          ".read": "auth != null",
+        "typing": {
+          "$key": {
+            ".write": true,
+            ".validate": "newData.hasChildren(['name','ts'])"
+          }
+        },
+
+        "messages": {
           "$msgId": {
-            // Any authenticated user can write a chat message or soft-delete it
-            ".write": "auth != null"
+            ".write": true,
+            ".validate": "newData.hasChildren(['text','ts','name','type']) || newData.hasChildren(['type','text','ts','name'])"
+          }
+        }
+      }
+    },
+
+    // ── Support Rooms ───────────────────────────────────────────────────────────
+    "supportRooms": {
+      "$roomId": {
+        // Publicly readable so lobby counts work without sign-in
+        ".read": true,
+
+        "presence": {
+          "$key": {
+            ".write": true,
+            ".validate": "newData.hasChildren(['name','joined'])"
+          }
+        },
+
+        "typing": {
+          "$key": {
+            ".write": true,
+            ".validate": "newData.hasChildren(['name','ts'])"
+          }
+        },
+
+        "messages": {
+          "$msgId": {
+            ".write": true,
+            ".validate": "newData.hasChildren(['text','ts','name','type']) || newData.hasChildren(['type','text','ts','name'])"
           }
         }
       }

@@ -82,6 +82,36 @@ async function loadIceServers() {
     _iceReady = false;
   }
 }
+
+/* ─────────────────────────────────────────────────
+   Helper: stop any active stream and release tracks
+───────────────────────────────────────────────── */
+function releaseStream(stream) {
+  if (!stream) return;
+  stream.getTracks().forEach(t => { try { t.stop(); } catch (_) {} });
+}
+
+/* ─────────────────────────────────────────────────
+   Helper: delete all signal + ICE docs for a viewer slot
+   so stale offer/answer from a previous session can't confuse a new one
+───────────────────────────────────────────────── */
+async function clearViewerSignal(viewerUid) {
+  if (!roomId) return;
+  try {
+    const sigRef = doc(db, "stories", roomId, "signals_viewer", viewerUid);
+    await deleteDoc(sigRef).catch(() => {});
+    // ICE sub-collections are automatically cleaned up by Firestore TTL rules,
+    // but we overwrite the signal doc which is what peers watch.
+  } catch (_) {}
+}
+async function clearGuestSignal(guestUid) {
+  if (!roomId) return;
+  try {
+    const sigRef = doc(db, "stories", roomId, "signals", guestUid);
+    await deleteDoc(sigRef).catch(() => {});
+  } catch (_) {}
+}
+
 const QUALITY = {
   HIGH:   { width: 1280, height: 720,  frameRate: 30, bitrate: 1_500_000 },
   MEDIUM: { width: 854,  height: 480,  frameRate: 24, bitrate:   700_000 },
@@ -162,6 +192,17 @@ onAuthStateChanged(auth, async user => {
     const snap = await getDoc(doc(db, "users", me.uid));
     userData = snap.exists() ? snap.data() : {};
   } catch (_) {}
+
+  // ── Maintenance Mode Check ──
+  // Founders always bypass; everyone else is redirected
+  try {
+    const cfgSnap = await getDoc(doc(db, 'siteSettings', 'config'));
+    if (cfgSnap.exists() && cfgSnap.data().maintenanceMode === true && userData.role !== 'founder') {
+      window.location.replace('maintenance.html');
+      return;
+    }
+  } catch (_) {}
+
   init();
 });
 
@@ -214,20 +255,57 @@ function hideAllOverlays(){ ["lobbyOverlay","setupOverlay","joinOverlay","waitin
 ───────────────────────────────────────────────── */
 async function startSetupPreview() {
   showOverlay("setupOverlay");
+
+  // Always stop any previous preview stream before requesting a new one
+  // to avoid grabbing the same camera twice (some browsers refuse the second getUserMedia)
+  if (setupStream) {
+    releaseStream(setupStream);
+    setupStream = null;
+    $("setupVideo").srcObject = null;
+  }
+
+  // Check API availability first
+  if (!navigator.mediaDevices?.getUserMedia) {
+    toast("Camera not supported in this browser.");
+    showLobby(); return;
+  }
+
   try {
+    // Request camera + mic; catch permission errors explicitly
     setupStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
       audio: true,
     });
-    if (!setupStream.getVideoTracks().length) throw new Error("No video track returned by camera");
-    const vid = $("setupVideo");
-    vid.srcObject = setupStream;
-    vid.play().catch(() => {});
-    syncSetupBtns();
   } catch (err) {
-    toast("Camera/mic access required: " + (err.message || err));
-    showLobby();
+    const msg = err.name === "NotAllowedError"  ? "Camera/microphone permission denied. Please allow access and try again." :
+                err.name === "NotFoundError"    ? "No camera/microphone found on this device." :
+                err.name === "NotReadableError" ? "Camera is already in use by another app." :
+                                                  "Could not access camera: " + (err.message || err);
+    toast(msg);
+    showLobby(); return;
   }
+
+  // Confirm we actually got a video track
+  const videoTracks = setupStream.getVideoTracks();
+  const audioTracks = setupStream.getAudioTracks();
+  if (!videoTracks.length) {
+    toast("No video track found. Check camera permissions.");
+    releaseStream(setupStream); setupStream = null;
+    showLobby(); return;
+  }
+  if (!videoTracks[0].enabled || videoTracks[0].readyState !== "live") {
+    toast("Video track is not active. Check camera access.");
+    releaseStream(setupStream); setupStream = null;
+    showLobby(); return;
+  }
+  if (audioTracks.length && audioTracks[0].readyState !== "live") {
+    toast("Microphone track not active — continuing without audio.");
+  }
+
+  const vid = $("setupVideo");
+  vid.srcObject = setupStream;
+  vid.play().catch(() => {});
+  syncSetupBtns();
 }
 
 function syncSetupBtns() {
@@ -238,8 +316,11 @@ function syncSetupBtns() {
 }
 
 function stopSetupPreview() {
-  if (setupStream) { setupStream.getTracks().forEach(t => t.stop()); setupStream = null; }
-  $("setupVideo").srcObject = null;
+  if (setupStream) { releaseStream(setupStream); setupStream = null; }
+  const vid = $("setupVideo");
+  vid.srcObject = null;
+  // Ensure the video element releases the camera indicator
+  vid.load();
 }
 
 /* ─────────────────────────────────────────────────
@@ -248,6 +329,8 @@ function stopSetupPreview() {
 async function goLive() {
   if (!me) return;
   const btn = $("btnGoLive");
+  // Lock button immediately to prevent double-clicks
+  if (btn.disabled) return;
   btn.disabled = true;
   btn.textContent = "Starting…";
 
@@ -259,6 +342,15 @@ async function goLive() {
   const avatar  = userData.avatarUrl || me.photoURL || "";
 
   try {
+    // Validate setup stream is still alive before transferring it
+    if (!setupStream || !setupStream.getVideoTracks().length) {
+      throw new Error("Camera stream is empty — please allow camera access and try again.");
+    }
+    const vTrack = setupStream.getVideoTracks()[0];
+    if (vTrack.readyState !== "live") {
+      throw new Error("Camera track ended unexpectedly. Please go back and retry.");
+    }
+
     const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000); // 4h max
     let docRef;
     if (roomId) {
@@ -275,29 +367,76 @@ async function goLive() {
         createdAt: serverTimestamp(), expiresAt,
       });
       roomId = docRef.id;
-      // Update roomId field
       await updateDoc(docRef, { roomId });
     }
 
-    // Transfer setup stream → live.
-    // NOTE: do NOT call stopSetupPreview() here — that would stop() the tracks
-    // we just transferred.  Instead, just detach the preview element and null
-    // the reference so the stream keeps running as localStream.
+    // Save roomId to sessionStorage so the viewer page can read it immediately
+    sessionStorage.setItem("liveRoomId", roomId);
+
+    // Transfer setup stream → live WITHOUT stopping tracks.
+    // detach from preview element, keep tracks running as localStream.
     localStream = setupStream;
     setupStream = null;
-    $("setupVideo").srcObject = null;
+    const vid = $("setupVideo");
+    vid.srcObject = null;
+    vid.load(); // release camera indicator on preview element
 
-    if (!localStream || !localStream.getVideoTracks().length) {
-      throw new Error("Camera stream is empty — please allow camera access and try again.");
-    }
+    // Apply mic/cam state that may have been toggled in setup
+    localStream.getAudioTracks().forEach(t => { t.enabled = micEnabled; });
+    localStream.getVideoTracks().forEach(t => { t.enabled = camEnabled; });
 
+    // Show countdown, then enter live room
     hideAllOverlays();
+    await runCountdown(3);
     startLive();
   } catch (err) {
     toast("Failed to start live: " + (err.message || err));
     btn.disabled = false;
     btn.textContent = "🔴 Start Live Stream";
+    // Re-open setup overlay so user can retry
+    showOverlay("setupOverlay");
   }
+}
+
+/* ─────────────────────────────────────────────────
+   Countdown overlay before going live
+───────────────────────────────────────────────── */
+function runCountdown(seconds) {
+  return new Promise(resolve => {
+    // Re-use setupOverlay element for the countdown display
+    const overlay = $("setupOverlay");
+    overlay.classList.remove("hidden");
+
+    // Create a temporary countdown element
+    const cd = document.createElement("div");
+    cd.id = "countdownDisplay";
+    cd.style.cssText = [
+      "position:absolute", "inset:0", "display:flex", "flex-direction:column",
+      "align-items:center", "justify-content:center",
+      "background:rgba(0,0,0,0.85)", "z-index:10",
+      "font-size:96px", "font-weight:900", "color:#fff",
+      "border-radius:inherit",
+    ].join(";");
+    overlay.appendChild(cd);
+
+    let n = seconds;
+    cd.textContent = n;
+
+    const tick = setInterval(() => {
+      n--;
+      if (n > 0) {
+        cd.textContent = n;
+      } else {
+        clearInterval(tick);
+        cd.textContent = "🔴 LIVE";
+        setTimeout(() => {
+          cd.remove();
+          overlay.classList.add("hidden");
+          resolve();
+        }, 600);
+      }
+    }, 1000);
+  });
 }
 
 /* ─────────────────────────────────────────────────
@@ -384,39 +523,47 @@ async function joinAsViewer() {
     liveStart  = data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now();
     timerInt   = setInterval(updateTimer, 1000);
 
+    // Build an empty host box immediately so ontrack has a DOM node to attach to
+    const hostUid = data.authorUid || "host";
+    if (!$("videoGrid").querySelector(`[data-uid="${hostUid}"]`)) {
+      const box = makeBox(hostUid, data.authorName || "Host", true);
+      $("videoGrid").insertBefore(box, $("videoGrid").firstChild);
+      updateGridClass();
+    }
+
     // ── Receive host's stream via WebRTC ──
-    // Listen for the offer the host will write when it sees us join
+    // Use a de-duplicating key that matches what createViewerPeer uses on the host side
+    const viewerPeerKey = "view_" + me.uid;
     const viewerSignalRef = doc(db, "stories", roomId, "signals_viewer", me.uid);
-    const unsubViewerSignal = onSnapshot(viewerSignalRef, async snap => {
-      if (!snap.exists()) return;
-      const sigData = snap.data();
+
+    const unsubViewerSignal = onSnapshot(viewerSignalRef, async sigSnap => {
+      if (!sigSnap.exists()) return;
+      const sigData = sigSnap.data();
       if (!sigData.offer) return;
-      if (peers[me.uid + "_view"]) return; // already set up
+      if (peers[viewerPeerKey]) return; // already set up — ignore duplicates
 
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-      peers[me.uid + "_view"] = pc;
+      peers[viewerPeerKey] = pc;
 
       // ICE candidate buffer — candidates from host may arrive before answer is set
       let localDescSet = false;
       const iceBuf = [];
 
-      // Display incoming host tracks
+      // Display incoming host tracks — box was already created above
       pc.ontrack = e => {
-        const hostUid = sigData.hostUid || "host";
-        let box = $("videoGrid").querySelector(`[data-uid="${hostUid}"]`);
-        if (!box) {
-          box = makeBox(hostUid, data.authorName || "Host", true);
-          $("videoGrid").insertBefore(box, $("videoGrid").firstChild);
-          updateGridClass();
-        }
-        if (e.streams && e.streams[0]) {
-          const vid = box.querySelector("video");
-          vid.srcObject = e.streams[0];
+        const box = $("videoGrid").querySelector(`[data-uid="${hostUid}"]`);
+        if (!box) return;
+        const stream = e.streams && e.streams[0] ? e.streams[0] : null;
+        if (!stream) return;
+        const vid = box.querySelector("video");
+        if (vid.srcObject !== stream) {
+          vid.srcObject = stream;
           vid.play().catch(() => {});
         }
+        box.classList.remove("cam-off"); // show video, hide avatar fallback
       };
 
-      pc.onconnectionstatechange = () => handlePCState(pc, me.uid + "_view");
+      pc.onconnectionstatechange = () => handlePCState(pc, viewerPeerKey);
 
       // Send our ICE candidates to host
       pc.onicecandidate = async ev => {
@@ -431,8 +578,8 @@ async function joinAsViewer() {
 
       // Listen for host ICE candidates — buffer until local desc is set
       const hostIceRef = collection(db, "stories", roomId, "ice_host_to_viewer", me.uid, "candidates");
-      const unsubIce = onSnapshot(hostIceRef, snap => {
-        snap.docChanges().forEach(change => {
+      const unsubIce = onSnapshot(hostIceRef, iceSnap => {
+        iceSnap.docChanges().forEach(change => {
           if (change.type !== "added") return;
           const cand = change.doc.data();
           if (localDescSet) {
@@ -444,15 +591,20 @@ async function joinAsViewer() {
       });
       unsubs.push(unsubIce);
 
-      await pc.setRemoteDescription(new RTCSessionDescription(sigData.offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      // Flush buffered host candidates now that both descriptions are set
-      localDescSet = true;
-      while (iceBuf.length) {
-        try { await pc.addIceCandidate(new RTCIceCandidate(iceBuf.shift())); } catch (_) {}
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(sigData.offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        // Flush buffered host candidates now that both descriptions are set
+        localDescSet = true;
+        while (iceBuf.length) {
+          try { await pc.addIceCandidate(new RTCIceCandidate(iceBuf.shift())); } catch (_) {}
+        }
+        await updateDoc(viewerSignalRef, { answer: { type: answer.type, sdp: answer.sdp } });
+      } catch (err) {
+        toast("WebRTC error: " + (err.message || err));
+        delete peers[viewerPeerKey];
       }
-      await updateDoc(viewerSignalRef, { answer: { type: answer.type, sdp: answer.sdp } });
 
       unsubViewerSignal(); // stop listening once offer consumed
     });
@@ -596,11 +748,22 @@ function listenViewerPresence() {
 
 async function createViewerPeer(viewerUid, displayName) {
   if (!roomId || !localStream) return;
-  if (peers["view_" + viewerUid]) return;
+  const peerKey = "view_" + viewerUid;
+  if (peers[peerKey]) return;
+
+  // Confirm local stream tracks are still active before creating the peer
+  const vTracks = localStream.getVideoTracks();
+  if (!vTracks.length || vTracks[0].readyState !== "live") {
+    toast("Camera track ended. Cannot stream to new viewer.");
+    return;
+  }
+
+  // Clear any stale signal doc from a previous session so the viewer gets a fresh offer
+  await clearViewerSignal(viewerUid);
 
   await loadIceServers();
   const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-  peers["view_" + viewerUid] = pc;
+  peers[peerKey] = pc;
 
   // ICE candidate buffer — holds candidates that arrive before setRemoteDescription
   let remoteDescSet = false;
@@ -628,48 +791,54 @@ async function createViewerPeer(viewerUid, displayName) {
   pc.onconnectionstatechange = () => {
     const s = pc.connectionState;
     if (s === "failed" || s === "disconnected" || s === "closed") {
-      delete peers["view_" + viewerUid];
+      delete peers[peerKey];
     }
   };
 
-  // Create offer
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  const sigRef = doc(db, "stories", roomId, "signals_viewer", viewerUid);
-  await setDoc(sigRef, {
-    offer:   { type: offer.type, sdp: offer.sdp },
-    hostUid: me.uid,
-    createdAt: serverTimestamp(),
-  });
+  try {
+    // Create offer
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const sigRef = doc(db, "stories", roomId, "signals_viewer", viewerUid);
+    await setDoc(sigRef, {
+      offer:     { type: offer.type, sdp: offer.sdp },
+      hostUid:   me.uid,
+      createdAt: serverTimestamp(),
+    });
 
-  // Wait for viewer's answer
-  const unsubAnswer = onSnapshot(sigRef, async snap => {
-    if (!snap.exists()) return;
-    const d = snap.data();
-    if (d.answer && !pc.remoteDescription) {
-      try {
-        await pc.setRemoteDescription(new RTCSessionDescription(d.answer));
-        remoteDescSet = true;
-        await drainIceBuf();
-      } catch (_) {}
-    }
-  });
-  unsubs.push(unsubAnswer);
-
-  // Listen for viewer ICE candidates — buffer until remote desc is set
-  const viewerIceRef = collection(db, "stories", roomId, "ice_viewer_to_host", viewerUid, "candidates");
-  const unsubIce = onSnapshot(viewerIceRef, snap => {
-    snap.docChanges().forEach(change => {
-      if (change.type !== "added") return;
-      const cand = change.doc.data();
-      if (remoteDescSet) {
-        try { pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (_) {}
-      } else {
-        iceBuf.push(cand);
+    // Wait for viewer's answer
+    const unsubAnswer = onSnapshot(sigRef, async ansSnap => {
+      if (!ansSnap.exists()) return;
+      const d = ansSnap.data();
+      if (d.answer && !pc.remoteDescription) {
+        try {
+          await pc.setRemoteDescription(new RTCSessionDescription(d.answer));
+          remoteDescSet = true;
+          await drainIceBuf();
+        } catch (_) {}
       }
     });
-  });
-  unsubs.push(unsubIce);
+    unsubs.push(unsubAnswer);
+
+    // Listen for viewer ICE candidates — buffer until remote desc is set
+    const viewerIceRef = collection(db, "stories", roomId, "ice_viewer_to_host", viewerUid, "candidates");
+    const unsubIce = onSnapshot(viewerIceRef, iceSnap => {
+      iceSnap.docChanges().forEach(change => {
+        if (change.type !== "added") return;
+        const cand = change.doc.data();
+        if (remoteDescSet) {
+          try { pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (_) {}
+        } else {
+          iceBuf.push(cand);
+        }
+      });
+    });
+    unsubs.push(unsubIce);
+  } catch (err) {
+    toast("Could not create viewer stream: " + (err.message || err));
+    delete peers[peerKey];
+    pc.close();
+  }
 }
 
 async function incrementViewerCount() {
@@ -795,7 +964,10 @@ async function denyGuest(uid) {
    WebRTC — host creates peer for each guest
 ───────────────────────────────────────────────── */
 async function createHostPeer(guestUid, displayName) {
-  if (peers[guestUid]) { peers[guestUid].close(); delete peers[guestUid]; }
+  if (peers[guestUid]) { try { peers[guestUid].close(); } catch (_) {} delete peers[guestUid]; }
+
+  // Clear stale signaling data from any previous guest session
+  await clearGuestSignal(guestUid);
 
   await loadIceServers();
   const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
@@ -882,6 +1054,8 @@ async function joinAsGuest() {
   if (!roomId || !me) return;
   // Tear down any previous guest peer cleanly before re-entering
   if (peers[me.uid]) { try { peers[me.uid].close(); } catch (_) {} delete peers[me.uid]; }
+  // Also stop any lingering local stream from a previous guest attempt
+  if (localStream) { releaseStream(localStream); localStream = null; }
   showOverlay("waitingOverlay");
 
   // Wait for host to write the offer
@@ -895,18 +1069,41 @@ async function joinAsGuest() {
     hideAllOverlays();
     $("ctrlBar").classList.add("show");
 
+    // Check permission API availability
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast("Camera not supported in this browser.");
+      return;
+    }
+
     try {
       localStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: true
       });
     } catch (err) {
-      toast("Camera/mic required: " + (err.message || err));
+      const msg = err.name === "NotAllowedError"  ? "Camera/microphone permission denied." :
+                  err.name === "NotFoundError"    ? "No camera/microphone found on this device." :
+                  err.name === "NotReadableError" ? "Camera is already in use by another app." :
+                                                    "Camera/mic required: " + (err.message || err);
+      toast(msg);
       return;
     }
+
+    // Confirm video + audio tracks are active
     if (!localStream.getVideoTracks().length) {
       toast("Camera stream is empty — check permissions.");
+      releaseStream(localStream); localStream = null;
       return;
+    }
+    const gVid = localStream.getVideoTracks()[0];
+    if (gVid.readyState !== "live") {
+      toast("Video track is not active. Check camera access.");
+      releaseStream(localStream); localStream = null;
+      return;
+    }
+    const gAud = localStream.getAudioTracks();
+    if (gAud.length && gAud[0].readyState !== "live") {
+      toast("Microphone track not active — continuing without audio.");
     }
 
     buildGuestLocalBox();
@@ -999,18 +1196,25 @@ function buildGuestLocalBox() {
 let _recon = {};
 function handlePCState(pc, uid) {
   const state = pc.connectionState;
+  // Derive the visual uid — viewer peer keys are "view_<uid>", guest peers use uid directly
+  const boxUid = uid.startsWith("view_") ? uid.slice(5) : uid;
+
   if (state === "connected") {
     $("reconnectBanner").classList.remove("show");
-    const box = $("videoGrid").querySelector(`[data-uid="${uid}"]`);
-    if (box) box.querySelector(".vbox-reconnect").classList.remove("show");
+    const box = $("videoGrid").querySelector(`[data-uid="${boxUid}"]`);
+    if (box) box.querySelector(".vbox-reconnect")?.classList.remove("show");
     _recon[uid] = 0;
   } else if (state === "disconnected" || state === "failed") {
-    if (!isHost && uid === me?.uid) {
+    // Show reconnect banner for the viewer's own peer, or the host-side viewer peer
+    if (!isHost || uid.startsWith("view_")) {
       $("reconnectBanner").classList.add("show");
-      const box = $("videoGrid").querySelector(`[data-uid="${uid}"]`);
-      if (box) box.querySelector(".vbox-reconnect").classList.add("show");
+      const box = $("videoGrid").querySelector(`[data-uid="${boxUid}"]`);
+      if (box) box.querySelector(".vbox-reconnect")?.classList.add("show");
     }
     scheduleReconnect(uid);
+  } else if (state === "closed") {
+    const box = $("videoGrid").querySelector(`[data-uid="${boxUid}"]`);
+    if (box) box.querySelector(".vbox-reconnect")?.classList.remove("show");
   }
 }
 
@@ -1020,11 +1224,19 @@ function scheduleReconnect(uid) {
   _recon[uid] = attempts + 1;
   const delay = Math.min(1000 * Math.pow(2, attempts), 16000);
   setTimeout(() => {
+    if (!liveActive) return; // don't reconnect after stream has ended
     if (isHost && peers[uid]) {
+      // Host reconnects to a guest
       createHostPeer(uid, guestInfo[uid]?.displayName || "Guest");
-    } else if (!isHost && peers[me.uid]) {
-      // Guest re-initiates
-      joinAsGuest();
+    } else if (isHost && uid.startsWith("view_")) {
+      // Host reconnects to a passive viewer
+      const viewerUid = uid.slice(5);
+      createViewerPeer(viewerUid, guestInfo[viewerUid]?.displayName || "Viewer");
+    } else if (!isHost) {
+      // Viewer/guest re-initiates
+      const peerKey = "view_" + me.uid;
+      if (peers[peerKey]) { try { peers[peerKey].close(); } catch (_) {} delete peers[peerKey]; }
+      joinAsViewer();
     }
   }, delay);
 }
@@ -1556,7 +1768,10 @@ function wireButtons() {
   $("btnSetupCancel").onclick = () => { stopSetupPreview(); navigateBack(); };
   $("btnSetupFlip").onclick   = async () => {
     facingMode = facingMode === "user" ? "environment" : "user";
-    stopSetupPreview(); await startSetupPreview();
+    // Stop current preview tracks before requesting the new camera
+    // to ensure we only hold one camera stream at a time
+    if (setupStream) { releaseStream(setupStream); setupStream = null; $("setupVideo").srcObject = null; }
+    await startSetupPreview();
   };
   $("btnSetupMic").onclick = () => {
     micEnabled = !micEnabled;

@@ -16,6 +16,7 @@ rules_version = '2';
 //   /stories/{storyId}/hostCommands/{uid}             — host mute/cam-off/remove
 //   /posts/{postId}                                   — replay posts
 //   /liveNotifications/{uid}                          — live push notifications
+//   /siteSettings/{doc}                               — site config (maintenance mode, feature flags)
 //
 
 service cloud.firestore {
@@ -29,6 +30,11 @@ service cloud.firestore {
 
     function isOwner(uid) {
       return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isFounder() {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'founder';
     }
 
     // ── Users ─────────────────────────────────────────────────────────────────
@@ -121,6 +127,15 @@ service cloud.firestore {
     match /liveNotifications/{uid} {
       allow read: if isSignedIn();
       allow write: if isSignedIn();
+    }
+
+    // ── Site settings (maintenance mode, feature flags) ───────────────────────
+    // Anyone signed in may read (needed for maintenance check on load).
+    // Only the Founder may write.
+
+    match /siteSettings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isFounder();
     }
 
   }

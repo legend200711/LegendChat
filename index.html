@@ -3258,6 +3258,42 @@ img, video { max-width: 100%; height: auto; }
    LEGEND STORIES SYSTEM
    ══════════════════════════════════════════════════════════════ */
 
+/* ── Feed action bar (Share Story only) ── */
+.feed-action-bar {
+    margin-bottom: 0;
+}
+#btnShareStory {
+    width: 100%;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 20px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(0,50,130,0.72), rgba(0,25,70,0.80));
+    border: 1px solid rgba(0,174,239,0.52);
+    color: #c8e8ff;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: background 0.18s, border-color 0.18s, box-shadow 0.18s, transform 0.1s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 52px;
+    box-shadow: 0 0 18px rgba(0,174,239,0.2);
+    user-select: none;
+}
+#btnShareStory:hover {
+    background: linear-gradient(135deg, rgba(0,80,180,0.75), rgba(0,50,130,0.85));
+    border-color: rgba(0,174,239,0.8);
+    color: #fff;
+    box-shadow: 0 0 24px rgba(0,174,239,0.38);
+}
+#btnShareStory:active {
+    transform: scale(0.97);
+}
+
 /* ── Story strip container ── */
 .story-strip-section {
     margin-bottom: 14px;
@@ -5863,6 +5899,213 @@ body.arcade-fs-ios body::after { display:none !important; }
 }
 </style>
 
+<style id="create-menu-styles">
+/* ═══════════════════════════════════════════════════════════
+   CREATE (+) BUTTON — floating action button
+   ═══════════════════════════════════════════════════════════ */
+
+/* The floating button — fixed bottom-right on mobile,
+   repositions to bottom of sidebar area on desktop */
+#snxCreateBtn {
+    position: fixed;
+    bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+    right: 18px;
+    z-index: 3100;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 18px 0 14px;
+    height: 48px;
+    background: linear-gradient(135deg, #004cb3 0%, #0077ee 100%);
+    border: 1px solid rgba(0,174,239,0.75);
+    border-radius: 28px;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(0,174,239,0.55), 0 0 0 1px rgba(0,174,239,0.12);
+    transition: background 0.18s, box-shadow 0.18s, transform 0.14s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    letter-spacing: 0.4px;
+    will-change: transform;
+}
+#snxCreateBtn:hover {
+    background: linear-gradient(135deg, #0055cc 0%, #0099ff 100%);
+    box-shadow: 0 6px 28px rgba(0,174,239,0.75), 0 0 0 1px rgba(0,174,239,0.22);
+}
+#snxCreateBtn:active { transform: scale(0.94); }
+
+/* Icon inside the button */
+#snxCreateBtn .create-btn-icon {
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
+}
+#snxCreateBtn.menu-open .create-btn-icon {
+    transform: rotate(45deg);
+}
+
+/* Hide on desktop — sidebar already provides navigation */
+@media (min-width: 1025px) {
+    #snxCreateBtn { right: calc(18px + 260px); }
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+    #snxCreateBtn { right: calc(18px + 220px); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CREATE MENU — bottom-sheet panel
+   ═══════════════════════════════════════════════════════════ */
+
+/* Backdrop */
+#snxCreateOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 3050;
+    background: rgba(0,3,15,0.72);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
+#snxCreateOverlay.open { display: block; }
+
+/* Sheet */
+#snxCreateMenu {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 3060;
+    background: linear-gradient(180deg, #0d2444 0%, #071428 100%);
+    border: 1px solid rgba(0,174,239,0.28);
+    border-bottom: none;
+    border-radius: 22px 22px 0 0;
+    padding: 20px 18px calc(28px + env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
+    box-shadow: 0 -8px 40px rgba(0,100,255,0.28), 0 0 0 1px rgba(0,174,239,0.06);
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.34,1.15,0.64,1);
+    will-change: transform;
+    max-width: 520px;
+    margin: 0 auto;
+}
+#snxCreateMenu.open {
+    display: block;
+    transform: translateY(0);
+}
+
+/* Drag handle pill */
+.create-menu-handle {
+    width: 40px;
+    height: 4px;
+    background: rgba(0,174,239,0.35);
+    border-radius: 4px;
+    margin: 0 auto 18px;
+}
+
+/* Title */
+.create-menu-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #ffffff;
+    text-align: center;
+    margin-bottom: 18px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 14px rgba(0,174,239,0.45);
+}
+
+/* Grid of option tiles */
+.create-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+}
+@media (max-width: 380px) {
+    .create-menu-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Individual option tile */
+.create-menu-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    padding: 16px 10px 14px;
+    background: rgba(0,20,55,0.75);
+    border: 1px solid rgba(0,174,239,0.22);
+    border-radius: 16px;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.18s, border-color 0.18s, transform 0.12s, box-shadow 0.18s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    min-height: 44px;
+}
+.create-menu-tile:hover {
+    background: rgba(0,60,140,0.45);
+    border-color: rgba(0,174,239,0.65);
+    box-shadow: 0 0 18px rgba(0,174,239,0.22);
+}
+.create-menu-tile:active { transform: scale(0.93); }
+.create-menu-tile.live-tile {
+    border-color: rgba(255,30,60,0.35);
+}
+.create-menu-tile.live-tile:hover {
+    background: rgba(120,0,30,0.3);
+    border-color: rgba(255,60,80,0.72);
+    box-shadow: 0 0 18px rgba(255,30,60,0.28);
+}
+.create-menu-tile.post-tile {
+    border-color: rgba(57,255,20,0.28);
+}
+.create-menu-tile.post-tile:hover {
+    background: rgba(0,80,20,0.28);
+    border-color: rgba(57,255,20,0.65);
+    box-shadow: 0 0 18px rgba(57,255,20,0.20);
+}
+
+.cmt-icon { font-size: 32px; line-height: 1; }
+.cmt-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #d8eeff;
+    line-height: 1.3;
+    letter-spacing: 0.2px;
+}
+.cmt-desc {
+    font-size: 10px;
+    color: #4a7a9a;
+    line-height: 1.3;
+}
+
+/* Cancel button */
+.create-menu-cancel {
+    display: block;
+    width: 100%;
+    padding: 13px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 14px;
+    color: #6a90b8;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 46px;
+    text-align: center;
+    font-family: inherit;
+}
+.create-menu-cancel:hover { background: rgba(255,255,255,0.09); color: #c8e8ff; }
+</style>
+
 <body>
 
 <!-- Auth gate — rendered before anything else, removed after Firebase resolves -->
@@ -6012,22 +6255,20 @@ body.arcade-fs-ios body::after { display:none !important; }
 <div class="page" id="feed">
     <h2 class="eclipse-title">⚡ Eclipse Feed</h2>
 
+    <!-- ── Feed Action Bar: Share Story only ── -->
+    <div class="feed-action-bar section-card" id="feedActionBar" style="padding:12px 16px; margin-bottom:0;">
+        <button id="btnShareStory" type="button"
+                onclick="snxShareStory(event)">
+            📖 <span>Share Story</span>
+        </button>
+    </div>
+
     <!-- ── Legend Stories Strip ── -->
     <div class="story-strip-section section-card" id="storyStripSection" style="padding:14px 16px;">
         <div class="story-strip-label">
             <span>📖 Legend Stories</span>
         </div>
         <div class="story-strip" id="storyStrip">
-            <!-- Add Story — direct to story creator -->
-            <div class="story-add-btn" id="storyAddBtn" onclick="openStoryCreator()" title="Post a Story">
-                <div class="story-add-circle">➕</div>
-                <span class="story-add-label">Add</span>
-            </div>
-            <!-- Go Live — direct to camera preview -->
-            <div class="story-golive-btn" id="goLiveBtn" onclick="openGoLive()" title="Go Live">
-                <div class="story-golive-circle">🔴</div>
-                <span class="story-golive-label">Go Live</span>
-            </div>
             <!-- Story circles injected by JS -->
         </div>
     </div>
@@ -19633,12 +19874,42 @@ function _esc(str) {
 /* ════════════════════════════════════════════════════
    STORY CHOOSER MODAL
    ════════════════════════════════════════════════════ */
+
+// Primary entry point — called by the Share Story button
+window.snxShareStory = function(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+
+    // If user is signed in, open immediately
+    if (_me()) {
+        const modal = document.getElementById('storyChooserModal');
+        if (!modal) { _toast('Story panel unavailable. Please refresh.'); return; }
+        modal.classList.add('open');
+        return;
+    }
+
+    // Auth not yet resolved — queue retry (happens only on very first page load)
+    if (!window._snxAuthResolved && window._snxOnAuthReady) {
+        _toast('Opening Story…');
+        window._snxOnAuthReady(function() {
+            if (_me()) {
+                const modal = document.getElementById('storyChooserModal');
+                if (modal) modal.classList.add('open');
+            } else {
+                _toast('Sign in to share a Story.');
+            }
+        });
+        return;
+    }
+
+    _toast('Sign in to share a Story.');
+};
+
 window.openStoryChooser = function() {
-    if (!_me()) { _toast('Sign in to share a Story.'); return; }
-    document.getElementById('storyChooserModal').classList.add('open');
+    window.snxShareStory();
 };
 window.closeStoryChooser = function() {
-    document.getElementById('storyChooserModal').classList.remove('open');
+    const modal = document.getElementById('storyChooserModal');
+    if (modal) modal.classList.remove('open');
 };
 
 /* ════════════════════════════════════════════════════
@@ -20168,10 +20439,10 @@ window.svToggleReplies = async function() {
 /* ════════════════════════════════════════════════════
    GO LIVE — Setup & Preview
    ════════════════════════════════════════════════════ */
-window.openGoLive = async function() {
-    // If auth hasn't resolved yet, wait for it then retry
+window.openGoLive = function() {
+    // Auth guard — wait for resolution if not yet done
     if (!_me()) {
-        if (!window._snxAuthResolved) {
+        if (window._snxAuthResolved === false && window._snxOnAuthReady) {
             window._snxOnAuthReady(function() { window.openGoLive(); });
             return;
         }
@@ -20179,46 +20450,59 @@ window.openGoLive = async function() {
         return;
     }
 
-    // Open modal immediately so user sees a response
+    // ── Open modal immediately — user sees instant feedback ──
     const modal = document.getElementById('storyLiveModal');
+    if (!modal) { _toast('Live setup unavailable.'); return; }
     modal.classList.add('open');
 
-    // Re-enable Start Live button in case it was disabled from a previous session
-    const startBtn = document.getElementById('liveStartBtn');
-    if (startBtn) startBtn.disabled = false;
-
-    // Reset title / privacy fields
+    // Reset fields & button state
+    const startBtn   = document.getElementById('liveStartBtn');
     const titleInput = document.getElementById('liveTitleInput');
-    if (titleInput) titleInput.value = '';
+    const privSelect = document.getElementById('livePrivacySelect');
+    const camStatus  = document.getElementById('liveCamStatus');
+    if (startBtn)   startBtn.disabled = false;
+    if (titleInput && titleInput.type !== 'hidden') titleInput.value = '';
+    if (privSelect && privSelect.type !== 'hidden') privSelect.value = 'everyone';
 
-    try {
-        // Stop any leftover stream first
-        _stopLiveStream();
+    // Show "starting camera…" notice
+    if (camStatus) { camStatus.textContent = '⏳ Starting camera…'; camStatus.style.display = 'flex'; }
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: SNX_STORY.liveFacing },
-            audio: true
-        });
+    // Stop any leftover stream, then re-acquire
+    _stopLiveStream();
+
+    // Request camera+mic now (after modal is visible, so permission prompt appears in context)
+    navigator.mediaDevices.getUserMedia({
+        video: { facingMode: SNX_STORY.liveFacing, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: true
+    }).then(function(stream) {
         SNX_STORY.liveStream = stream;
 
         const preview = document.getElementById('livePreviewVideo');
         if (preview) {
             preview.srcObject = stream;
-            preview.play().catch(() => {}); // explicit play for mobile
+            preview.play().catch(function() {});
         }
 
         // Show PREVIEW badge
         const badge = document.getElementById('livePreviewBadge');
         if (badge) badge.classList.add('visible');
 
-        // Reset UI state
+        // Update camera status
+        if (camStatus) { camStatus.textContent = '📷 Camera ready'; }
+        setTimeout(function() { if (camStatus) camStatus.style.display = 'none'; }, 2000);
+
         SNX_STORY.liveMicOn = true;
         SNX_STORY.liveCamOn = true;
         _syncLiveCtrlBtns();
-    } catch(err) {
+    }).catch(function(err) {
+        // Show error in the modal — never leave user with unresponsive button
+        if (camStatus) {
+            camStatus.textContent = '⚠️ Camera/mic blocked — tap below to retry';
+            camStatus.style.display = 'flex';
+        }
         _toast('Camera/mic access required: ' + (err.message || err));
-        // Don't close modal — let user see the error and retry or cancel
-    }
+        // Enable a retry path via the existing flip/toggle controls
+    });
 };
 
 window.closeGoLive = function() {
@@ -20243,27 +20527,37 @@ function _stopLiveStream() {
     if (preview) { preview.srcObject = null; }
 }
 
-window.liveFlipCamera = async function() {
-    SNX_STORY.liveFacing = SNX_STORY.liveFacing === 'user' ? 'environment' : 'user';
-    if (SNX_STORY.liveStream) {
-        SNX_STORY.liveStream.getVideoTracks().forEach(t => t.stop());
+window.liveFlipCamera = function() {
+    // If no stream yet (e.g. permission was denied), treat as a retry
+    if (!SNX_STORY.liveStream) {
+        window.openGoLive();
+        return;
     }
-    try {
-        const newStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: SNX_STORY.liveFacing },
-            audio: SNX_STORY.liveMicOn
-        });
+    SNX_STORY.liveFacing = SNX_STORY.liveFacing === 'user' ? 'environment' : 'user';
+    SNX_STORY.liveStream.getVideoTracks().forEach(function(t) { t.stop(); });
+
+    const camStatus = document.getElementById('liveCamStatus');
+    if (camStatus) { camStatus.textContent = '⏳ Switching camera…'; camStatus.style.display = 'flex'; }
+
+    navigator.mediaDevices.getUserMedia({
+        video: { facingMode: SNX_STORY.liveFacing },
+        audio: true
+    }).then(function(newStream) {
         const preview = document.getElementById('livePreviewVideo');
-        if (preview) { preview.srcObject = newStream; preview.play().catch(() => {}); }
-        // Replace video track in existing stream
-        if (SNX_STORY.liveStream) {
-            const oldAudio = SNX_STORY.liveStream.getAudioTracks();
-            SNX_STORY.liveStream = newStream;
-            if (oldAudio.length) SNX_STORY.liveStream.addTrack(oldAudio[0]);
-        } else {
-            SNX_STORY.liveStream = newStream;
+        if (preview) { preview.srcObject = newStream; preview.play().catch(function() {}); }
+        // Carry over audio track from previous stream if present
+        const oldAudio = SNX_STORY.liveStream ? SNX_STORY.liveStream.getAudioTracks() : [];
+        SNX_STORY.liveStream = newStream;
+        if (oldAudio.length && !newStream.getAudioTracks().length) {
+            SNX_STORY.liveStream.addTrack(oldAudio[0]);
         }
-    } catch(_) { _toast('Could not flip camera.'); }
+        if (camStatus) camStatus.style.display = 'none';
+        SNX_STORY.liveCamOn = true;
+        _syncLiveCtrlBtns();
+    }).catch(function() {
+        if (camStatus) { camStatus.textContent = '⚠️ Camera unavailable'; camStatus.style.display = 'flex'; }
+        _toast('Could not switch camera.');
+    });
 };
 
 window.liveToggleMic = function() {
@@ -21197,15 +21491,15 @@ function _snxToast(msg) {
     <div class="story-chooser-inner">
         <div class="story-chooser-title">📖 Share a Legend Story</div>
         <div class="story-chooser-options">
-            <div class="story-chooser-option" onclick="openStoryCreator()">
+            <div class="story-chooser-option" onclick="closeStoryChooser(); openStoryCreator();">
                 <div class="sco-icon">📸</div>
                 <div class="sco-label">Post Story</div>
                 <div class="sco-desc">Photo, video, text, music & more</div>
             </div>
-            <div class="story-chooser-option live-option" onclick="openGoLive()">
+            <div class="story-chooser-option live-option" onclick="closeStoryChooser(); openGoLive();">
                 <div class="sco-icon">🔴</div>
                 <div class="sco-label">Go Live</div>
-                <div class="sco-desc">Start a live stream for your followers</div>
+                <div class="sco-desc">Camera &amp; mic — starts your live stream</div>
             </div>
         </div>
         <button class="story-chooser-cancel" onclick="closeStoryChooser()">Cancel</button>
@@ -21352,8 +21646,11 @@ function _snxToast(msg) {
 
             <div class="live-hud-spacer"></div>
 
-            <!-- Bottom: mic status + controls + Go Live + Cancel -->
+            <!-- Bottom: camera status + title + privacy + controls + Go Live + Cancel -->
             <div class="live-hud-bottom">
+
+                <!-- Camera status (shown during startup / error) -->
+                <div id="liveCamStatus" style="display:none; align-items:center; gap:6px; font-size:12px; color:rgba(255,255,255,0.8); text-align:center;"></div>
 
                 <!-- Mic status -->
                 <div id="liveMicStatus">
@@ -21361,15 +21658,25 @@ function _snxToast(msg) {
                     <span id="liveMicStatusText">Microphone: On</span>
                 </div>
 
-                <!-- Controls: Switch Camera + Mute/Unmute only -->
+                <!-- Controls: Switch Camera + Mute/Unmute -->
                 <div class="live-controls-row">
                     <button class="live-ctrl-btn" id="liveBtnFlipCam" onclick="liveFlipCamera()">🔄 Switch Camera</button>
                     <button class="live-ctrl-btn" id="liveBtnToggleMic" onclick="liveToggleMic()">🎙 Mute</button>
                 </div>
 
-                <!-- Hidden fields kept for JS compatibility -->
-                <input type="hidden" id="liveTitleInput" value="">
-                <input type="hidden" id="livePrivacySelect" value="everyone">
+                <!-- Live title -->
+                <input type="text" id="liveTitleInput" placeholder="📝 Live title (optional)"
+                       maxlength="80"
+                       style="width:100%; max-width:320px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.3); border-radius:10px; color:#fff; font-size:14px; padding:10px 14px; font-family:inherit; outline:none; box-sizing:border-box;"
+                       onfocus="this.style.borderColor='rgba(0,174,239,0.8)'" onblur="this.style.borderColor='rgba(255,255,255,0.3)'">
+
+                <!-- Who can watch -->
+                <select id="livePrivacySelect"
+                        style="width:100%; max-width:320px; background:rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.28); border-radius:10px; color:#fff; font-size:13px; padding:9px 12px; font-family:inherit; outline:none; box-sizing:border-box; cursor:pointer;">
+                    <option value="everyone">🌍 Everyone can watch</option>
+                    <option value="followers">👥 Followers only</option>
+                    <option value="friends">✅ Friends only</option>
+                </select>
 
                 <!-- Go Live button -->
                 <button class="live-start-btn" id="liveStartBtn" onclick="startCountdownAndGoLive()">🔴 Go Live</button>
@@ -21468,6 +21775,208 @@ function _snxToast(msg) {
         <button class="lbw-cancel" onclick="lvCancelBoxRequest()">Cancel</button>
     </div>
 </div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     CREATE (+) BUTTON + CREATE MENU
+     Floating action button that opens a bottom-sheet menu with
+     quick access to all content-creation entry points.
+     ══════════════════════════════════════════════════════════════ -->
+
+<!-- Floating ➕ Create button -->
+<button id="snxCreateBtn" aria-label="Create content" aria-haspopup="true" aria-expanded="false" onclick="snxOpenCreateMenu()">
+    <span class="create-btn-icon" aria-hidden="true">➕</span>
+    Create
+</button>
+
+<!-- Tap-outside backdrop -->
+<div id="snxCreateOverlay" onclick="snxCloseCreateMenu()" aria-hidden="true"></div>
+
+<!-- Bottom-sheet panel -->
+<div id="snxCreateMenu" role="dialog" aria-label="Create content" aria-modal="true">
+    <div class="create-menu-handle" aria-hidden="true"></div>
+    <div class="create-menu-title">✨ Create</div>
+
+    <div class="create-menu-grid">
+        <!-- Share Story — opens chooser (Post Story or Go Live) -->
+        <div class="create-menu-tile" role="button" tabindex="0"
+             onclick="snxCreateAction('story')"
+             onkeydown="if(event.key==='Enter'||event.key===' ')snxCreateAction('story')">
+            <span class="cmt-icon">📖</span>
+            <span class="cmt-label">Share Story</span>
+            <span class="cmt-desc">Story or Go Live</span>
+        </div>
+
+        <!-- Photo -->
+        <div class="create-menu-tile" role="button" tabindex="0"
+             onclick="snxCreateAction('photo')"
+             onkeydown="if(event.key==='Enter'||event.key===' ')snxCreateAction('photo')">
+            <span class="cmt-icon">📷</span>
+            <span class="cmt-label">Photo</span>
+            <span class="cmt-desc">Share a photo</span>
+        </div>
+
+        <!-- Video -->
+        <div class="create-menu-tile" role="button" tabindex="0"
+             onclick="snxCreateAction('video')"
+             onkeydown="if(event.key==='Enter'||event.key===' ')snxCreateAction('video')">
+            <span class="cmt-icon">🎥</span>
+            <span class="cmt-label">Video</span>
+            <span class="cmt-desc">Upload a video</span>
+        </div>
+
+        <!-- Music -->
+        <div class="create-menu-tile" role="button" tabindex="0"
+             onclick="snxCreateAction('music')"
+             onkeydown="if(event.key==='Enter'||event.key===' ')snxCreateAction('music')">
+            <span class="cmt-icon">🎵</span>
+            <span class="cmt-label">Music</span>
+            <span class="cmt-desc">Share audio</span>
+        </div>
+
+        <!-- Post -->
+        <div class="create-menu-tile post-tile" role="button" tabindex="0"
+             onclick="snxCreateAction('post')"
+             onkeydown="if(event.key==='Enter'||event.key===' ')snxCreateAction('post')">
+            <span class="cmt-icon">📝</span>
+            <span class="cmt-label">Post</span>
+            <span class="cmt-desc">Write something</span>
+        </div>
+    </div>
+
+    <button class="create-menu-cancel" onclick="snxCloseCreateMenu()">Cancel</button>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   CREATE MENU — open / close / actions
+   ════════════════════════════════════════════════════ */
+(function() {
+
+    /* Open the Create menu */
+    window.snxOpenCreateMenu = function() {
+        var btn     = document.getElementById('snxCreateBtn');
+        var overlay = document.getElementById('snxCreateOverlay');
+        var menu    = document.getElementById('snxCreateMenu');
+        if (!btn || !overlay || !menu) return;
+
+        btn.classList.add('menu-open');
+        btn.setAttribute('aria-expanded', 'true');
+        overlay.classList.add('open');
+
+        /* Force a reflow so the CSS transition fires from translateY(100%) → 0 */
+        menu.style.display = 'block';
+        menu.offsetHeight; // trigger reflow
+        menu.classList.add('open');
+    };
+
+    /* Close the Create menu */
+    window.snxCloseCreateMenu = function() {
+        var btn     = document.getElementById('snxCreateBtn');
+        var overlay = document.getElementById('snxCreateOverlay');
+        var menu    = document.getElementById('snxCreateMenu');
+        if (!btn || !overlay || !menu) return;
+
+        btn.classList.remove('menu-open');
+        btn.setAttribute('aria-expanded', 'false');
+        overlay.classList.remove('open');
+        menu.classList.remove('open');
+
+        /* Hide after transition so the sheet slides out cleanly */
+        setTimeout(function() {
+            if (!menu.classList.contains('open')) {
+                menu.style.display = 'none';
+            }
+        }, 310);
+    };
+
+    /* Handle each tile action */
+    window.snxCreateAction = function(type) {
+        snxCloseCreateMenu();
+
+        /* Small delay so the sheet finishes closing before the next modal opens */
+        setTimeout(function() {
+
+            switch (type) {
+
+                case 'story':
+                    /* Open the Story Chooser (Post Story → creator, or Go Live) */
+                    if (typeof openStoryChooser === 'function') {
+                        openStoryChooser();
+                    } else if (typeof openStoryCreator === 'function') {
+                        openStoryCreator();
+                    }
+                    break;
+
+                case 'photo':
+                    /* Open Story Creator and immediately trigger the photo picker */
+                    if (typeof openStoryCreator === 'function') {
+                        openStoryCreator();
+                        setTimeout(function() {
+                            var inp = document.getElementById('storyMediaInput');
+                            if (inp) {
+                                inp.accept = 'image/*';
+                                inp.capture = 'environment';
+                                inp.click();
+                            }
+                        }, 200);
+                    }
+                    break;
+
+                case 'video':
+                    /* Open Story Creator and immediately trigger the video picker */
+                    if (typeof openStoryCreator === 'function') {
+                        openStoryCreator();
+                        setTimeout(function() {
+                            var inp = document.getElementById('storyMediaInput');
+                            if (inp) {
+                                inp.accept = 'video/*';
+                                inp.capture = 'environment';
+                                inp.click();
+                            }
+                        }, 200);
+                    }
+                    break;
+
+                case 'music':
+                    /* Open post composer and trigger the post media picker filtered to audio */
+                    if (typeof navTo === 'function') navTo('feed');
+                    setTimeout(function() {
+                        var fileInput = document.getElementById('postMediaFile');
+                        if (fileInput) {
+                            fileInput.accept = 'audio/*';
+                            fileInput.removeAttribute('capture');
+                            fileInput.click();
+                        }
+                    }, 250);
+                    break;
+
+                case 'post':
+                    /* Navigate to feed and focus the post composer */
+                    if (typeof navTo === 'function') navTo('feed');
+                    setTimeout(function() {
+                        var ta = document.getElementById('postText');
+                        if (ta) {
+                            ta.focus();
+                            ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }, 200);
+                    break;
+            }
+        }, 160);
+    };
+
+    /* Close when Escape is pressed */
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            var menu = document.getElementById('snxCreateMenu');
+            if (menu && menu.classList.contains('open')) {
+                snxCloseCreateMenu();
+            }
+        }
+    });
+
+})();
+</script>
 
 </body>
 </html>

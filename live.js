@@ -52,10 +52,32 @@ setPersistence(auth, browserLocalPersistence).catch(() => {});
 /* ─────────────────────────────────────────────────
    ICE / Quality
 ───────────────────────────────────────────────── */
-const ICE_SERVERS = [
+const TURN_ENDPOINT = "https://yellow-term-11e6.nthntjrn.workers.dev/turn";
+const STUN_ONLY = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
 ];
+
+// Resolved once per page load; falls back to STUN-only if worker is unreachable
+let ICE_SERVERS = STUN_ONLY;
+let _iceReady   = false;
+
+async function loadIceServers() {
+  if (_iceReady) return;
+  try {
+    const uid = auth.currentUser?.uid || "anon";
+    const res = await fetch(`${TURN_ENDPOINT}?uid=${encodeURIComponent(uid)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.iceServers) && data.iceServers.length) {
+        ICE_SERVERS = data.iceServers;
+      }
+    }
+  } catch (_) {
+    // network error — STUN_ONLY fallback stays in place
+  }
+  _iceReady = true;
+}
 const QUALITY = {
   HIGH:   { width: 1280, height: 720,  frameRate: 30, bitrate: 1_500_000 },
   MEDIUM: { width: 854,  height: 480,  frameRate: 24, bitrate:   700_000 },
@@ -219,6 +241,8 @@ async function goLive() {
   btn.disabled = true;
   btn.textContent = "Starting…";
 
+  await loadIceServers();
+
   const title   = ($("setupTitleInput").value || "").trim();
   const privacy = $("setupPrivacySelect").value || "everyone";
   const name    = userData.displayName || userData.username || me.displayName || "Host";
@@ -317,6 +341,7 @@ function startLive() {
 ───────────────────────────────────────────────── */
 async function joinAsViewer() {
   if (!roomId) return;
+  await loadIceServers();
   try {
     const snap = await getDoc(doc(db, "stories", roomId));
     if (!snap.exists() || !snap.data().liveActive) {

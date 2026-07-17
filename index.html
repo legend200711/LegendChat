@@ -19525,7 +19525,7 @@ window._snxArcadeSubscribeInvites = _subscribeInvites;
     </div><!-- end livePreview -->
 
     <!-- ── Active live room (full-screen) ── -->
-    <div id="liveRoom">
+    <div id="liveRoom" style="display:none;">
 
         <!-- Host video stream (host side) -->
         <video id="liveHostVideo" autoplay muted playsinline></video>
@@ -19759,7 +19759,7 @@ function _esc(str) {
    PREVIEW FLOW
    ═══════════════════════════════════ */
 async function liveOpenPreview() {
-  if (!_liveUser) { _toast('Sign in to go live.'); return; }
+  if (!_me()) { _toast('Sign in to go live.'); return; }
 
   _el('livePageContent').style.display = 'none';
   _el('livePreview').style.display     = 'flex';
@@ -19809,7 +19809,7 @@ window.liveTogglePreviewCam = liveTogglePreviewCam;
    HOST: start live stream
    ═══════════════════════════════════ */
 async function liveStartStream() {
-  if (!_liveUser || !_liveStream) return;
+  if (!_me() || !_liveStream) return;
   const btn = _el('liveGoLiveBtn');
   btn.disabled   = true;
   btn.textContent = '⏳ Starting…';

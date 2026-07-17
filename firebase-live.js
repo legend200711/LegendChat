@@ -32,8 +32,8 @@ const _CFG = {
   databaseURL:       'https://horr-a08f4-default-rtdb.firebaseio.com',
   projectId:         'horr-a08f4',
   storageBucket:     'horr-a08f4.firebasestorage.app',
-  messagingSenderId: '123456789',           // not used here
-  appId:             '1:horr-a08f4:web:live',
+  messagingSenderId: '933810617818',
+  appId:             '1:933810617818:web:efb24f123337dd987c14e3',
 };
 
 /* Re-use the app if already initialised (e.g. when loaded alongside index.html).

@@ -25,10 +25,13 @@ import { getAuth, onAuthStateChanged }
 
 /* ── Bootstrap Firebase Auth (reuse existing app or init a new one) ── */
 const _AUTH_CFG = {
-  apiKey:        'AIzaSyByZRmp6R9HY17T2_WdJUFWeeaLNOP6y2Y',
-  authDomain:    'horr-a08f4.firebaseapp.com',
-  projectId:     'horr-a08f4',
-  appId:         '1:horr-a08f4:web:live',
+  apiKey:            'AIzaSyByZRmp6R9HY17T2_WdJUFWeeaLNOP6y2Y',
+  authDomain:        'horr-a08f4.firebaseapp.com',
+  databaseURL:       'https://horr-a08f4-default-rtdb.firebaseio.com',
+  projectId:         'horr-a08f4',
+  storageBucket:     'horr-a08f4.firebasestorage.app',
+  messagingSenderId: '933810617818',
+  appId:             '1:933810617818:web:efb24f123337dd987c14e3',
 };
 const _authApp  = getApps().length
   ? (getApps().find(a => a.name === 'snx-live') || getApp())

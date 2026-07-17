@@ -365,7 +365,9 @@ async function joinAsViewer() {
           updateGridClass();
         }
         if (e.streams && e.streams[0]) {
-          box.querySelector("video").srcObject = e.streams[0];
+          const vid = box.querySelector("video");
+          vid.srcObject = e.streams[0];
+          vid.play().catch(() => {});
         }
       };
 
@@ -559,7 +561,8 @@ async function createViewerPeer(viewerUid, displayName) {
   };
 
   pc.onconnectionstatechange = () => {
-    if (pc.connectionState === "failed" || pc.connectionState === "closed") {
+    const s = pc.connectionState;
+    if (s === "failed" || s === "disconnected" || s === "closed") {
       delete peers["view_" + viewerUid];
     }
   };
@@ -739,6 +742,7 @@ async function createHostPeer(guestUid, displayName) {
     if (box) {
       const vid = box.querySelector("video");
       vid.srcObject = e.streams[0];
+      vid.play().catch(() => {});
     }
     updateMiniStrip();
   };
@@ -830,7 +834,11 @@ async function joinAsGuest() {
         $("videoGrid").insertBefore(box, $("videoGrid").firstChild);
         updateGridClass();
       }
-      box.querySelector("video").srcObject = e.streams[0];
+      if (e.streams && e.streams[0]) {
+        const vid = box.querySelector("video");
+        vid.srcObject = e.streams[0];
+        vid.play().catch(() => {});
+      }
     };
 
     pc.onconnectionstatechange = () => handlePCState(pc, me.uid);
@@ -1261,6 +1269,8 @@ function cleanup() {
   clearInterval(timerInt);
   unsubs.forEach(fn => { try { fn(); } catch (_) {} });
   unsubs.length = 0;
+  // Null srcObject on all video boxes before closing peers (releases media tracks)
+  document.querySelectorAll("#videoGrid video").forEach(v => { v.srcObject = null; });
   Object.values(peers).forEach(pc => { try { pc.close(); } catch (_) {} });
   Object.keys(peers).forEach(k => delete peers[k]);
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }

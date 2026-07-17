@@ -19623,7 +19623,12 @@ function _me()     { return _liveUser || window._snxCurrentUser || null; }
 function _myData() { return _liveMyData || window._snxUserData  || null; }
 
 // Sync from the main module's auth observer
-onAuthStateChanged(_liveAuth, u => { _liveUser = u; });
+onAuthStateChanged(_liveAuth, u => {
+  _liveUser = u;
+  /* Keep the lobby "Go Live" button in sync with auth state */
+  const lobbyBtn = document.querySelector('#liveGoLiveCard .live-start-btn');
+  if (lobbyBtn) lobbyBtn.disabled = !u;
+});
 
 /* ═══════════════════════════════════
    HELPERS
@@ -19783,8 +19788,10 @@ async function liveOpenPreview() {
   _el('liveCamError').style.display    = 'none';
 
   try {
+    /* Use facingMode only — no width/height to avoid OverconstrainedError on
+       webcams that can't deliver 720×1280 portrait (desktops, older phones). */
     _liveStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 1280 } },
+      video: { facingMode: 'user' },
       audio: { echoCancellation: true, noiseSuppression: true },
     });
     _el('livePreviewVideo').srcObject = _liveStream;
@@ -19792,7 +19799,20 @@ async function liveOpenPreview() {
   } catch(err) {
     console.warn('[LIVE] Camera/mic permission denied', err);
     _el('liveCamError').style.display = 'block';
-    /* Don't hide the preview — let the user see the error and decide to cancel */
+    /* Add a one-shot retry button so the user isn't stuck with a disabled Start button */
+    if (!_el('liveCamRetryBtn')) {
+      const retryBtn = document.createElement('button');
+      retryBtn.id        = 'liveCamRetryBtn';
+      retryBtn.className = 'live-start-btn';
+      retryBtn.style.cssText = 'margin-top:8px;';
+      retryBtn.textContent   = '🔄 Retry Camera';
+      retryBtn.onclick = () => {
+        retryBtn.remove();
+        _el('liveCamError').style.display = 'none';
+        liveOpenPreview();
+      };
+      _el('liveCamError').insertAdjacentElement('afterend', retryBtn);
+    }
   }
 }
 window.liveOpenPreview = liveOpenPreview;

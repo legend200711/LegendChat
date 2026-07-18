@@ -39,11 +39,12 @@ const TYPE_TITLES = {
 
 // Background FCM messages (app closed / background)
 messaging.onBackgroundMessage((payload) => {
-  const data  = payload.data  || {};
-  const notif = payload.notification || {};
-  const type  = data.type || 'announcement';
-  const title = notif.title || TYPE_TITLES[type] || '🔔 Shadow Nexus Social';
-  const body  = notif.body  || data.body || 'You have a new notification';
+  const data    = payload.data  || {};
+  const notif   = payload.notification || {};
+  const type    = data.type    || 'announcement';
+  const fromUid = data.fromUid || '';
+  const title   = notif.title || TYPE_TITLES[type] || '🔔 Shadow Nexus Social';
+  const body    = notif.body  || data.body || 'You have a new notification';
 
   return self.registration.showNotification(title, {
     body,
@@ -52,21 +53,36 @@ messaging.onBackgroundMessage((payload) => {
     tag:     `snx-${type}-${Date.now()}`,
     renotify: true,
     vibrate: [200, 100, 200],
-    data:    { url: APP_URL },
+    data:    { url: APP_URL, type, fromUid },
   });
 });
 
-// Notification click → focus existing tab or open app
+// Notification click → for message notifications open the Profile Message modal;
+// for everything else focus the existing tab or open the app.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  // Use the data URL if set, otherwise fall back to the app root
-  const url = event.notification.data?.url || APP_URL;
+  const data    = event.notification.data || {};
+  const url     = data.url || APP_URL;
+  const type    = data.type    || '';
+  const fromUid = data.fromUid || '';
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
-      // Focus an existing tab that is already on the app
-      for (const c of list) {
-        if (c.url.includes('/ShadowNexusSocial') && 'focus' in c) return c.focus();
+      const appTab = list.find(c => c.url.includes('/ShadowNexusSocial'));
+
+      if (type === 'message' && fromUid) {
+        // Route message taps: tell the open page to call ipcOpen(fromUid)
+        if (appTab) {
+          appTab.focus();
+          appTab.postMessage({ type: 'SNX_OPEN_CHAT', fromUid });
+          return;
+        }
+        // App not open — open it; page will handle SNX_OPEN_CHAT on next load via sessionStorage
+        return clients.openWindow(url + '?snxChat=' + encodeURIComponent(fromUid));
       }
+
+      // Default: focus existing tab or open app
+      if (appTab && 'focus' in appTab) return appTab.focus();
       return clients.openWindow(url);
     })
   );

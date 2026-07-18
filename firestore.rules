@@ -7,8 +7,7 @@ rules_version = '2';
 //   /users/{uid}                                      — user profiles
 //   /stories/{storyId}                                — stories
 //   /posts/{postId}                                   — feed posts (comments + likes stored inside doc)
-//   /chats/{chatId}                                   — DM inbox conversations (messages stored inside doc)
-//   /profileMessages/{chatId}                         — profile chat messages (separate from DM inbox)
+//   /chats/{chatId}                                   — DM conversations (messages stored inside doc)
 //   /siteSettings/{doc}                               — site config (maintenance mode, feature flags)
 //   /aiModerationLog/{docId}                          — AI moderation events
 //   /reports/{docId}                                  — user reports
@@ -81,7 +80,7 @@ service cloud.firestore {
             || isFounder());
     }
 
-    // ── Chats (DM Inbox) ──────────────────────────────────────────────────────
+    // ── Chats (Direct Messages) ───────────────────────────────────────────────
     // Each chat document stores both participants and an embedded messages array.
     // A user may only read or write a chat they are a participant in.
     // The Founder can read/delete any chat for moderation purposes.
@@ -96,25 +95,6 @@ service cloud.firestore {
       allow update: if isSignedIn()
         && (request.auth.uid in resource.data.participants || isFounder());
       // Only participants or the Founder may delete a conversation
-      allow delete: if isSignedIn()
-        && (request.auth.uid in resource.data.participants || isFounder());
-    }
-
-    // ── Profile Messages ──────────────────────────────────────────────────────
-    // Dedicated collection for the ipcModal profile-chat overlay.
-    // Completely separate from the DM inbox (`chats`) so notifications are
-    // only triggered from here and the two message streams never mix.
-
-    match /profileMessages/{chatId} {
-      // Participant or Founder may read
-      allow read: if isSignedIn()
-        && (request.auth.uid in resource.data.participants || isFounder());
-      // Any signed-in user can create (setDoc with merge when opening a profile chat)
-      allow create: if isSignedIn();
-      // Only participants or the Founder may update (send messages, mark read, typing indicator)
-      allow update: if isSignedIn()
-        && (request.auth.uid in resource.data.participants || isFounder());
-      // Only participants or the Founder may delete
       allow delete: if isSignedIn()
         && (request.auth.uid in resource.data.participants || isFounder());
     }

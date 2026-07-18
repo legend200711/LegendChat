@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -891,7 +891,7 @@ input:focus, textarea:focus, select:focus {
 .msg-ctx-divider { height:1px; background:rgba(0,174,239,0.12); margin:4px 0; }
 
 /* ── Deleted message style ── */
-.ipc-modal-bubble.deleted { opacity:0.5; font-style:italic; color:#556 !important;
+.msg-bubble.deleted, .ipc-modal-bubble.deleted {    opacity:0.5; font-style:italic; color:#556 !important;
     background:rgba(0,0,0,0.2) !important; border-color:rgba(80,80,80,0.2) !important;
 }
 
@@ -954,10 +954,18 @@ img.post-media-preview::before {
 /* ── Drag-and-drop ── */
 .snx-dropzone { border:2px dashed rgba(0,174,239,0.35); border-radius:12px; padding:10px; transition:all 0.2s; }
 .snx-dropzone.drag-over { border-color:rgba(0,174,239,0.9); background:rgba(0,174,239,0.08); }
-/* ── Chat media bubbles (used by ipcModal) ── */
+/* ── DM media bubbles ── */
 .msg-media-img { max-width:220px; max-height:180px; border-radius:10px; cursor:pointer; object-fit:cover; display:block; margin-bottom:4px; border:1px solid rgba(0,100,200,0.3); }
 .msg-media-vid { max-width:220px; border-radius:10px; display:block; margin-bottom:4px; }
 .msg-media-aud { width:200px; margin-bottom:4px; }
+
+/* ── Delete conversation button ── */
+.chat-del-conv-btn {
+    background:none; border:none; color:#55667a; font-size:16px;
+    cursor:pointer; padding:6px 8px; border-radius:8px; line-height:1;
+    transition:color 0.15s, background 0.15s; flex-shrink:0;
+}
+.chat-del-conv-btn:hover { color:#ff5577; background:rgba(255,51,102,0.1); }
 /* ── Admin panel styles ── */
 .admin-user-row {
     display:flex; align-items:flex-start; gap:12px;
@@ -1607,11 +1615,520 @@ img.post-media-preview::before {
 /* Must be fixed — appended to body, needs to stay at click point */
 .floating-emoji { position: fixed; pointer-events: none; font-size: 24px; animation: floatReaction 0.85s forwards ease-out; z-index: 9000; }
 
+/* ═══════════════════════════════════════════
+   MESSAGING — SPLIT PANE LAYOUT
+   ═══════════════════════════════════════════ */
+
+/* Page override: messaging uses its own full layout */
+#messagesInbox.page {
+    max-width: none;
+    padding: 0;
+    display: none;          /* hidden until .active */
+    height: 100vh;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+#messagesInbox.page.active { display: flex; flex-direction: column; }
+
+.msg-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    height: calc(100vh - 56px); /* subtract header bar */
+    /* Dynamic viewport height so mobile keyboard doesn't cover the chat footer */
+    height: calc(100dvh - 56px);
+}
+
+/* ── Inbox sidebar panel ── */
+.msg-inbox-panel {
+    width: 300px;
+    min-width: 260px;
+    border-right: 1px solid rgba(0,100,255,0.2);
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    overflow: hidden;
+}
+.msg-inbox-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid rgba(0,100,255,0.2);
+    font-weight: bold;
+    font-size: 14px;
+    color: #4db8ff;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* ── Online users strip inside inbox ── */
+.msg-online-strip {
+    padding: 8px 12px 6px;
+    border-bottom: 1px solid rgba(0,80,200,0.15);
+    flex-shrink: 0;
+}
+.msg-online-label {
+    font-size: 10px;
+    color: #3a6a9a;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+.msg-online-avatars {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+}
+.msg-online-avatars::-webkit-scrollbar { display: none; }
+.msg-online-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #0B1F3A;
+    background-size: cover;
+    background-position: center;
+    border: 2px solid rgba(0,200,255,0.55);
+    flex-shrink: 0;
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 0 10px rgba(0,160,255,0.4);
+    transition: transform 0.15s, box-shadow 0.15s;
+    /* minimum touch target */
+    min-width: 40px;
+    min-height: 40px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+.msg-online-avatar:hover { transform: scale(1.1); }
+.msg-online-avatar:active { transform: scale(0.93); }
+.msg-online-avatar-name {
+    font-size: 9px;
+    color: #3a6a9a;
+    text-align: center;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 36px;
+}
+.msg-online-item { display: flex; flex-direction: column; align-items: center; }
+.msg-online-empty { font-size: 11px; color: #334; font-style: italic; }
+
+.msg-inbox-list {
+    overflow-y: auto;
+    flex: 1;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,120,255,0.18) transparent;
+    min-height: 0;
+}
+.msg-inbox-list::-webkit-scrollbar { width: 4px; }
+.msg-inbox-list::-webkit-scrollbar-track { background: transparent; }
+.msg-inbox-list::-webkit-scrollbar-thumb { background: rgba(0,120,255,0.18); border-radius: 4px; }
+.conv-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 12px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(0,51,102,0.3);
+    transition: background 0.15s ease;
+    position: relative;
+    touch-action: manipulation;
+}
+.conv-item:hover, .conv-item.active-conv { background: rgba(0,100,220,0.1); }
+.conv-item:active { background: rgba(0,80,180,0.18); }
+.conv-avatar {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: #0B1F3A; background-size: cover; background-position: center;
+    border: 2px solid rgba(0,174,239,0.32);
+    flex-shrink: 0;
+    position: relative;
+}
+.conv-online-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #555; border: 2px solid var(--bg-card);
+    position: absolute; bottom: 0; right: 0;
+}
+.conv-online-dot.online { background: #00ff88; box-shadow: 0 0 5px rgba(0,255,136,0.7); animation: greenPulse 2s infinite; }
+.conv-meta { flex: 1; min-width: 0; }
+.conv-preview { font-size: 11px; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.conv-unread-badge {
+    background: linear-gradient(135deg,#0055cc,#0088ff); color: #fff;
+    font-size: 10px; font-weight: bold;
+    min-width: 18px; height: 18px;
+    border-radius: 9px; padding: 0 5px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px rgba(0,120,255,0.5);
+}
+.msg-inbox-empty {
+    padding: 30px 16px; color: #555; font-size: 13px; text-align: center;
+}
+
+/* ── Inbox search bar ── */
+.msg-inbox-search-wrap {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(0,80,200,0.14);
+    flex-shrink: 0;
+}
+.msg-inbox-search {
+    width: 100%; box-sizing: border-box;
+    background: rgba(0,10,30,0.7);
+    border: 1px solid rgba(0,100,200,0.28);
+    border-radius: 18px;
+    color: #c8e8ff;
+    font-size: 12px;
+    padding: 7px 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    font-family: inherit;
+}
+.msg-inbox-search:focus { border-color: rgba(0,174,239,0.6); background: rgba(0,15,40,0.85); }
+.msg-inbox-search::placeholder { color: #3a5a7a; }
+
+/* ── Conversation name row (name + timestamp on same line) ── */
+.conv-name-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 6px; min-width: 0;
+}
+.conv-name { font-size: 13px; font-weight: 700; color: #eee; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-ts   { font-size: 10px; color: #3a5a7a; flex-shrink: 0; white-space: nowrap; }
+
+/* Unread conversation highlight */
+.conv-item-unread { background: rgba(0,120,255,0.06); }
+.conv-item-unread .conv-ts { color: #00AEEF; }
+
+/* ── Chat window panel ── */
+.msg-chat-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg-main);
+}
+.chat-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    border-bottom: 1px solid rgba(0,100,220,0.2);
+    background: rgba(4,12,26,0.97);
+    flex-shrink: 0;
+    box-shadow: 0 2px 16px rgba(0,60,160,0.12);
+}
+.chat-header-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: #0B1F3A; background-size: cover; background-position: center;
+    cursor: pointer; transition: opacity 0.15s;
+    border: 2px solid rgba(0,174,239,0.38);
+    position: relative; flex-shrink: 0;
+    /* Larger tap area on mobile — extends hit-zone without changing visual size */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+.chat-header-avatar:hover { opacity: 0.8; }
+.chat-header-online {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #555; border: 2px solid var(--bg-card);
+    position: absolute; bottom: 0; right: 0;
+}
+.chat-header-online.online { background: #00ff88; box-shadow: 0 0 6px rgba(0,255,136,0.8); }
+.chat-header-info { flex: 1; min-width: 0; }
+/* Connection-state colour coding in the header status line */
+.chat-header-status-connected    { color: #39FF14; }
+.chat-header-status-reconnecting { color: #f0b429; }
+.chat-header-status-failed       { color: #ff4466; }
+/* Chat header name: plain label, not clickable */
+.chat-header-name { font-size: 14px; font-weight: bold; color: #eee; cursor: default; }
+.chat-header-status { font-size: 11px; color: #3a6a8a; margin-top: 1px; }
+#chatBackBtn {
+    display: none;
+    background: none; border: none; color: #00aaff;
+    font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 4px;
+    transition: color 0.15s;
+}
+#chatBackBtn:hover { color: #00d4ff; }
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,120,255,0.18) transparent;
+    -webkit-overflow-scrolling: touch;
+    min-height: 0; /* critical: allows flex child to shrink & scroll */
+}
+.chat-messages::-webkit-scrollbar { width: 4px; }
+.chat-messages::-webkit-scrollbar-track { background: transparent; }
+.chat-messages::-webkit-scrollbar-thumb { background: rgba(0,120,255,0.18); border-radius: 4px; }
+/* ── Apply chat-messages layout to the actual element id ── */
+#chatBoxContainer {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,120,255,0.18) transparent;
+    -webkit-overflow-scrolling: touch;
+    min-height: 0;
+}
+#chatBoxContainer::-webkit-scrollbar { width: 4px; }
+#chatBoxContainer::-webkit-scrollbar-track { background: transparent; }
+#chatBoxContainer::-webkit-scrollbar-thumb { background: rgba(0,120,255,0.18); border-radius: 4px; }
+/* ── Message bubbles ── */
+.msg-bubble {
+    max-width: 72%; padding: 8px 13px; border-radius: 14px;
+    word-break: break-word; position: relative;
+    animation: bubbleIn 0.18s ease-out both;
+}
+@keyframes bubbleIn {
+    from { opacity: 0; transform: scale(0.96) translateY(4px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.msg-bubble.me {
+    background: linear-gradient(135deg, #001e55 0%, #003099 100%);
+    align-self: flex-end;
+    border: 1px solid rgba(0,160,255,0.4);
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 2px 14px rgba(0,90,220,0.25);
+}
+.msg-bubble.them {
+    background: rgba(3,12,28,0.97);
+    align-self: flex-start;
+    border: 1px solid rgba(0,100,180,0.28);
+    border-bottom-left-radius: 4px;
+}
+.msg-text { font-size: 13.5px; line-height: 1.5; }
+
+/* Image messages */
+.msg-img {
+    max-width: 240px; max-height: 200px; width: 100%;
+    border-radius: 10px; display: block; margin-bottom: 4px;
+    object-fit: cover; cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.msg-img:hover { opacity: 0.9; }
+
+/* Timestamp + delivery row */
+.msg-meta-row {
+    display: flex; align-items: center; justify-content: flex-end;
+    gap: 4px; margin-top: 3px;
+}
+.msg-bubble.them .msg-meta-row { justify-content: flex-start; }
+.msg-ts { font-size: 10px; color: #556; }
+.msg-tick { font-size: 11px; color: #556; line-height: 1; }
+.msg-tick.seen { color: #00ff88; }
+
+/* Date separator */
+.chat-date-sep {
+    display: flex; align-items: center; gap: 10px;
+    margin: 8px 0; color: #445; font-size: 11px;
+}
+.chat-date-sep::before, .chat-date-sep::after {
+    content: ''; flex: 1; height: 1px; background: rgba(0,51,102,0.4);
+}
+
+/* Sender name above bubble (for them) */
+.msg-sender-name {
+    font-size: 11px; color: var(--neon-blue); margin-bottom: 2px;
+    padding-left: 2px;
+}
+
+.chat-empty-state {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    color: #5a80a8; font-size: 13px; text-align: center; padding: 20px;
+    flex-direction: column; gap: 8px;
+}
+.chat-empty-state span { font-size: 36px; }
+
+/* ── Reconnecting spinner dots (used in chat error state) ── */
+@keyframes snxDotPulse {
+    0%,80%,100% { transform: scale(0.6); opacity: 0.4; }
+    40%         { transform: scale(1);   opacity: 1; }
+}
+.snx-reconnect-spinner {
+    display: inline-flex; gap: 5px; align-items: center; margin-top: 8px;
+}
+.snx-reconnect-spinner span {
+    width: 8px; height: 8px; background: #00AEEF; border-radius: 50%;
+    animation: snxDotPulse 1.2s infinite ease-in-out;
+}
+.snx-reconnect-spinner span:nth-child(2) { animation-delay: 0.2s; }
+.snx-reconnect-spinner span:nth-child(3) { animation-delay: 0.4s; }
+
+/* ── Chat footer — ALWAYS visible when a chat is open ── */
+.chat-footer {
+    padding: 8px 10px;
+    border-top: 1px solid rgba(0,120,255,0.25);
+    background: var(--bg-card);
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+    flex-shrink: 0;
+    position: relative;
+}
+/* When no chat is selected show a placeholder bar so layout doesn't collapse */
+.chat-footer.footer-hidden {
+    visibility: hidden;
+    pointer-events: none;
+}
+.chat-footer-input-wrap {
+    flex: 1; display: flex; align-items: center;
+    background: #ffffff;
+    border: 1px solid rgba(0, 120, 255, 0.35);
+    border-radius: 22px; padding: 2px 6px 2px 14px;
+    transition: border-color 0.15s;
+    min-height: 40px;
+}
+.chat-footer-input-wrap:focus-within { border-color: rgba(0,140,255,0.65); }
+#msgInputBox {
+    flex: 1; background: transparent; border: none;
+    color: #111111; font-size: 13px; padding: 7px 4px;
+    outline: none; resize: none; max-height: 100px;
+    overflow-y: auto; line-height: 1.4; margin: 0; width: 100%;
+    font-family: inherit;
+}
+#msgInputBox::placeholder { color: rgba(80, 80, 80, 0.5); }
+.chat-icon-btn {
+    background: none; border: none; color: #4a6a9a;
+    font-size: 18px; cursor: pointer; padding: 4px 5px;
+    border-radius: 6px; line-height: 1; flex-shrink: 0;
+    transition: color 0.15s, background 0.15s;
+}
+.chat-icon-btn:hover { color: #4db8ff; background: rgba(0,120,255,0.1); }
+.chat-send-btn {
+    background: linear-gradient(135deg, #004499, #0070dd);
+    border: 1px solid rgba(0,170,255,0.5);
+    color: #fff;
+    font-weight: bold; padding: 0; width: 40px; height: 40px;
+    border-radius: 50%; cursor: pointer; font-size: 16px;
+    flex-shrink: 0; transition: background 0.18s, transform 0.12s, box-shadow 0.18s, border-color 0.18s;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: manipulation;
+    box-shadow: 0 0 12px rgba(0,130,255,0.45);
+    position: relative; z-index: 10;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+.chat-send-btn:hover {
+    background: linear-gradient(135deg, #005522, #00aa55);
+    border-color: rgba(0,255,136,0.65);
+    transform: scale(1.06);
+    box-shadow: 0 0 20px rgba(0,255,136,0.5);
+}
+.chat-send-btn:active { transform: scale(0.92); }
+
+/* Typing + read receipt bar */
+.chat-status-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 2px 14px 0; min-height: 16px; flex-shrink: 0;
+}
+.typing-indicator { font-size: 11px; color: #3a6a9a; font-style: italic; }
+.read-receipt { font-size: 10px; color: #00ff88; }
+
+/* ── Emoji picker ── */
+.emoji-picker {
+    position: absolute; bottom: 58px; left: 10px;
+    background: #0d1525; border: 1px solid var(--border-color);
+    border-radius: 12px; padding: 10px;
+    width: 288px; max-height: 220px; overflow-y: auto;
+    display: none; z-index: 500;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    scrollbar-width: thin;
+}
+.emoji-picker.open { display: block; }
+.emoji-picker-grid {
+    display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px;
+}
+.ep-btn {
+    background: none; border: none; font-size: 20px; cursor: pointer;
+    padding: 4px; border-radius: 6px; line-height: 1;
+    transition: background 0.1s; text-align: center;
+}
+.ep-btn:hover { background: rgba(0,120,255,0.12); }
+.ep-section-label {
+    font-size: 9px; color: #445; text-transform: uppercase;
+    letter-spacing: 0.5px; padding: 6px 2px 3px; grid-column: 1 / -1;
+}
+
+/* Image send modal */
+.img-send-modal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75); z-index: 5500;
+    align-items: center; justify-content: center; padding: 20px;
+}
+.img-send-modal.open { display: flex; }
+.img-send-inner {
+    background: #0a0f18; border: 1px solid var(--border-color);
+    border-radius: 14px; padding: 22px; width: 100%; max-width: 400px;
+    position: relative;
+}
+.img-send-inner h3 { margin: 0 0 14px; font-size: 15px; color: #00aaff; text-shadow: 0 0 8px rgba(0,160,255,0.35); }
+.img-send-inner input { margin: 0 0 10px; }
+.img-send-preview {
+    width: 100%; max-height: 160px; object-fit: contain;
+    border-radius: 8px; border: 1px solid var(--border-color);
+    display: none; margin-bottom: 12px; background: #000;
+}
+.img-send-actions { display: flex; gap: 8px; }
+.img-send-actions button { flex: 1; }
+.img-modal-close {
+    position: absolute; top: 12px; right: 14px;
+    background: none; border: none; color: #778; font-size: 18px;
+    cursor: pointer; border-radius: 4px; padding: 2px 6px;
+}
+.img-modal-close:hover { color: #fff; }
+
 /* Online pulse animation — neon green for life/presence */
 @keyframes onlinePulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(0,255,136,0.6); }
     50%       { box-shadow: 0 0 0 5px rgba(0,255,136,0); }
 }
+.conv-online-dot.online  { background: #00ff88; animation: onlinePulse 2s infinite; }
+.chat-header-online.online { background: #00ff88; box-shadow: 0 0 6px rgba(0,255,136,0.8); animation: onlinePulse 2s infinite; }
+
+/* Messaging top bar (mobile page header) */
+.msg-topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(0,100,220,0.2);
+    background: rgba(3,10,22,0.97);
+    flex-shrink: 0;
+    box-shadow: 0 2px 16px rgba(0,60,160,0.12);
+}
+.msg-topbar h2 { margin: 0; font-size: 16px; color: #00c8ff; text-shadow: 0 0 10px rgba(0,180,255,0.4); }
+.msg-topbar-badge {
+    background: linear-gradient(135deg,#00aa55,#00ff88); color: #001a0a;
+    font-size: 10px; font-weight: bold;
+    min-width: 18px; height: 18px; border-radius: 9px; padding: 0 5px;
+    display: none; align-items: center; justify-content: center;
+    box-shadow: 0 0 8px rgba(0,255,136,0.55);
+}
+
+/* Sidebar unread badge */
+#sidebarMsgBadge {
+    align-items: center; justify-content: center;
+    background: linear-gradient(135deg,#00aa55,#00ff88); color: #001a0a;
+    font-size: 10px; font-weight: bold;
+    min-width: 17px; height: 17px; border-radius: 9px; padding: 0 4px;
+    margin-left: 6px; vertical-align: middle;
+    display: none;
+    box-shadow: 0 0 6px rgba(0,255,136,0.5);
+}
+#sidebarMsgBadge.visible { display: inline-flex; }
+
 /* ════════════════════════════════════════════
    SEARCH PAGE
    ════════════════════════════════════════════ */
@@ -2497,7 +3014,12 @@ img, video { max-width: 100%; height: auto; }
     .menuBtn { display: none !important; }
     #sidebarOverlay { display: none !important; }
     .sidebar { transform: translateX(0) !important; box-shadow: none; }
-    .page { padding-left: 290px; padding-right: 24px; max-width: 900px; }
+    .page:not(#messagesInbox) { padding-left: 290px; padding-right: 24px; max-width: 900px; }
+    #messagesInbox.page { margin-left: 260px; }
+    .msg-inbox-panel { display: flex !important; }
+    /* On desktop chat panel is always visible side-by-side */
+    .msg-chat-panel { display: flex !important; }
+    #chatBackBtn { display: none !important; }
 }
 
 /* ─── Tablet (769–1024px): sidebar visible but tighter layout ─── */
@@ -2505,7 +3027,12 @@ img, video { max-width: 100%; height: auto; }
     .menuBtn { display: none !important; }
     #sidebarOverlay { display: none !important; }
     .sidebar { transform: translateX(0) !important; box-shadow: none; width: 220px; }
-    .page { padding-left: 240px; padding-right: 16px; max-width: 100%; }
+    .page:not(#messagesInbox) { padding-left: 240px; padding-right: 16px; max-width: 100%; }
+    #messagesInbox.page { margin-left: 220px; }
+    .msg-inbox-panel { display: flex !important; width: 240px; min-width: 200px; }
+    /* On tablet chat panel is always visible */
+    .msg-chat-panel { display: flex !important; }
+    #chatBackBtn { display: none !important; }
     /* Slightly tighter profile on tablet */
     .cover-banner { height: 150px; }
     .p-avatar { width: 82px; height: 82px; }
@@ -2532,8 +3059,31 @@ img, video { max-width: 100%; height: auto; }
     /* post author can use more space on mobile */
     .post-author-link { max-width: 72%; }
 
+    /* Messaging — mobile: stack inbox/chat, show one at a time */
+    #messagesInbox.page { padding: 0; }
+    .msg-layout { flex-direction: column; height: calc(100vh - 52px); }
+    .msg-inbox-panel { width: 100%; min-width: unset; border-right: none; border-bottom: 1px solid rgba(0,80,200,0.2); max-height: 50vh; }
+    /* When a chat is open: hide inbox, show chat panel */
+    .msg-layout.chat-open .msg-inbox-panel { display: none !important; }
+    .msg-layout.chat-open .msg-chat-panel { display: flex !important; flex: 1; }
+    /* Default: chat panel hidden on mobile until a conversation is selected */
+    .msg-chat-panel { display: none; }
+    /* But when NOT in chat-open, still let the footer show inside the panel if visible */
+    #chatBackBtn { display: inline-flex !important; }
+    /* Footer always takes its natural space inside the flex col when panel is shown */
+    .chat-footer { flex-shrink: 0; }
+
     /* Edit modal full-width on mobile */
     .edit-profile-inner { padding: 18px; }
+
+    /* Emoji picker: full-width on mobile */
+    .emoji-picker { width: calc(100vw - 24px); left: 0; right: 0; }
+
+    /* Image bubble max width on mobile */
+    .msg-img { max-width: 180px; }
+
+    /* Bubble max width on mobile */
+    .msg-bubble { max-width: 82%; }
 
     /* User card: stack actions below info on small screens */
     .user-card { flex-wrap: wrap; gap: 10px; }
@@ -2554,6 +3104,7 @@ img, video { max-width: 100%; height: auto; }
     .profile-actions-row button { padding: 6px 12px; font-size: 12px; }
     .msg-bubble { max-width: 88%; }
     .media-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+    .msg-inbox-panel { min-width: unset; width: 100%; }
     /* Settings select full-width on very small phones */
     .settings-row { flex-direction: column; align-items: flex-start; }
     .settings-row select { width: 100%; min-width: unset; }
@@ -2569,6 +3120,7 @@ img, video { max-width: 100%; height: auto; }
 
 /* ─── Safe-area insets for iPhone notch/home bar ─── */
 @supports (padding: env(safe-area-inset-bottom)) {
+    .chat-footer    { padding-bottom: calc(8px  + env(safe-area-inset-bottom)); }
     .ipc-footer     { padding-bottom: calc(8px  + env(safe-area-inset-bottom)); }
     .storm-footer   { padding-bottom: calc(8px  + env(safe-area-inset-bottom)); }
     .support-footer { padding-bottom: calc(8px  + env(safe-area-inset-bottom)); }
@@ -3094,11 +3646,26 @@ input:focus, textarea:focus, select:focus {
 .notif-mark-all:hover { color: #00AEEF; border-color: rgba(0,174,239,0.60); }
 
 /* ── Online dots (global) ── */
+.conv-online-dot.online       { background: #39FF14; box-shadow: 0 0 5px rgba(57,255,20,0.75); }
+.chat-header-online.online    { background: #39FF14; box-shadow: 0 0 6px rgba(57,255,20,0.85); }
 .ipc-modal-status-dot.online  { background: #39FF14; box-shadow: 0 0 8px rgba(57,255,20,0.85); }
 .ipc-modal-tick.seen          { color: #39FF14; }
 .msg-tick.seen                { color: #39FF14; }
 
-/* ── Messaging chat (ipc modal) ── */
+/* ── Messaging inbox / chat ── */
+.msg-inbox-panel { background: #0d2444; border-right: 1px solid rgba(0,174,239,0.22); }
+.msg-inbox-header { color: #00AEEF; border-bottom: 1px solid rgba(0,174,239,0.22); }
+.msg-online-label { color: #6a90b8; }
+.msg-online-avatar { border: 2px solid rgba(0,174,239,0.58); box-shadow: 0 0 10px rgba(0,174,239,0.42); }
+.conv-item:hover, .conv-item.active-conv { background: rgba(0,174,239,0.10); }
+.conv-name    { color: #ffffff; }
+.conv-preview { color: #6a90b8; }
+.conv-unread-badge { background: linear-gradient(135deg, #0066cc, #00AEEF); box-shadow: 0 0 8px rgba(0,174,239,0.52); }
+.chat-header { background: rgba(7,20,40,0.98); border-bottom: 1px solid rgba(0,174,239,0.22); }
+.chat-header-name   { color: #ffffff; }
+.chat-header-status { color: #6a90b8; }
+.msg-bubble.me   { background: linear-gradient(135deg, #0d2e6e 0%, #1244a8 100%); border: 1px solid rgba(0,174,239,0.44); }
+.msg-bubble.them { background: rgba(11,31,58,0.98); border: 1px solid rgba(0,174,239,0.22); }
 .ipc-modal-bwrap.me .ipc-modal-bubble  { background: linear-gradient(135deg, #0d2e6e 0%, #1244a8 100%); border: 1px solid rgba(0,174,239,0.46); }
 .ipc-modal-bwrap.them .ipc-modal-bubble { background: rgba(11,31,58,0.98); border: 1px solid rgba(0,174,239,0.24); }
 .ipc-modal-card { background: linear-gradient(180deg, #0B1F3A 0%, #071428 100%); border: 1px solid rgba(0,174,239,0.38); }
@@ -3114,6 +3681,20 @@ input:focus, textarea:focus, select:focus {
     border-color: rgba(57,255,20,0.72);
     box-shadow: 0 0 22px rgba(57,255,20,0.52);
 }
+.chat-send-btn {
+    background: linear-gradient(135deg, #004eaa, #0077dd);
+    border: 1px solid rgba(0,174,239,0.55);
+    box-shadow: 0 0 12px rgba(0,174,239,0.48);
+}
+.chat-send-btn:hover {
+    background: linear-gradient(135deg, #005522, #26cc0f);
+    border-color: rgba(57,255,20,0.68);
+    box-shadow: 0 0 20px rgba(57,255,20,0.52);
+}
+.chat-footer { background: #0d2444; border-top: 1px solid rgba(0,174,239,0.25); }
+.msg-topbar   { background: rgba(7,20,40,0.98); border-bottom: 1px solid rgba(0,174,239,0.22); }
+.msg-topbar h2 { color: #00AEEF; }
+.msg-topbar-badge { background: linear-gradient(135deg, #26cc0f, #39FF14); color: #040f00; box-shadow: 0 0 8px rgba(57,255,20,0.58); }
 
 /* ── Settings page ── */
 .settings-section h4 { color: #00AEEF; border-bottom: 1px solid rgba(0,174,239,0.22); text-shadow: 0 0 8px rgba(0,174,239,0.38); }
@@ -4068,6 +4649,8 @@ input:focus, textarea:focus, select:focus {
 }
 
 .indicator-dot.online,
+.conv-online-dot.online,
+.chat-header-online.online,
 .ipc-modal-status-dot.online,
 .profile-online-dot {
     background: #39FF14 !important;
@@ -4132,6 +4715,20 @@ input:focus, textarea:focus, select:focus {
    Sent  → blue gradient
    Recv  → dark #0B1F3A + blue outline
    ────────────────────────────────────────── */
+
+/* Main DM page bubbles */
+.msg-bubble.me {
+    background: linear-gradient(135deg, #004cb3 0%, #0077ee 100%) !important;
+    border: 1px solid rgba(0,174,239,0.65) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 18px rgba(0,174,239,0.38), inset 0 1px 0 rgba(255,255,255,0.10) !important;
+}
+.msg-bubble.them {
+    background: #0d2040 !important;
+    border: 1px solid rgba(0,174,239,0.38) !important;
+    color: #d8eeff !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.40) !important;
+}
 
 /* Profile chat modal bubbles */
 .ipc-modal-bwrap.me .ipc-modal-bubble {
@@ -5124,147 +5721,6 @@ body.arcade-fs-ios body::after { display:none !important; }
 }
 </style>
 
-<style id="msg-notif-modal-styles">
-/* ══════════════════════════════════════════════════════════
-   MESSAGE NOTIFICATION DETAIL MODAL
-   Opens when tapping a 💬 message notification item.
-   ══════════════════════════════════════════════════════════ */
-#snxMsgNotifModal {
-    display:none; position:fixed; inset:0; z-index:7200;
-    background:rgba(0,3,15,0.88); align-items:flex-end; justify-content:center;
-    padding:0; box-sizing:border-box; backdrop-filter:blur(6px);
-}
-#snxMsgNotifModal.open { display:flex; }
-.snx-mn-card {
-    background:linear-gradient(180deg,#0B1F3A 0%,#071428 100%);
-    border:1px solid rgba(0,174,239,0.38); border-radius:18px 18px 0 0;
-    width:100%; max-width:520px; max-height:75vh;
-    display:flex; flex-direction:column; overflow:hidden;
-    box-shadow:0 -4px 40px rgba(0,80,200,0.35);
-    transform:translateY(100%);
-    transition:transform 0.3s cubic-bezier(0.34,1.2,0.64,1);
-}
-#snxMsgNotifModal.open .snx-mn-card { transform:translateY(0); }
-.snx-mn-header {
-    display:flex; align-items:center; gap:14px;
-    padding:16px 18px 12px; border-bottom:1px solid rgba(0,174,239,0.22);
-    flex-shrink:0; background:rgba(7,20,40,0.98);
-}
-.snx-mn-avatar {
-    width:46px; height:46px; border-radius:50%; flex-shrink:0;
-    background:#0B1F3A center/cover no-repeat;
-    border:2px solid rgba(0,174,239,0.55);
-    display:flex; align-items:center; justify-content:center;
-    font-size:18px; font-weight:800; color:#00AEEF;
-    box-shadow:0 0 12px rgba(0,174,239,0.35); cursor:pointer;
-}
-.snx-mn-info { flex:1; min-width:0; }
-.snx-mn-name { font-size:15px; font-weight:800; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.snx-mn-sub  { font-size:11px; color:#6a90b8; margin-top:2px; }
-.snx-mn-close {
-    background:none; border:none; color:#ff5566; font-size:22px;
-    cursor:pointer; padding:4px 8px; border-radius:8px; flex-shrink:0; line-height:1;
-}
-.snx-mn-close:hover { background:rgba(255,51,102,0.12); }
-.snx-mn-body {
-    flex:1; overflow-y:auto; padding:16px 18px; min-height:0;
-    -webkit-overflow-scrolling:touch;
-}
-.snx-mn-preview-label {
-    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px;
-    color:#3a6a9a; margin-bottom:8px;
-}
-.snx-mn-preview-bubble {
-    background:rgba(4,14,30,0.97); border:1px solid rgba(0,174,239,0.25);
-    border-radius:14px; border-top-left-radius:4px;
-    padding:12px 16px; font-size:14px; color:#c0d8f5; line-height:1.6;
-    word-break:break-word; margin-bottom:16px;
-}
-.snx-mn-actions {
-    display:flex; flex-direction:column; gap:8px;
-}
-.snx-mn-btn-reply {
-    width:100%; padding:12px; border-radius:12px; font-size:14px; font-weight:700;
-    background:linear-gradient(135deg,#003d99,#0077dd);
-    border:1px solid rgba(0,174,239,0.65); color:#fff; cursor:pointer;
-    transition:opacity 0.15s, box-shadow 0.15s;
-}
-.snx-mn-btn-reply:hover { opacity:0.88; box-shadow:0 0 18px rgba(0,174,239,0.45); }
-.snx-mn-btn-open-chat {
-    width:100%; padding:10px; border-radius:12px; font-size:13px; font-weight:600;
-    background:rgba(0,174,239,0.08); border:1px solid rgba(0,174,239,0.38);
-    color:#00AEEF; cursor:pointer; transition:background 0.15s;
-}
-.snx-mn-btn-open-chat:hover { background:rgba(0,174,239,0.18); }
-.snx-mn-btn-row { display:flex; gap:8px; }
-.snx-mn-btn-markread {
-    flex:1; padding:9px; border-radius:12px; font-size:12px; font-weight:600;
-    background:rgba(57,255,20,0.07); border:1px solid rgba(57,255,20,0.35);
-    color:#39FF14; cursor:pointer; transition:background 0.15s;
-}
-.snx-mn-btn-markread:hover { background:rgba(57,255,20,0.14); }
-.snx-mn-btn-del {
-    flex:1; padding:9px; border-radius:12px; font-size:12px; font-weight:600;
-    background:rgba(255,51,102,0.07); border:1px solid rgba(255,51,102,0.38);
-    color:#ff6680; cursor:pointer; transition:background 0.15s;
-}
-.snx-mn-btn-del:hover { background:rgba(255,51,102,0.15); }
-
-/* ── Notification filter tabs ── */
-.notif-filter-tabs {
-    display:flex; gap:0; border-bottom:1px solid rgba(0,174,239,0.18);
-    margin-bottom:14px; overflow-x:auto; scrollbar-width:none;
-}
-.notif-filter-tabs::-webkit-scrollbar { display:none; }
-.notif-filter-tab {
-    flex-shrink:0; padding:8px 16px; font-size:12px; font-weight:700;
-    color:#6a90b8; cursor:pointer; border-bottom:2px solid transparent;
-    background:none; border-top:none; border-left:none; border-right:none;
-    transition:color 0.15s, border-color 0.15s; font-family:inherit; white-space:nowrap;
-}
-.notif-filter-tab:hover { color:#c8e8ff; }
-.notif-filter-tab.active { color:#00AEEF; border-bottom-color:#00AEEF; }
-.notif-filter-badge {
-    display:inline-flex; align-items:center; justify-content:center;
-    background:linear-gradient(135deg,#26cc0f,#39FF14); color:#031000;
-    font-size:9px; font-weight:800; min-width:16px; height:16px;
-    border-radius:8px; padding:0 4px; margin-left:5px; vertical-align:middle;
-    box-shadow:0 0 6px rgba(57,255,20,0.6);
-}
-
-/* ── Message notification item — enhanced ── */
-.notif-item.notif-message-type {
-    border-left:2px solid rgba(0,174,239,0.55);
-    padding-left:10px;
-}
-.notif-item.notif-message-type.unread {
-    background:rgba(0,174,239,0.09);
-    border-left-color:#00AEEF;
-}
-.notif-msg-avatar {
-    width:38px; height:38px; border-radius:50%; flex-shrink:0;
-    background:#0B1F3A center/cover no-repeat;
-    border:2px solid rgba(0,174,239,0.45);
-    display:flex; align-items:center; justify-content:center;
-    font-size:14px; font-weight:800; color:#00AEEF; overflow:hidden;
-    margin-top:1px;
-}
-.notif-msg-preview {
-    font-size:12px; color:#6a90b8; margin-top:3px;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    max-width:100%;
-}
-
-@supports (padding:env(safe-area-inset-bottom)) {
-    .snx-mn-card { padding-bottom:env(safe-area-inset-bottom); }
-}
-@media (min-width:769px) {
-    #snxMsgNotifModal { align-items:center; padding:16px; }
-    .snx-mn-card { border-radius:18px; max-height:80vh; transform:scale(0.95) translateY(20px); transition:transform 0.28s cubic-bezier(0.34,1.56,0.64,1); }
-    #snxMsgNotifModal.open .snx-mn-card { transform:scale(1) translateY(0); }
-}
-</style>
-
 <!-- ══════════════════════════════════════════════════════════
      AUTH GATE OVERLAY
      Shown instantly on every page load, dismissed only after
@@ -5359,6 +5815,10 @@ body.arcade-fs-ios body::after { display:none !important; }
         </button>
         <button class="nav-item" id="navSearch" onclick="navTo('searchPage')">
             <span class="nav-icon">🔍</span> Search
+        </button>
+        <button class="nav-item" id="navMessages" onclick="navTo('messagesInbox')">
+            <span class="nav-icon">💬</span> Messages
+            <span class="nav-badge" id="sidebarMsgBadge"></span>
         </button>
         <button class="nav-item" id="navNotifs" onclick="navTo('notificationsPage')">
             <span class="nav-icon">🔔</span> Notifications
@@ -6095,6 +6555,10 @@ body.arcade-fs-ios body::after { display:none !important; }
                 <div class="ipc-modal-sub"  id="ipcModalSub">Connecting…</div>
             </div>
             <div class="ipc-modal-header-btns">
+                <!-- Open full DMs inbox -->
+                <button class="ipc-modal-btn" id="ipcModalExpandBtn"
+                    title="Open in Messages" aria-label="Open in full Messages"
+                    onclick="window.ipcModalExpandToInbox && window.ipcModalExpandToInbox()">⤢</button>
                 <!-- Close button -->
                 <button class="ipc-modal-btn" title="Close chat" onclick="window.ipcModalClose && window.ipcModalClose()" aria-label="Close chat" style="font-size:20px;color:#ff5566;">✕</button>
             </div>
@@ -6134,30 +6598,146 @@ body.arcade-fs-ios body::after { display:none !important; }
     </div>
 </div>
 
-<!-- ═══════════ MESSAGE NOTIFICATION DETAIL MODAL ═══════════ -->
-<div id="snxMsgNotifModal" role="dialog" aria-modal="true" aria-label="Message notification">
-    <!-- Backdrop -->
-    <div style="position:absolute;inset:0;cursor:pointer;" onclick="snxMsgNotifClose()"></div>
-    <div class="snx-mn-card" role="document">
-        <div class="snx-mn-header">
-            <div class="snx-mn-avatar" id="snxMnAvatar" onclick="snxMsgNotifOpenProfile()"></div>
-            <div class="snx-mn-info">
-                <div class="snx-mn-name" id="snxMnName">Loading…</div>
-                <div class="snx-mn-sub"  id="snxMnSub">Message</div>
+<!-- ═══════════════════════════════════════════════════════════
+     MESSAGING PAGE — split-pane: inbox list  |  chat window
+
+     Inbox is ENABLED by default (messagesTabEnabled defaults to true
+     when the field is absent from siteSettings/config).
+     To hide the inbox for non-founders, set messagesTabEnabled = false
+     in siteSettings/config via Founder Controls.
+
+     All Profile 💬 Message conversations use the same `chats`
+     collection and appear here automatically.
+     ═══════════════════════════════════════════════════════════ -->
+<div class="page" id="messagesInbox">
+
+    <!-- Top bar (visible on all sizes) -->
+    <div class="msg-topbar">
+        <h2>💬 Nexus DMs</h2>
+        <span class="msg-topbar-badge" id="msgTopbarBadge"></span>
+    </div>
+
+    <!-- Split layout wrapper -->
+    <div class="msg-layout" id="msgLayout">
+
+        <!-- ── Left: conversations list ── -->
+        <div class="msg-inbox-panel" id="msgInboxPanel">
+            <div class="msg-inbox-header">
+                <span>💬 Messages</span>
+                <span id="msgHeaderOnlineCount" style="font-size:11px;color:#00cc66;font-weight:600;"></span>
             </div>
-            <button class="snx-mn-close" onclick="snxMsgNotifClose()" aria-label="Close">✕</button>
-        </div>
-        <div class="snx-mn-body">
-            <div class="snx-mn-preview-label">💬 Message preview</div>
-            <div class="snx-mn-preview-bubble" id="snxMnPreview">…</div>
-            <div class="snx-mn-actions">
-                <button class="snx-mn-btn-reply" onclick="snxMsgNotifReply()">✏️ Reply to this message</button>
-                <button class="snx-mn-btn-open-chat" onclick="snxMsgNotifOpenChat()">💬 Open full chat</button>
-                <div class="snx-mn-btn-row">
-                    <button class="snx-mn-btn-markread" onclick="snxMsgNotifMarkRead()">✓ Mark as read</button>
-                    <button class="snx-mn-btn-del" onclick="snxMsgNotifDelete()">🗑 Delete</button>
+
+            <!-- Conversation search bar -->
+            <div class="msg-inbox-search-wrap" id="msgInboxSearchWrap">
+                <input
+                    type="search"
+                    id="inboxSearchInput"
+                    class="msg-inbox-search"
+                    placeholder="🔍 Search conversations…"
+                    autocomplete="off"
+                    oninput="window._snxInboxSearch(this.value)"
+                    aria-label="Search conversations"
+                >
+            </div>
+
+            <!-- Online users strip -->
+            <div class="msg-online-strip" id="msgOnlineStrip">
+                <div class="msg-online-label">🟢 Online Now</div>
+                <div class="msg-online-avatars" id="msgOnlineAvatars">
+                    <span class="msg-online-empty">No one online yet</span>
                 </div>
             </div>
+
+            <div class="msg-inbox-list" id="inboxChannelsList">
+                <div class="msg-inbox-loading" id="inboxLoadingState" style="padding:18px 14px;font-size:13px;color:#3a6a8a;text-align:center;">⏳ Loading conversations…</div>
+            </div>
+        </div>
+
+        <!-- ── Right: active chat ── -->
+        <div class="msg-chat-panel" id="msgChatPanel">
+
+            <!-- Chat header -->
+            <div class="chat-header" id="chatHeader">
+                <button id="chatBackBtn" onclick="closeChatPanel()" title="Back">‹</button>
+                <div class="chat-header-avatar" id="chatHeaderAvatar">
+                    <div class="chat-header-online" id="chatHeaderOnline"></div>
+                </div>
+                <div class="chat-header-info">
+                    <div class="chat-header-name" id="chatHeaderName">—</div>
+                    <div class="chat-header-status" id="chatHeaderStatus">Select a conversation</div>
+                </div>
+                <button class="chat-del-conv-btn" onclick="deleteConversation()" title="Delete conversation">🗑</button>
+            </div>
+
+            <!-- Messages area -->
+            <div id="chatBoxContainer">
+                <div class="chat-empty-state" id="chatEmptyState">
+                    <span>💬</span>
+                    Select a conversation to start chatting
+                </div>
+            </div>
+
+            <!-- Typing indicator + read receipt combined bar -->
+            <div class="chat-status-bar">
+                <div class="typing-indicator" id="chatTypingElement"></div>
+                <div class="read-receipt" id="chatReadElement"></div>
+            </div>
+
+            <!-- Input footer — always rendered, hidden via class when no chat selected -->
+            <div class="chat-footer footer-hidden" id="chatFooter">
+
+                <!-- Emoji picker (absolute positioned above footer) -->
+                <div class="emoji-picker" id="emojiPicker">
+                    <div class="emoji-picker-grid" id="emojiPickerGrid"></div>
+                </div>
+
+                <!-- Emoji toggle -->
+                <button class="chat-icon-btn" id="btnEmojiToggle" title="Emoji" onclick="toggleEmojiPicker()">😊</button>
+
+                <!-- Text input wrapper -->
+                <div class="chat-footer-input-wrap">
+                    <textarea id="msgInputBox" placeholder="Type a message…" autocomplete="off"
+                              enterkeyhint="send" inputmode="text" spellcheck="true"
+                              rows="1"></textarea>
+                </div>
+
+                <!-- Image button -->
+                <button class="chat-icon-btn" id="btnSendImg" title="Send image" onclick="openImgSendModal()">🖼</button>
+
+                <!-- Send button -->
+                <button class="chat-send-btn" id="btnSendMsg" title="Send" aria-label="Send message"
+                        style="-webkit-tap-highlight-color:transparent;user-select:none;">➤</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ── Image send modal ── -->
+<div class="img-send-modal" id="imgSendModal">
+    <div class="img-send-inner">
+        <button class="img-modal-close" onclick="closeImgSendModal()">✕</button>
+        <h3>� Send Photo / Video / Music</h3>
+        <input type="file" id="imgSendFile" accept="image/*,video/*,audio/*" capture="environment" style="display:none;" onchange="handleDmFilePick(this)">
+        <div class="snx-upload-row snx-dropzone" id="imgSendDropZone"
+             ondragover="event.preventDefault();this.classList.add('drag-over')"
+             ondragleave="this.classList.remove('drag-over')"
+             ondrop="handleDmFileDrop(event)">
+            <button class="snx-upload-btn" onclick="document.getElementById('imgSendFile').click()" type="button">📂 Choose File</button>
+            <span class="snx-upload-filename" id="imgSendFilename">No file chosen</span>
+            <button class="snx-upload-clear" id="imgSendClear" style="display:none;" onclick="clearDmFile()" title="Remove">✕</button>
+        </div>
+        <div class="snx-upload-progress" id="imgSendProgress">
+            <div class="snx-upload-progress-bar" id="imgSendProgressBar"></div>
+        </div>
+        <img   id="imgSendPreview"    class="img-send-preview" alt="preview">
+        <video id="imgSendPreviewVid" style="display:none;max-width:100%;border-radius:10px;margin-top:8px;" controls></video>
+        <audio id="imgSendPreviewAud" style="display:none;width:100%;margin-top:8px;" controls></audio>
+        <!-- Hidden: stores uploaded URL -->
+        <input type="hidden" id="imgSendUrl" value="">
+        <div class="img-send-actions">
+            <button onclick="closeImgSendModal()" style="border-color:rgba(255,255,255,0.2);color:#888;">Cancel</button>
+            <button id="btnConfirmSendImg" onclick="confirmSendImage()" disabled>Send</button>
         </div>
     </div>
 </div>
@@ -6200,26 +6780,11 @@ body.arcade-fs-ios body::after { display:none !important; }
     <h2 class="eclipse-title">🔔 Nexus Activity</h2>
     <div class="section-card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-            <span style="font-size:13px;color:#3a6a9a;font-weight:600;">Your notifications</span>
+            <span style="font-size:13px;color:#3a6a9a;font-weight:600;">Recent activity</span>
             <div style="display:flex;gap:8px;">
                 <button class="notif-mark-all" onclick="markAllNotifsRead()">✓ Mark all read</button>
                 <button class="notif-mark-all" onclick="clearAllNotifs()" style="border-color:rgba(255,51,102,0.3);color:#ff5577;">🗑 Clear all</button>
             </div>
-        </div>
-        <!-- Filter tabs -->
-        <div class="notif-filter-tabs" id="notifFilterTabs">
-            <button class="notif-filter-tab active" data-filter="all" onclick="setNotifFilter('all',this)">
-                All <span class="notif-filter-badge" id="notifBadgeAll" style="display:none;"></span>
-            </button>
-            <button class="notif-filter-tab" data-filter="message" onclick="setNotifFilter('message',this)">
-                💬 Messages <span class="notif-filter-badge" id="notifBadgeMsg" style="display:none;"></span>
-            </button>
-            <button class="notif-filter-tab" data-filter="activity" onclick="setNotifFilter('activity',this)">
-                ❤️ Activity
-            </button>
-            <button class="notif-filter-tab" data-filter="social" onclick="setNotifFilter('social',this)">
-                👤 Social
-            </button>
         </div>
         <div id="notifList"><div class="empty-state">No notifications yet.</div></div>
     </div>
@@ -7038,7 +7603,7 @@ body.arcade-fs-ios body::after { display:none !important; }
             <label class="notif-toggle-wrap"><input type="checkbox" id="togglePosts" class="notif-toggle-cb" checked onchange="adminToggleFeature('postsEnabled',this.checked)"><span class="notif-toggle-slider"></span></label>
         </div>
         <div class="settings-row" style="border-bottom:none;">
-            <div class="settings-label">Messages Tab<small>Legacy toggle — Inbox removed; no visible effect</small></div>
+            <div class="settings-label">Messages Tab<small>Show/hide the Messages nav button &amp; inbox page</small></div>
             <label class="notif-toggle-wrap"><input type="checkbox" id="toggleMessagesTab" class="notif-toggle-cb" checked onchange="snxSetMessagesTab(this.checked)"><span class="notif-toggle-slider"></span></label>
         </div>
     </div>
@@ -7185,9 +7750,9 @@ body.arcade-fs-ios body::after { display:none !important; }
         <div id="adminConvList"><div class="empty-state" style="padding:20px 0;">Enter a search term or click Load All.</div></div>
     </div>
     <div class="section-card">
-        <h3 style="margin:0 0 10px;font-size:13px;color:#ffaa44;text-transform:uppercase;letter-spacing:0.8px;">⚙️ Messaging Settings</h3>
+        <h3 style="margin:0 0 10px;font-size:13px;color:#ffaa44;text-transform:uppercase;letter-spacing:0.8px;">⚙️ Inbox Settings</h3>
         <div class="settings-row">
-            <div class="settings-label">Messages Toggle<small>Legacy setting — Inbox removed; DMs now use Profile → Message flow</small></div>
+            <div class="settings-label">Messages Tab<small>Show/hide the Messages nav button &amp; inbox for all users</small></div>
             <label class="notif-toggle-wrap"><input type="checkbox" id="settingsToggleMessagesTab" class="notif-toggle-cb" checked onchange="snxSetMessagesTab(this.checked)"><span class="notif-toggle-slider"></span></label>
         </div>
     </div>
@@ -7819,7 +8384,7 @@ body.arcade-fs-ios body::after { display:none !important; }
             <label class="notif-toggle-wrap"><input type="checkbox" id="esFeed" class="notif-toggle-cb" checked onchange="emergencyToggle('postsEnabled',this.checked,'Feed')"><span class="notif-toggle-slider"></span></label>
         </div>
         <div class="settings-row">
-            <div class="settings-label">💬 Messaging<small>Legacy toggle — Inbox removed; DMs use Profile → Message</small></div>
+            <div class="settings-label">💬 Messaging<small>Show Messages tab &amp; inbox</small></div>
             <label class="notif-toggle-wrap"><input type="checkbox" id="esMessages" class="notif-toggle-cb" checked onchange="snxSetMessagesTab(this.checked)"><span class="notif-toggle-slider"></span></label>
         </div>
         <div class="settings-row">
@@ -8347,10 +8912,16 @@ body.arcade-fs-ios body::after { display:none !important; }
   let userData = null;
   let _authFirstResolved = false; // prevents login-flash on initial page load
   let activeProfileUid = null;
+  let activeChatChannelId = null;
+  let activeChatTargetUid = null;
+  let activeChatUnsubscribe = null;   // DM page — active chat snapshot
+  let activeChatStatusUnsub = null;   // DM page — partner presence snapshot
+  let activeChatTypingUnsub = null;   // DM page — typing indicator cleanup fn
   let scrollLimit = 8;
   let totalUnread = 0;
   let feedUnsubscribe      = null;    // timeline feed
   let presenceUnsubscribe  = null;    // all-users presence strip
+  let inboxUnsubscribe     = null;    // DM inbox list
   let userDataUnsubscribe  = null;    // current user's own doc (settings + notifs + push)
 
   /* ACCOUNT MANAGEMENT */
@@ -8501,14 +9072,22 @@ body.arcade-fs-ios body::after { display:none !important; }
   //    before reopening the chat so Firestore is actually ready. ──
   window.addEventListener('online', async () => {
       console.log('[SNX] Network reconnected — restoring presence');
+      // Small delay so _snxFirestoreNetworkMonitor's enableNetwork() can run first
       await new Promise(r => setTimeout(r, 800));
       if (currentUser) {
           try { updateDoc(doc(db, "users", currentUser.uid), { status: "online", lastSeen: Date.now() }); } catch(_) {}
-          // Re-open the profile chat modal if it was open when network dropped
+          _snxSetChatConnState('connected');
+          if (activeChatTargetUid && typeof window.establishDirectMessageChannel === 'function') {
+              window.establishDirectMessageChannel(activeChatTargetUid);
+          }
           if (typeof window._m_tgtUid !== 'undefined' && window._m_tgtUid && typeof window.ipcOpen === 'function') {
               window.ipcOpen(window._m_tgtUid);
           }
       }
+  });
+
+  window.addEventListener('offline', () => {
+      _snxSetChatConnState('offline');
   });
 
   /* ── SW postMessage: open Profile Message modal when notification is tapped ──
@@ -8541,15 +9120,49 @@ body.arcade-fs-ios body::after { display:none !important; }
       }
   })();
 
-  // ── visualViewport: shrink the ipcModal card when the mobile keyboard appears ──
+  /* ── Chat connection-state helper ─────────────────────────────────────
+     Updates the chat header status bar to show 🟢 / 🟡 / 🔴 when no
+     conversation partner is selected (i.e. before a chat is opened).
+     Does nothing while a chat is open (the live onSnapshot controls it).
+  ─────────────────────────────────────────────────────────────────── */
+  function _snxSetChatConnState(state) {
+      // Only update the placeholder text — don't overwrite an active chat partner's status
+      if (activeChatTargetUid) return;
+      const el = document.getElementById('chatHeaderStatus');
+      if (!el) return;
+      el.className = 'chat-header-status';
+      if (state === 'connected') {
+          el.textContent = '🟢 Connected';
+          el.classList.add('chat-header-status-connected');
+      } else if (state === 'reconnecting') {
+          el.textContent = '🟡 Reconnecting…';
+          el.classList.add('chat-header-status-reconnecting');
+      } else if (state === 'offline') {
+          el.textContent = '🔴 Offline — messages will sync when back online';
+          el.classList.add('chat-header-status-failed');
+      }
+  }
+  window._snxSetChatConnState = _snxSetChatConnState;
+
+  // ── visualViewport: shrink the chat card when the mobile keyboard appears
+  //    so the footer + send button are never hidden behind the keyboard. ──
   if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', () => {
           const vvh = window.visualViewport.height;
+
           // Profile chat modal — shrink card to visible viewport height
           const modal = document.getElementById('ipcModal');
           const card  = document.querySelector('.ipc-modal-card');
           if (card && modal && modal.classList.contains('open')) {
               card.style.maxHeight = vvh + 'px';
+          }
+
+          // Full DM page — keep chat panel filling the visible area
+          const msgLayout = document.getElementById('msgLayout');
+          if (msgLayout) {
+              const topbar = document.querySelector('.msg-topbar');
+              const topbarH = topbar ? topbar.offsetHeight : 56;
+              msgLayout.style.height = (vvh - topbarH) + 'px';
           }
       });
   }
@@ -8697,8 +9310,6 @@ body.arcade-fs-ios body::after { display:none !important; }
                   }
                   // In-app toast: for messages, open the Profile Message modal immediately
                   if (n.type === 'message' && n.fromUid) {
-                      // Mobile vibration pattern for new messages
-                      try { if (navigator.vibrate) navigator.vibrate([120, 60, 120]); } catch(_) {}
                       toastNotification('💬 ' + (n.body || n.title || 'New message'));
                       // Make toast tappable — clicking it opens the conversation
                       const _t = document.getElementById('notification-toast');
@@ -8765,6 +9376,7 @@ body.arcade-fs-ios body::after { display:none !important; }
           navTo('feed');
           initTimelineStream();
           presenceUnsubscribe = initPresenceStrip();
+          inboxUnsubscribe    = initInboxMonitor();
           scheduleExpiredPostCleanup();
           // ── Flush pending chat (from SW notification tap or cold-start ?snxChat=) ──
           if (window._snxPendingChatUid && typeof window.ipcOpen === 'function') {
@@ -8800,8 +9412,12 @@ body.arcade-fs-ios body::after { display:none !important; }
           // ── Tear down EVERY real-time listener so nothing fires against a null user ──
           if (feedUnsubscribe)     { feedUnsubscribe();     feedUnsubscribe     = null; }
           if (presenceUnsubscribe) { presenceUnsubscribe(); presenceUnsubscribe = null; }
+          if (inboxUnsubscribe)    { inboxUnsubscribe();    inboxUnsubscribe    = null; }
           // notifUnsubscribe removed — notifications are now handled inside userDataUnsubscribe
           if (userDataUnsubscribe) { userDataUnsubscribe(); userDataUnsubscribe = null; }
+          if (activeChatUnsubscribe) { activeChatUnsubscribe(); activeChatUnsubscribe = null; }
+          if (activeChatStatusUnsub) { activeChatStatusUnsub(); activeChatStatusUnsub = null; }
+          if (activeChatTypingUnsub) { activeChatTypingUnsub(); activeChatTypingUnsub = null; }
           // Tear down profile snapshot so it doesn't fire against null currentUser
           if (typeof activeProfileUnsubscribe !== 'undefined' && activeProfileUnsubscribe) {
               activeProfileUnsubscribe(); activeProfileUnsubscribe = null;
@@ -10687,59 +11303,20 @@ body.arcade-fs-ios body::after { display:none !important; }
      ═══════════════════════════════════════════════════════════ */
 
 
-  /* Current active filter for the notifications tab */
-  let _notifFilter = 'all';
-
-  window.setNotifFilter = function(filter, btn) {
-      _notifFilter = filter;
-      // Update tab active state
-      document.querySelectorAll('.notif-filter-tab').forEach(t => t.classList.remove('active'));
-      if (btn) btn.classList.add('active');
-      // Re-render with the last cached list
-      if (window._lastNotifList) renderNotifications(window._lastNotifList);
-  };
-
   function renderNotifications(list) {
-      window._lastNotifList = list; // cache for filter re-renders
-
-      // Update message unread badge on filter tabs
-      const _unreadMsg = list.filter(n => n.type === 'message' && !n.read).length;
-      const _allUnread  = list.filter(n => !n.read).length;
-      const _bAll = document.getElementById('notifBadgeAll');
-      const _bMsg = document.getElementById('notifBadgeMsg');
-      if (_bAll) { if (_allUnread > 0) { _bAll.textContent = _allUnread > 99 ? '99+' : _allUnread; _bAll.style.display = 'inline-flex'; } else _bAll.style.display = 'none'; }
-      if (_bMsg) { if (_unreadMsg > 0) { _bMsg.textContent = _unreadMsg > 99 ? '99+' : _unreadMsg; _bMsg.style.display = 'inline-flex'; } else _bMsg.style.display = 'none'; }
-
-      // Apply filter
-      const _activityTypes = new Set(['like','comment','repost','mention','tag','wallPost','announcement']);
-      const _socialTypes   = new Set(['friendRequest','friendAccepted','familyInvite','familyAccepted','familyDeclined','follow','game_challenge']);
-      const filtered = list.filter(n => {
-          if (_notifFilter === 'all')      return true;
-          if (_notifFilter === 'message')  return n.type === 'message';
-          if (_notifFilter === 'activity') return _activityTypes.has(n.type);
-          if (_notifFilter === 'social')   return _socialTypes.has(n.type);
-          return true;
-      });
-
       const box = document.getElementById("notifList");
-      if (!filtered.length) {
-          const emptyMsg = _notifFilter === 'message' ? 'No messages yet.<br><span style="font-size:12px;color:#3a5a7a;">Messages sent from profiles appear here.</span>'
-              : _notifFilter === 'activity' ? 'No activity notifications yet.'
-              : _notifFilter === 'social'   ? 'No social notifications yet.'
-              : 'You have no notifications yet.';
+      if (!list.length) {
           box.innerHTML = `<div class="empty-state">
-              <div style="font-size:28px;margin-bottom:10px;">${_notifFilter === 'message' ? '💬' : '🔔'}</div>
-              ${emptyMsg}
+              <div style="font-size:28px;margin-bottom:10px;">🔔</div>
+              You have no notifications yet.
           </div>`;
           return;
       }
       box.innerHTML = '';
-      // Reverse to show newest first; origIdx tracks position in the original list for read/delete
-      [...filtered].reverse().forEach((n) => {
-          const origIdx = list.indexOf(n); // real index in the full list
+      [...list].reverse().forEach((n, ri) => {
+          const origIdx = list.length - 1 - ri;
           const item = document.createElement('div');
-          const isMsg = n.type === 'message';
-          item.className = 'notif-item' + (n.read ? '' : ' unread') + (isMsg ? ' notif-message-type' : '');
+          item.className = 'notif-item' + (n.read ? '' : ' unread');
           let icon = '🔔', text = '', actHtml = '';
 
           let navFn = '';
@@ -10790,18 +11367,12 @@ body.arcade-fs-ios body::after { display:none !important; }
               text = `<b>${escFeed(n.fromName)}</b> reposted your post.`;
               navFn = `navTo('feed')`;
           } else if (n.type === 'message') {
-              icon = '💬';
-              text = `<b>${escFeed(n.fromName)}</b> sent you a message`;
-              if (n.preview) {
-                  actHtml = `<div class="notif-msg-preview">"${escFeed(n.preview)}"</div>`;
-              }
-              actHtml += `<div class="notif-actions" style="margin-top:6px;">
-                  <button class="btn-accept" style="font-size:11px;" onclick="event.stopPropagation();snxMsgNotifOpen('${n.fromUid}','${escFeed(n.fromName)}','${n.fromAvatar||''}','${escFeed(n.preview||'')}',${origIdx})">💬 Reply</button>
-                  <button class="notif-mark-all" style="font-size:11px;" onclick="event.stopPropagation();markNotifRead(${origIdx})">✓ Read</button>
-                  <button class="btn-decline" style="font-size:11px;" onclick="event.stopPropagation();deleteNotifByIdx(${origIdx})">🗑</button>
-              </div>`;
-              // Tap the item row itself → open message detail modal
-              navFn = `snxMsgNotifOpen('${n.fromUid}','${escFeed(n.fromName)}','${n.fromAvatar||''}','${escFeed(n.preview||'')}',${origIdx})`;
+              icon = '✉️';
+              // Show message preview if available
+              const _prev = n.preview ? `: <i>"${escFeed(n.preview)}"</i>` : '.';
+              text = `<b>${escFeed(n.fromName)}</b> sent you a message${_prev}`;
+              // Open inbox and jump to the conversation
+              navFn = `navTo('messagesInbox');if(typeof window.establishDirectMessageChannel==='function')window.establishDirectMessageChannel('${n.fromUid}')`;
           } else if (n.type === 'wallPost') {
               icon = '📝';
               text = `<b>${escFeed(n.fromName)}</b> posted on your wall.`;
@@ -10832,35 +11403,13 @@ body.arcade-fs-ios body::after { display:none !important; }
 
          if (!text) return; // skip unknown types
 
-          // Message notifications show a real sender avatar instead of an icon
-          if (n.type === 'message' && n.fromAvatar) {
-              const avatarHtml = `<div class="notif-msg-avatar" style="background-image:url('${n.fromAvatar}');background-size:cover;"></div>`;
-              item.innerHTML = `
-                  ${avatarHtml}
-                  <div class="notif-body" style="flex:1;min-width:0;">
-                      <div class="notif-text">${text}</div>
-                      <div class="notif-time">${fmtTimeAgo(n.ts)}</div>
-                      ${actHtml}
-                  </div>`;
-          } else if (n.type === 'message') {
-              const _initLetter = (n.fromName || '?')[0].toUpperCase();
-              const avatarHtml = `<div class="notif-msg-avatar">${_initLetter}</div>`;
-              item.innerHTML = `
-                  ${avatarHtml}
-                  <div class="notif-body" style="flex:1;min-width:0;">
-                      <div class="notif-text">${text}</div>
-                      <div class="notif-time">${fmtTimeAgo(n.ts)}</div>
-                      ${actHtml}
-                  </div>`;
-          } else {
-              item.innerHTML = `
-                  <div class="notif-icon">${icon}</div>
-                  <div class="notif-body">
-                      <div class="notif-text">${text}</div>
-                      <div class="notif-time">${fmtTimeAgo(n.ts)}</div>
-                      ${actHtml}
-                  </div>`;
-          }
+          item.innerHTML = `
+              <div class="notif-icon">${icon}</div>
+              <div class="notif-body">
+                  <div class="notif-text">${text}</div>
+                  <div class="notif-time">${fmtTimeAgo(n.ts)}</div>
+                  ${actHtml}
+              </div>`;
           item.addEventListener('click', () => {
               markNotifRead(origIdx);
               if (navFn) { try { eval(navFn); } catch(_) {} }
@@ -10873,14 +11422,6 @@ body.arcade-fs-ios body::after { display:none !important; }
       const snap = await getDoc(doc(db,"users",currentUser.uid));
       const notifs = snap.data().notifications||[];
       if(notifs[idx]){notifs[idx].read=true;await updateDoc(doc(db,"users",currentUser.uid),{notifications:notifs});}
-  };
-
-  /* Delete a single notification by its index in the array */
-  window.deleteNotifByIdx = async function(idx) {
-      const snap = await getDoc(doc(db,"users",currentUser.uid));
-      const notifs = snap.data().notifications||[];
-      notifs.splice(idx, 1);
-      await updateDoc(doc(db,"users",currentUser.uid),{notifications:notifs});
   };
 
   window.markAllNotifsRead = async function() {
@@ -10904,97 +11445,6 @@ body.arcade-fs-ios body::after { display:none !important; }
       if(d<86400000) return Math.floor(d/3600000)+'h ago';
       return Math.floor(d/86400000)+'d ago';
   }
-
-  /* ═══════════════════════════════════════════════════════════
-     MESSAGE NOTIFICATION DETAIL MODAL
-     Opened when user taps a 💬 notification in the bell list.
-     Lets them: read preview, reply (opens ipcModal pre-filled),
-     open full chat, mark as read, or delete the notification.
-     ═══════════════════════════════════════════════════════════ */
-  let _mnNotifIdx  = -1;   // index of the notification in the user's array
-  let _mnFromUid   = '';   // sender UID
-  let _mnFromName  = '';   // sender display name
-
-  window.snxMsgNotifOpen = function(fromUid, fromName, fromAvatar, preview, notifIdx) {
-      _mnFromUid  = fromUid;
-      _mnFromName = fromName;
-      _mnNotifIdx = notifIdx;
-
-      // Populate header avatar
-      const avEl = document.getElementById('snxMnAvatar');
-      if (avEl) {
-          if (fromAvatar) {
-              avEl.style.backgroundImage = `url('${fromAvatar}')`;
-              avEl.style.backgroundSize  = 'cover';
-              avEl.textContent = '';
-          } else {
-              avEl.style.backgroundImage = 'none';
-              avEl.textContent = (fromName || '?')[0].toUpperCase();
-          }
-      }
-      const nameEl    = document.getElementById('snxMnName');
-      const subEl     = document.getElementById('snxMnSub');
-      const previewEl = document.getElementById('snxMnPreview');
-      if (nameEl)    nameEl.textContent    = fromName || 'Someone';
-      if (subEl)     subEl.textContent     = 'sent you a message';
-      if (previewEl) previewEl.textContent = preview  || '(No preview)';
-
-      const modal = document.getElementById('snxMsgNotifModal');
-      if (modal) modal.classList.add('open');
-      document.body.style.overflow = 'hidden';
-  };
-
-  window.snxMsgNotifClose = function() {
-      const modal = document.getElementById('snxMsgNotifModal');
-      if (modal) modal.classList.remove('open');
-      document.body.style.overflow = '';
-  };
-
-  window.snxMsgNotifOpenProfile = function() {
-      snxMsgNotifClose();
-      viewProfile(_mnFromUid);
-  };
-
-  /* Open the full persistent chat window */
-  window.snxMsgNotifOpenChat = function() {
-      snxMsgNotifClose();
-      if (typeof window.ipcOpen === 'function') window.ipcOpen(_mnFromUid);
-  };
-
-  /* Reply: open ipcModal and pre-focus the input */
-  window.snxMsgNotifReply = function() {
-      snxMsgNotifClose();
-      if (typeof window.ipcOpen === 'function') {
-          window.ipcOpen(_mnFromUid).then(() => {
-              setTimeout(() => {
-                  const inp = document.getElementById('ipcModalInput');
-                  if (inp) inp.focus();
-              }, 350);
-          }).catch(() => {});
-      }
-      // Mark the source notification as read
-      if (_mnNotifIdx >= 0) markNotifRead(_mnNotifIdx);
-  };
-
-  /* Mark the linked notification as read */
-  window.snxMsgNotifMarkRead = async function() {
-      if (_mnNotifIdx >= 0) await markNotifRead(_mnNotifIdx);
-      snxMsgNotifClose();
-  };
-
-  /* Delete the linked notification */
-  window.snxMsgNotifDelete = async function() {
-      if (_mnNotifIdx >= 0) await deleteNotifByIdx(_mnNotifIdx);
-      snxMsgNotifClose();
-  };
-
-  // Close on Escape
-  document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') {
-          const modal = document.getElementById('snxMsgNotifModal');
-          if (modal && modal.classList.contains('open')) snxMsgNotifClose();
-      }
-  });
 
   /* ═══════════════════════════════════════════════════════════
      SETTINGS
@@ -11634,12 +12084,749 @@ body.arcade-fs-ios body::after { display:none !important; }
       return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  // Open a chat panel with a given user — now delegates to ipcOpen (profile modal)
+  // Track the live-status unsubscribe for the current chat partner
+  // activeChatStatusUnsub declared at top of module (line ~2179)
+
+  // Open a chat panel with a given user
   window.establishDirectMessageChannel = async function(targetUid) {
       if (!currentUser || targetUid === currentUser.uid) return;
-      if (typeof window.ipcOpen === 'function') window.ipcOpen(targetUid);
+
+      const channelId = [currentUser.uid, targetUid].sort().join('_');
+      activeChatChannelId = channelId;
+      activeChatTargetUid = targetUid;
+
+      navTo('messagesInbox');
+
+      // Show spinner immediately — will be replaced by messages or empty-state
+      const chatBox = document.getElementById('chatBoxContainer');
+      if (chatBox) chatBox.innerHTML = '<div class="chat-empty-state"><div class="snx-reconnect-spinner"><span></span><span></span><span></span></div><br>Connecting…</div>';
+      const sendInput = document.getElementById('msgInputBox');
+      if (sendInput) { sendInput.placeholder = 'Type a message…'; sendInput.disabled = false; }
+
+      // ── Step 1: Fetch partner profile — try cache first (instant, works offline),
+      //    then fall back to a server read with an 8 s timeout so we never hang. ──
+      let tData;
+      try {
+          // Cache hit — returns immediately even if offline
+          const cached = await getDocFromCache(doc(db, "users", targetUid));
+          tData = cached.exists() ? cached.data() : null;
+      } catch(_) { tData = null; }
+
+      if (!tData) {
+          try {
+              // Server read with timeout so a slow/no network doesn't block forever
+              const serverRead = getDoc(doc(db, "users", targetUid));
+              const timeout    = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000));
+              const snap = await Promise.race([serverRead, timeout]);
+              tData = snap.exists() ? snap.data() : null;
+          } catch(_) { tData = null; }
+      }
+
+      // Final fallback — still open the chat even if we can't load the profile
+      if (!tData) {
+          tData = { displayName: targetUid.substring(0, 8), avatar: '', status: 'offline', mood: '' };
+      }
+
+      // ── Step 2: Fire-and-forget setDoc to ensure the chat doc exists.
+      //    We do NOT await this — the onSnapshot below serves from local cache
+      //    immediately and will update when the server write completes.
+      setDoc(doc(db, "chats", channelId), {
+          participants: [currentUser.uid, targetUid],
+          initialized: true,
+          [`unread_${currentUser.uid}`]: 0
+      }, { merge: true }).catch(e => {
+          console.error('[DM] setDoc error:', e.code || e.message || e);
+      });
+
+      // ── Step 3: Populate chat header ──
+      const hAvatar = document.getElementById("chatHeaderAvatar");
+      hAvatar.style.backgroundImage = tData.avatar ? `url('${tData.avatar}')` : '';
+      hAvatar.style.cursor = 'pointer';
+      hAvatar.title = 'View profile';
+      hAvatar.onclick = () => viewProfile(targetUid);
+      hAvatar.setAttribute('data-uid', targetUid);
+      const hName = document.getElementById("chatHeaderName");
+      hName.innerHTML = escapeHtml(tData.displayName) + buildBadgeHtml(tData.badges||[], tData.role||'member') + buildMoodChipHtml(tData.profileCustom?.moodType || '', tData.profileCustom?.moodValue || '');
+      hName.style.cursor = 'default';
+      hName.title = '';
+      hName.onclick = null;
+      // Show 🟡 while we wait for the first snapshot
+      document.getElementById("chatHeaderStatus").textContent = '🟡 Connecting…';
+
+      // ── Step 4: Show the chat panel ──
+      document.getElementById("chatFooter").classList.remove("footer-hidden");
+      document.getElementById("chatEmptyState").style.display = "none";
+      document.getElementById("msgLayout").classList.add("chat-open");
+      document.getElementById("msgChatPanel").style.display = "";
+
+      document.querySelectorAll('.conv-item').forEach(el =>
+          el.classList.toggle('active-conv', el.dataset.uid === targetUid));
+
+      // ── Step 5: Live online-status listener for the chat header ──
+      if(activeChatStatusUnsub) { activeChatStatusUnsub(); activeChatStatusUnsub = null; }
+      activeChatStatusUnsub = onSnapshot(doc(db, "users", targetUid), (uSnap) => {
+          if(!uSnap.exists()) return;
+          const u = uSnap.data();
+          const isOn = u.status === 'online';
+          document.getElementById("chatHeaderOnline").className = 'chat-header-online' + (isOn ? ' online' : '');
+          document.getElementById("chatHeaderStatus").textContent = isOn ? '🟢 Online' : (u.mood || '⚫ Offline');
+      });
+
+      // ── Step 6: Attach messages listener — serves from local cache instantly,
+      //    no await needed. Handles doc-not-yet-existing (first open) gracefully. ──
+      if(activeChatUnsubscribe) { activeChatUnsubscribe(); activeChatUnsubscribe = null; }
+
+      let _firstSnapshot = true;
+      // Guard: if onSnapshot hasn't fired within 10 s, show a timeout message
+      const _snapTimeoutId = setTimeout(() => {
+          if (!_firstSnapshot) return; // already received a snapshot — cancel
+          const _cb = document.getElementById('chatBoxContainer');
+          if (_cb && activeChatTargetUid === targetUid) {
+              _cb.innerHTML = `<div class="chat-empty-state"><span style="font-size:22px;">🔴</span><br>Could not connect.<br><span style="font-size:11px;color:#3a6a8a;">Check your internet connection.</span><br><button onclick="window.establishDirectMessageChannel('${targetUid}')" style="margin-top:10px;padding:8px 18px;border-radius:20px;font-size:12px;cursor:pointer;">🔄 Retry</button></div>`;
+              document.getElementById('chatHeaderStatus').textContent = '🔴 Connection failed';
+          }
+      }, 10000);
+
+      activeChatUnsubscribe = onSnapshot(doc(db, "chats", channelId), async (chatSnap) => {
+          clearTimeout(_snapTimeoutId); // snapshot arrived — cancel the timeout
+          // Doc doesn't exist yet (first-ever open, setDoc still in flight) — show empty state
+          if(!chatSnap.exists()) {
+              const msgContainer = document.getElementById("chatBoxContainer");
+              if (msgContainer) msgContainer.innerHTML = `<div class="chat-empty-state"><span>👋</span>Say hello to ${escapeHtml(tData.displayName)}!</div>`;
+              _firstSnapshot = false;
+              return;
+          }
+          const cData = chatSnap.data();
+          const list  = cData.messages || [];
+          const isSeen = cData.readReceipt === true;
+
+          // Typing indicator
+          document.getElementById("chatTypingElement").textContent =
+              cData[`typing_${targetUid}`] ? `${tData.displayName} is typing…` : '';
+
+          // Render messages with date separators
+          const msgContainer = document.getElementById("chatBoxContainer");
+          // On first load always scroll to bottom; on subsequent updates only scroll
+          // if the user was already near the bottom (so they aren't interrupted mid-scroll).
+          const wasAtBottom = _firstSnapshot || msgContainer.scrollHeight - msgContainer.scrollTop <= msgContainer.clientHeight + 80;
+          _firstSnapshot = false;
+          msgContainer.innerHTML = '';
+
+          if(!list.length) {
+              msgContainer.innerHTML = `<div class="chat-empty-state"><span>👋</span>Say hello to ${escapeHtml(tData.displayName)}!</div>`;
+          } else {
+              let lastDateLabel = '';
+              list.forEach((m, idx) => {
+                  const isMine   = m.sender === currentUser.uid;
+                  const isLast   = idx === list.length - 1;
+                  const dateLabel = fmtDateLabel(m.timestamp);
+
+                  // Date separator
+                  if(dateLabel !== lastDateLabel) {
+                      lastDateLabel = dateLabel;
+                      const sep = document.createElement("div");
+                      sep.className = "chat-date-sep";
+                      sep.textContent = dateLabel;
+                      msgContainer.appendChild(sep);
+                  }
+
+                  // Bubble wrapper (for sender name above on "them")
+                  const wrap = document.createElement("div");
+                  wrap.style.display = "flex";
+                  wrap.style.flexDirection = "column";
+                  wrap.style.alignItems = isMine ? "flex-end" : "flex-start";
+
+                  const bubble = document.createElement("div");
+                  bubble.className = `msg-bubble ${isMine ? 'me' : 'them'}${m.deleted ? ' deleted' : ''}`;
+                  bubble.dataset.msgIdx = idx;
+                  bubble.dataset.mine = isMine ? '1' : '0';
+
+                  // Long-press / context menu
+                  let pressTimer = null;
+                  const openCtx = (e) => {
+                      e.preventDefault();
+                      const x = e.touches ? e.touches[0].clientX : e.clientX;
+                      const y = e.touches ? e.touches[0].clientY : e.clientY;
+                      openMsgCtxMenu(idx, isMine, m, x, y, channelId);
+                  };
+                  bubble.addEventListener('contextmenu', openCtx);
+                  bubble.addEventListener('touchstart', (e) => { pressTimer = setTimeout(() => openCtx(e), 500); }, { passive: true });
+                  bubble.addEventListener('touchend',   () => clearTimeout(pressTimer));
+                  bubble.addEventListener('touchmove',  () => clearTimeout(pressTimer));
+
+                  // Content: deleted / image / text
+                  if (m.deleted) {
+                      const t = document.createElement("div");
+                      t.className = "msg-text";
+                      t.textContent = 'This message was deleted.';
+                      bubble.appendChild(t);
+                  } else if (m.type === 'image' && m.imageUrl) {
+                      const img = document.createElement("img");
+                      img.className = "msg-media-img";
+                      img.src = m.imageUrl;
+                      img.alt = "image";
+                      img.onclick = () => openMediaViewer('image', m.imageUrl);
+                      bubble.appendChild(img);
+                      if (m.text) { const t = document.createElement("div"); t.className = "msg-text"; t.textContent = m.text; bubble.appendChild(t); }
+                  } else if (m.type === 'video' && m.imageUrl) {
+                      const vid = document.createElement("video");
+                      vid.className = "msg-media-vid";
+                      vid.src = m.imageUrl;
+                      vid.controls = true;
+                      vid.setAttribute('playsinline', '');
+                      vid.onclick = (e) => { e.stopPropagation(); };
+                      bubble.appendChild(vid);
+                      if (m.text) { const t = document.createElement("div"); t.className = "msg-text"; t.textContent = m.text; bubble.appendChild(t); }
+                  } else if (m.type === 'audio' && m.imageUrl) {
+                      const filename = decodeURIComponent(m.imageUrl.split('/').pop().split('?')[0]);
+                      const card = document.createElement('div');
+                      card.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(0,30,70,0.7);border:1px solid rgba(0,174,239,0.3);border-radius:10px;min-width:200px;';
+                      card.innerHTML = `<span style="font-size:24px;flex-shrink:0;">🎵</span><div style="flex:1;min-width:0;"><div style="font-size:12px;color:#d8eeff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;">${filename}</div><audio class="msg-media-aud" src="${m.imageUrl}" controls style="width:100%;"></audio></div>`;
+                      bubble.appendChild(card);
+                      if (m.text) { const t = document.createElement("div"); t.className = "msg-text"; t.textContent = m.text; bubble.appendChild(t); }
+                  } else {
+                      const t = document.createElement("div");
+                      t.className = "msg-text";
+                      t.textContent = m.text || '';
+                      bubble.appendChild(t);
+                  }
+
+                  // Meta row: time + tick
+                  const meta = document.createElement("div");
+                  meta.className = "msg-meta-row";
+                  const ts = document.createElement("span"); ts.className = "msg-ts"; ts.textContent = fmtTime(m.timestamp);
+                  meta.appendChild(ts);
+                  if(isMine) {
+                      const tick = document.createElement("span");
+                      tick.className = "msg-tick" + (isLast && isSeen ? ' seen' : '');
+                      // Double-tick for sent, single for in-transit (we only store one state: readReceipt)
+                      tick.textContent = (isLast && isSeen) ? '✓✓' : '✓';
+                      meta.appendChild(tick);
+                  }
+                  bubble.appendChild(meta);
+                  wrap.appendChild(bubble);
+                  msgContainer.appendChild(wrap);
+              });
+          }
+
+          if(wasAtBottom) msgContainer.scrollTop = msgContainer.scrollHeight;
+
+          // Read receipt label
+          const lastMsg = list[list.length - 1];
+          if(lastMsg && lastMsg.sender === currentUser.uid) {
+              document.getElementById("chatReadElement").textContent = isSeen ? '✓✓ Seen' : '✓ Sent';
+          } else {
+              document.getElementById("chatReadElement").textContent = '';
+              if(lastMsg && lastMsg.sender === targetUid) {
+                  const upd = { readReceipt: true };
+                  upd[`unread_${currentUser.uid}`] = 0;
+                  try { await updateDoc(doc(db, "chats", channelId), upd); } catch(_) {}
+              }
+          }
+      }, (snapErr) => {
+          clearTimeout(_snapTimeoutId);
+          const errCode = snapErr.code || snapErr.message || 'network-error';
+          console.error('[DM] onSnapshot error:', errCode);
+          const chatBox = document.getElementById('chatBoxContainer');
+          if (chatBox && activeChatTargetUid === targetUid) {
+              chatBox.innerHTML = `<div class="chat-empty-state"><span style="font-size:22px;">🔴</span><br>Connection lost.<br><span style="font-size:11px;color:#3a6a8a;">${errCode}</span><br><button onclick="window.establishDirectMessageChannel('${targetUid}')" style="margin-top:10px;padding:8px 18px;border-radius:20px;font-size:12px;cursor:pointer;">🔄 Reconnect</button></div>`;
+          }
+          const hSt = document.getElementById('chatHeaderStatus');
+          if (hSt && activeChatTargetUid === targetUid) hSt.textContent = '🔴 Connection failed';
+          // Auto-retry after 5 s if this conversation is still the active one
+          setTimeout(() => {
+              if (activeChatTargetUid === targetUid && typeof window.establishDirectMessageChannel === 'function') {
+                  const hSt2 = document.getElementById('chatHeaderStatus');
+                  if (hSt2 && activeChatTargetUid === targetUid) hSt2.textContent = '🟡 Reconnecting…';
+                  window.establishDirectMessageChannel(targetUid);
+              }
+          }, 5000);
+      });
+
+      // Typing tracking (debounced) — replace previous handler to avoid stale closures
+      let typingTimer = null;
+      const inputEl = document.getElementById("msgInputBox");
+      // Tear down previous typing handler before attaching the new one
+      if (activeChatTypingUnsub) { activeChatTypingUnsub(); activeChatTypingUnsub = null; }
+      const typingHandler = async (e) => {
+          const isTyping = e.target.value.length > 0;
+          clearTimeout(typingTimer);
+          const upd = {}; upd[`typing_${currentUser.uid}`] = isTyping;
+          try { await updateDoc(doc(db, "chats", channelId), upd); } catch(_) {}
+          if (isTyping) {
+              typingTimer = setTimeout(async () => {
+                  const clr = {}; clr[`typing_${currentUser.uid}`] = false;
+                  try { await updateDoc(doc(db, "chats", channelId), clr); } catch(_) {}
+              }, 4000);
+          }
+          autoGrowTextarea(e.target);
+      };
+      inputEl.addEventListener('input', typingHandler);
+      // Store a cleanup function so closeChatPanel / deleteConversation can remove it
+      activeChatTypingUnsub = () => {
+          clearTimeout(typingTimer);
+          inputEl.removeEventListener('input', typingHandler);
+      };
   };
 
+  function autoGrowTextarea(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+  }
+
+  // Send message — supports type:'text' and type:'image'
+  // Use click only. Adding both click + touchstart causes double-fire on many Android browsers.
+  // touch-action:manipulation on the button element already eliminates the 300ms tap delay.
+  (function() {
+      const btn = document.getElementById("btnSendMsg");
+      let _sendBusy = false;
+      btn.addEventListener("click", () => {
+          if (_sendBusy) return;
+          _sendBusy = true;
+          sendMessage().finally(() => { _sendBusy = false; });
+      });
+  })();
+  document.getElementById("msgInputBox").addEventListener("keydown", (e) => {
+      if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+
+  async function sendMessage(overridePayload) {
+      const input = document.getElementById("msgInputBox");
+      // Read value fresh at call time (important on mobile where .value may lag)
+      const rawText = input ? input.value : '';
+      const payload = overridePayload || { type: 'text', text: rawText.trim() };
+      if (!payload.text && !payload.imageUrl) { toastNotification('Type something first!'); return; }
+      if (!activeChatChannelId) { toastNotification('Select a conversation first.'); return; }
+      // ── AI Safety scan (text messages only) ──
+      if (payload.text && typeof window.snxAIScan === 'function') {
+          const _blocked = await window.snxAIScan(payload.text, 'DM');
+          if (_blocked) return;
+      }
+
+      const newMsg = {
+          sender:    currentUser.uid,
+          type:      payload.type || 'text',
+          text:      payload.text || '',
+          timestamp: Date.now()
+      };
+      if (payload.imageUrl) newMsg.imageUrl = payload.imageUrl;
+
+      const chatRef = doc(db, "chats", activeChatChannelId);
+      const upd = {
+          messages: arrayUnion(newMsg),
+          readReceipt: false,
+          lastMsgTs: newMsg.timestamp,
+          [`typing_${currentUser.uid}`]: false
+      };
+      // Use Firestore increment — no extra read needed, atomic & race-safe
+      upd[`unread_${activeChatTargetUid}`] = increment(1);
+
+      try {
+          // Save to Firestore BEFORE clearing the input so nothing is lost on failure
+          await setDoc(chatRef, upd, { merge: true });
+
+          // Clear input only after successful save
+          if (!overridePayload && input) { input.value = ''; autoGrowTextarea(input); }
+
+          // Scroll to bottom immediately after send
+          const chatBox = document.getElementById('chatBoxContainer');
+          if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+
+          // Push message notification to the recipient (best-effort)
+          try {
+              await pushNotification(activeChatTargetUid, {
+                  type: 'message',
+                  fromUid: currentUser.uid,
+                  fromName: userData.displayName,
+                  fromAvatar: userData.avatar || ''
+              });
+          } catch(e) { /* best-effort */ }
+
+          closeEmojiPicker();
+      } catch(err) {
+          console.error('[DM] Send error:', err.code || err.message || err);
+          toastNotification(`Message failed (${err.code || 'network'}) — try again.`);
+      }
+  }
+
+  // Send image message
+  window.confirmSendImage = async function() {
+      const url = document.getElementById("imgSendUrl").value.trim();
+      if(!url) return;
+      // Detect type from URL extension
+      const ext = url.split('?')[0].split('.').pop().toLowerCase();
+      const audioExts = ['mp3','ogg','wav','aac','flac','m4a','webm'];
+      const videoExts = ['mp4','webm','mov','avi','mkv'];
+      let msgType = 'image';
+      if (audioExts.includes(ext)) msgType = 'audio';
+      if (videoExts.includes(ext)) msgType = 'video';
+      await sendMessage({ type: msgType, imageUrl: url, text: '' });
+      closeImgSendModal();
+      if (typeof window.clearDmFile === 'function') window.clearDmFile();
+  };
+
+  /* ── Message context menu ─────────────────────────────────────────────
+     Long-press or right-click a bubble to open the menu.
+     Stores the current message index + channel in module-level vars.
+  ─────────────────────────────────────────────────────────────────── */
+  let _ctxMsgIdx = null;
+  let _ctxIsMine = false;
+  let _ctxMsg    = null;
+  let _ctxChId   = null;
+
+  window.openMsgCtxMenu = function(idx, isMine, msg, x, y, chId) {
+      _ctxMsgIdx = idx;
+      _ctxIsMine = isMine;
+      _ctxMsg    = msg;
+      _ctxChId   = chId;
+
+      const menu = document.getElementById('msgCtxMenu');
+      if (!menu) return;
+
+      // Hide "Delete for Everyone" if message is already deleted or not mine
+      document.getElementById('msgCtxDeleteAll').style.display = (isMine && !msg.deleted) ? '' : 'none';
+      document.getElementById('msgCtxDeleteMe').style.display  = !msg.deleted ? '' : 'none';
+      document.getElementById('msgCtxCopy').style.display      = !msg.deleted ? '' : 'none';
+
+      // Position menu near tap/click, keeping it on screen
+      menu.style.display = 'block';
+      const mw = menu.offsetWidth  || 180;
+      const mh = menu.offsetHeight || 120;
+      const px = Math.min(x, window.innerWidth  - mw - 10);
+      const py = Math.min(y, window.innerHeight - mh - 10);
+      menu.style.left = px + 'px';
+      menu.style.top  = py + 'px';
+
+      // Close when clicking outside
+      setTimeout(() => document.addEventListener('click', closeMsgCtxMenu, { once: true }), 10);
+  };
+
+  function closeMsgCtxMenu() {
+      const menu = document.getElementById('msgCtxMenu');
+      if (menu) menu.style.display = 'none';
+  }
+
+  window.msgCtxCopy = function() {
+      closeMsgCtxMenu();
+      if (_ctxMsg && _ctxMsg.text) {
+          navigator.clipboard.writeText(_ctxMsg.text).then(() => toastNotification('📋 Copied!'));
+      }
+  };
+
+  window.msgCtxDeleteMe = async function() {
+      closeMsgCtxMenu();
+      if (_ctxMsgIdx === null || !_ctxChId) return;
+      if (!confirm('Delete this message for you? It will still show for the other person.')) return;
+      try {
+          const snap = await getDoc(doc(db, 'chats', _ctxChId));
+          if (!snap.exists()) return;
+          const msgs = [...(snap.data().messages || [])];
+          msgs.splice(_ctxMsgIdx, 1);
+          await updateDoc(doc(db, 'chats', _ctxChId), { messages: msgs });
+          toastNotification('Message deleted.');
+      } catch(e) { toastNotification('Could not delete: ' + e.message); }
+  };
+
+  window.msgCtxDeleteAll = async function() {
+      closeMsgCtxMenu();
+      if (_ctxMsgIdx === null || !_ctxChId || !_ctxIsMine) return;
+      if (!confirm('Delete this message for everyone? This cannot be undone.')) return;
+      try {
+          const snap = await getDoc(doc(db, 'chats', _ctxChId));
+          if (!snap.exists()) return;
+          const msgs = [...(snap.data().messages || [])];
+          // Replace content with deleted tombstone — keep timestamp so order is preserved
+          msgs[_ctxMsgIdx] = {
+              sender:    msgs[_ctxMsgIdx].sender,
+              timestamp: msgs[_ctxMsgIdx].timestamp,
+              type:      'text',
+              text:      '',
+              deleted:   true
+          };
+          await updateDoc(doc(db, 'chats', _ctxChId), { messages: msgs });
+          toastNotification('Message deleted for everyone.');
+      } catch(e) { toastNotification('Could not delete: ' + e.message); }
+  };
+
+  window.deleteConversation = async function() {
+      if (!activeChatChannelId) return;
+      if (!confirm('Delete this entire conversation? It will be removed from your inbox.')) return;
+      try {
+          // Remove current user from participants — the other person still sees it
+          await updateDoc(doc(db, 'chats', activeChatChannelId), {
+              participants: (await getDoc(doc(db, 'chats', activeChatChannelId)))
+                  .data().participants.filter(uid => uid !== currentUser.uid)
+          });
+          // Reset local state and close chat
+          activeChatChannelId = null;
+          activeChatTargetUid = null;
+          if (activeChatUnsubscribe) { activeChatUnsubscribe(); activeChatUnsubscribe = null; }
+          if (activeChatStatusUnsub) { activeChatStatusUnsub(); activeChatStatusUnsub = null; }
+          if (activeChatTypingUnsub) { activeChatTypingUnsub(); activeChatTypingUnsub = null; }
+          document.getElementById('chatFooter').classList.add('footer-hidden');
+          document.getElementById('msgLayout').classList.remove('chat-open');
+          document.getElementById('chatBoxContainer').innerHTML = '';
+          document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active-conv'));
+          toastNotification('Conversation deleted.');
+      } catch(e) { toastNotification('Could not delete: ' + e.message); }
+  };
+
+  // Expose chat teardown for non-module scripts (closeChatPanel in the global script)
+  window._snxCloseChatPanel = function() {
+      activeChatTargetUid = null;
+      activeChatChannelId = null;
+      if (activeChatUnsubscribe) { activeChatUnsubscribe(); activeChatUnsubscribe = null; }
+      if (activeChatStatusUnsub) { activeChatStatusUnsub(); activeChatStatusUnsub = null; }
+      if (activeChatTypingUnsub) { activeChatTypingUnsub(); activeChatTypingUnsub = null; }
+  };
+
+  // ── Inbox monitor ─────────────────────────────────────────────────────────
+  // Scoped to this user's channels only (where query — no full collection scan).
+  // Renders sorted conversation list with: avatar, name, badges, last message
+  // preview, relative timestamp, unread badge, online dot, and typing indicator.
+  // Supports live search via window._snxInboxSearch().
+  // ──────────────────────────────────────────────────────────────────────────
+
+  // Cache of rendered conversations — reused by search filter without re-querying
+  let _inboxConvsCache = [];
+
+  // Format a timestamp into a short relative label for the conv list
+  function _inboxFmtTs(ts) {
+      if (!ts) return '';
+      const diff = Date.now() - ts;
+      if (diff < 60000)        return 'now';
+      if (diff < 3600000)      return Math.floor(diff / 60000) + 'm';
+      if (diff < 86400000)     return Math.floor(diff / 3600000) + 'h';
+      if (diff < 604800000)    return Math.floor(diff / 86400000) + 'd';
+      const d = new Date(ts);
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+
+  // Render the cached conversation list, optionally filtered by a search term
+  function _inboxRender(filter) {
+      const inboxBox = document.getElementById('inboxChannelsList');
+      if (!inboxBox) return;
+      const term = (filter || '').trim().toLowerCase();
+      const convs = term
+          ? _inboxConvsCache.filter(c =>
+              (c.user.displayName || '').toLowerCase().includes(term) ||
+              (c.user.username   || '').toLowerCase().includes(term))
+          : _inboxConvsCache;
+
+      inboxBox.innerHTML = '';
+      if (!convs.length) {
+          const msg = term
+              ? `🔍 No conversations matching "<b>${escapeHtml(term)}</b>"`
+              : '💬 No conversations yet.<br>Go to someone\'s profile and tap 💬 Message!';
+          inboxBox.innerHTML = `<div class="msg-inbox-empty">${msg}</div>`;
+          return;
+      }
+
+      convs.forEach(c => {
+          const el = document.createElement('div');
+          const isActive = activeChatTargetUid && c.partnerUid === activeChatTargetUid;
+          el.className = 'conv-item' + (isActive ? ' active-conv' : '') + (c.unreadCount > 0 ? ' conv-item-unread' : '');
+          el.dataset.uid = c.partnerUid;
+          el.setAttribute('role', 'button');
+          el.setAttribute('tabindex', '0');
+
+          // Preview: typing indicator takes priority; then last message content
+          let previewText = '<span style="color:#3a5a7a;font-style:italic;">No messages yet</span>';
+          if (c.isTyping) {
+              previewText = '<span style="color:#00cc88;font-style:italic;">✏️ typing…</span>';
+          } else if (c.lastMsg) {
+              const raw = c.lastMsg;
+              let txt;
+              if (raw.deleted)              txt = '<span style="font-style:italic;color:#3a5a7a;">Message deleted</span>';
+              else if (raw.type === 'image') txt = '📷 Photo';
+              else if (raw.type === 'video') txt = '🎬 Video';
+              else if (raw.type === 'audio') txt = '🎵 Audio';
+              else {
+                  const snippet = escapeHtml((raw.text || '').substring(0, 44));
+                  txt = c.unreadCount > 0
+                      ? `<b style="color:#c8e8ff;">${snippet}${(raw.text||'').length > 44 ? '…' : ''}</b>`
+                      : snippet + ((raw.text||'').length > 44 ? '…' : '');
+              }
+              // Prefix with "You: " if last message was mine
+              if (!raw.deleted && raw.sender === currentUser.uid) {
+                  txt = '<span style="color:#6a90b8;">You: </span>' + txt;
+              }
+              previewText = txt;
+          }
+
+          const isOn     = c.user.status === 'online';
+          const initial  = (c.user.displayName || '?')[0].toUpperCase();
+          const tsLabel  = _inboxFmtTs(c._lastMsgTs);
+          const avatarStyle = c.user.avatar
+              ? `background-image:url('${c.user.avatar}')`
+              : 'display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#00AEEF;background:#071428';
+
+          el.innerHTML = `
+              <div class="conv-avatar" style="${avatarStyle}"
+                   onclick="event.stopPropagation();viewProfile('${c.partnerUid}')"
+                   title="View profile" role="button" data-uid="${c.partnerUid}">
+                  ${!c.user.avatar ? escapeHtml(initial) : ''}
+                  <div class="conv-online-dot${isOn ? ' online' : ''}"></div>
+              </div>
+              <div class="conv-meta">
+                  <div class="conv-name-row">
+                      <span class="conv-name">${escapeHtml(c.user.displayName)}${buildBadgeHtml(c.user.badges||[],c.user.role||'member')}</span>
+                      <span class="conv-ts">${escapeHtml(tsLabel)}</span>
+                  </div>
+                  <div class="conv-preview">${previewText}</div>
+              </div>
+              ${c.unreadCount > 0 ? `<div class="conv-unread-badge" aria-label="${c.unreadCount} unread">${c.unreadCount > 99 ? '99+' : c.unreadCount}</div>` : ''}
+          `;
+          el.onclick = () => window.establishDirectMessageChannel(c.partnerUid);
+          el.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.establishDirectMessageChannel(c.partnerUid); } };
+          inboxBox.appendChild(el);
+      });
+  }
+
+  // Live search handler — exposed globally so the input oninput can call it
+  window._snxInboxSearch = function(term) {
+      _inboxRender(term);
+  };
+
+  function initInboxMonitor() {
+      // Guard: don't start if auth isn't resolved yet
+      if (!currentUser) return null;
+      if (inboxUnsubscribe) { inboxUnsubscribe(); inboxUnsubscribe = null; }
+      _inboxConvsCache = [];
+
+      // Show loading state immediately
+      const _inboxBoxPre = document.getElementById('inboxChannelsList');
+      if (_inboxBoxPre) {
+          _inboxBoxPre.innerHTML = `
+              <div id="inboxLoadingState" style="padding:28px 14px;text-align:center;">
+                  <div class="snx-reconnect-spinner" style="justify-content:center;margin-bottom:10px;">
+                      <span></span><span></span><span></span>
+                  </div>
+                  <div style="font-size:12px;color:#3a6a8a;">Loading conversations…</div>
+              </div>`;
+      }
+
+      const q = query(
+          collection(db, 'chats'),
+          where('participants', 'array-contains', currentUser.uid)
+      );
+
+      const unsub = onSnapshot(q, async (snap) => {
+          const inboxBox = document.getElementById('inboxChannelsList');
+          if (!inboxBox) return;
+
+          // Clear loading / error states
+          const _load = document.getElementById('inboxLoadingState');
+          if (_load) _load.remove();
+          const _err  = document.getElementById('inboxConnError');
+          if (_err)  _err.remove();
+
+          let totalUnread = 0;
+
+          // Build conversation data — fetch partner profiles in parallel
+          const convPromises = [];
+          snap.forEach(cDoc => {
+              const data  = cDoc.data();
+              const parts = data.participants || [];
+              const partnerUid = parts.find(p => p !== currentUser.uid);
+              if (!partnerUid) return;
+
+              const unreadCount = data[`unread_${currentUser.uid}`] || 0;
+              const messages    = data.messages || [];
+              const lastMsg     = messages.length ? messages[messages.length - 1] : null;
+              const lastMsgTs   = data.lastMsgTs || lastMsg?.timestamp || 0;
+              const isTyping    = !!data[`typing_${partnerUid}`];
+
+              convPromises.push(
+                  getDoc(doc(db, 'users', partnerUid)).then(uSnap => ({
+                      channelId:  cDoc.id,
+                      partnerUid,
+                      unreadCount,
+                      lastMsg,
+                      _lastMsgTs: lastMsgTs,
+                      isTyping,
+                      user: uSnap.exists()
+                          ? uSnap.data()
+                          : { displayName: partnerUid.substring(0, 8), avatar: '', status: 'offline', username: '' }
+                  }))
+              );
+          });
+
+          const convs = await Promise.all(convPromises);
+
+          // Sort: most-recent message first
+          convs.sort((a, b) => (b._lastMsgTs || 0) - (a._lastMsgTs || 0));
+
+          // Accumulate unread total
+          convs.forEach(c => { totalUnread += c.unreadCount; });
+
+          // Cache for search re-renders
+          _inboxConvsCache = convs;
+
+          // Render, respecting any active search term
+          const searchInput = document.getElementById('inboxSearchInput');
+          _inboxRender(searchInput ? searchInput.value : '');
+
+          // Briefly flash "● Connected" in the header on first load
+          const _hdrStatus = document.getElementById('msgHeaderOnlineCount');
+          if (_hdrStatus && !_hdrStatus.dataset.connShown) {
+              _hdrStatus.dataset.connShown = '1';
+              const _prev = _hdrStatus.textContent;
+              _hdrStatus.style.color = '#39FF14';
+              _hdrStatus.textContent = '● Connected';
+              setTimeout(() => {
+                  _hdrStatus.textContent = _prev;
+                  _hdrStatus.style.color = '';
+                  delete _hdrStatus.dataset.connShown;
+              }, 2000);
+          }
+
+          // Update unread badges
+          const badgeCount = totalUnread > 99 ? '99+' : String(totalUnread);
+          const badge    = document.getElementById('sidebarMsgBadge');
+          const topBadge = document.getElementById('msgTopbarBadge');
+          if (totalUnread > 0) {
+              if (badge)    { badge.textContent = badgeCount; badge.classList.add('visible'); }
+              if (topBadge) { topBadge.textContent = badgeCount; topBadge.style.display = 'inline-flex'; }
+          } else {
+              if (badge)    badge.classList.remove('visible');
+              if (topBadge) topBadge.style.display = 'none';
+          }
+
+      }, (inboxErr) => {
+          // Listener error — show reconnect notice and auto-retry after 8 s
+          console.error('[Inbox] onSnapshot error:', inboxErr.code || inboxErr.message || inboxErr);
+          const inboxBox = document.getElementById('inboxChannelsList');
+          if (inboxBox && !document.getElementById('inboxConnError')) {
+              const errEl = document.createElement('div');
+              errEl.id = 'inboxConnError';
+              errEl.style.cssText = 'padding:14px;font-size:12px;color:#3a6a8a;text-align:center;';
+              errEl.innerHTML = `🔴 Inbox disconnected — <button onclick="window._snxRestartInbox()" style="background:none;border:none;color:#00AEEF;cursor:pointer;font-size:12px;text-decoration:underline;padding:0;">retry</button>`;
+              inboxBox.prepend(errEl);
+          }
+          setTimeout(() => {
+              if (!currentUser) return;
+              window._snxRestartInbox();
+          }, 8000);
+      });
+
+      return unsub;
+  }
+
+  // Expose inbox restart to global scope so inline onclick and navTo can reach it
+  window._snxRestartInbox = function() {
+      if (!currentUser) return;
+      inboxUnsubscribe = initInboxMonitor();
+  };
+  // Expose for navTo
+  window._snxInitInboxIfNeeded = function() {
+      if (!currentUser) return;
+      // If the listener was torn down (e.g. network error) restart it
+      if (!inboxUnsubscribe) {
+          inboxUnsubscribe = initInboxMonitor();
+      }
+      // Listener already running — leave it alone; the existing snapshot is live
+  };
   /* ═══════════════════════════════════════════════════════════
      PROFILE CHAT MODAL ENGINE
      Powers the #ipcModal overlay on profile pages.
@@ -11738,10 +12925,19 @@ body.arcade-fs-ios body::after { display:none !important; }
       _mClose();
   };
 
-  // ── ipcModalExpandToInbox removed (inbox page deleted) ──
-  // Legacy alias kept so any stale callers degrade gracefully
-  window.ipcModalExpandToInbox = function() { /* no-op: inbox removed */ };
-  window.ipcExpandToInbox      = window.ipcModalExpandToInbox;
+  // ── Expose "open in full DMs" ──
+  window.ipcModalExpandToInbox = function() {
+      const uid = _m_tgtUid;
+      window.ipcModalClose(); // restores body scroll + tears down listeners
+      if (uid && typeof window.establishDirectMessageChannel === 'function') {
+          window.establishDirectMessageChannel(uid);
+      } else if (uid) {
+          navTo('messagesInbox');
+      }
+  };
+
+  // ── Legacy aliases so existing callers (profile onSnapshot, etc.) still work ──
+  window.ipcExpandToInbox = window.ipcModalExpandToInbox;
 
   // ── Render messages into the modal ──
   function _mRender(cData, forceScrollToBottom) {
@@ -12406,7 +13602,7 @@ body.arcade-fs-ios body::after { display:none !important; }
               </div>
               <div style="font-size:11px;color:#4a6a8a;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Last: ${preview}</div>
               <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                  <button onclick="window.adminOpenConversation('${uid1}','${uid2}')" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(0,174,239,0.12);border:1px solid rgba(0,174,239,0.3);color:#66ccff;">💬 Open Chat</button>
+                  <button onclick="window.adminOpenConversation('${uid1}','${uid2}')" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(0,174,239,0.12);border:1px solid rgba(0,174,239,0.3);color:#66ccff;">💬 Open in Inbox</button>
                   <button onclick="window.adminDeleteConversation('${d.id}',this)" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,51,80,0.1);border:1px solid rgba(255,51,80,0.35);color:#ff6680;">🗑 Delete</button>
               </div>
           </div>`;
@@ -12415,8 +13611,12 @@ body.arcade-fs-ios body::after { display:none !important; }
 
   window.adminOpenConversation = function(uid1, uid2) {
       if (!uid1 || !uid2) { toastNotification('Missing participant UIDs.'); return; }
+      // If one of the UIDs is the founder's own, open the other end; otherwise open as uid2
       const target = uid1 === currentUser.uid ? uid2 : uid1;
-      if (typeof window.ipcOpen === 'function') window.ipcOpen(target);
+      navTo('messagesInbox');
+      if (typeof window.establishDirectMessageChannel === 'function') {
+          window.establishDirectMessageChannel(target);
+      }
   };
 
   window.adminDeleteConversation = async function(chatId, btnEl) {
@@ -13183,15 +14383,25 @@ body.arcade-fs-ios body::after { display:none !important; }
       }
   };
 
-  /* ── snxSetMessagesTab — no-op now that the Inbox page is removed.
-     The toggle checkboxes are kept in the admin UI; they just don't hide a Messages nav
-     button any more. The function is preserved so Firestore config writes still work. ── */
+  /* ── snxSetMessagesTab — Founder-only toggle for the Messages tab ── */
   function _syncMessagesTabUI(enabled) {
-      // Sync both toggle checkboxes (if they still exist in admin panel)
+      // Nav button visibility (Founder always sees it)
+      const navBtn = document.getElementById('navMessages');
+      if (navBtn) navBtn.style.display = (enabled || window._snxRole === 'founder') ? '' : 'none';
+      // Sync both toggle checkboxes
       const cb1 = document.getElementById('toggleMessagesTab');
       const cb2 = document.getElementById('settingsToggleMessagesTab');
       if (cb1) cb1.checked = enabled;
       if (cb2) cb2.checked = enabled;
+      // Show/hide the "expand to inbox" button in the ipcModal (only shown when inbox is available)
+      // Expand-to-inbox button is always shown — inbox is live
+      // If a non-founder is currently on the messages page and it just got hidden, redirect to feed
+      if (!enabled && window._snxRole !== 'founder') {
+          const activePage = document.querySelector('.page.active');
+          if (activePage && activePage.id === 'messagesInbox') {
+              if (typeof navTo === 'function') navTo('feed');
+          }
+      }
   }
   window._syncMessagesTabUI = _syncMessagesTabUI;
 
@@ -14222,7 +15432,7 @@ function navTo(pageId) {
     // Update active nav highlight
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active-nav'));
     const map = {
-        feed:'navHome', profile:'navProfile',
+        feed:'navHome', profile:'navProfile', messagesInbox:'navMessages',
         searchPage:'navSearch', friendsPage:'navFriends',
         notificationsPage:'navNotifs', settingsPage:'navSettings',
         stormRoomsPage:'navStorm', adminPage:'navAdmin',
@@ -14251,6 +15461,10 @@ function navTo(pageId) {
     }
     // Init community hub on first visit
     if (pageId === 'communityPage') commInitPage();
+    // Reconnect inbox listener when opening the Messages page
+    if (pageId === 'messagesInbox' && typeof window._snxInitInboxIfNeeded === 'function') {
+        window._snxInitInboxIfNeeded();
+    }
     // Auto-close sidebar on mobile after navigation
     closeSidebar();
 }
@@ -14828,6 +16042,90 @@ async function renderFamilyInviteSearch(q) {
         });
     } catch(_) { box.innerHTML='<div style="font-size:12px;color:#ff4466;padding:8px 0;">Error loading friends.</div>'; }
 }
+
+/* ── Messaging UI helpers (non-module, called from HTML) ── */
+function closeChatPanel() {
+    document.getElementById("msgLayout").classList.remove("chat-open");
+    // Restore footer-hidden so layout doesn't show orphan input bar
+    document.getElementById("chatFooter").classList.add("footer-hidden");
+    closeEmojiPicker();
+    // Delegate teardown to the module function that owns the variables
+    if (typeof window._snxCloseChatPanel === 'function') {
+        window._snxCloseChatPanel();
+    }
+    // Remove active highlight from every conversation row
+    document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active-conv'));
+}
+
+/* ── Image send modal ── */
+function openImgSendModal() {
+    document.getElementById("imgSendUrl").value = "";
+    const prev = document.getElementById("imgSendPreview");
+    prev.style.display = "none"; prev.src = "";
+    document.getElementById("imgSendModal").classList.add("open");
+}
+function closeImgSendModal() {
+    document.getElementById("imgSendModal").classList.remove("open");
+}
+function previewImgSend(url) {
+    const prev = document.getElementById("imgSendPreview");
+    if(url && url.startsWith("http")) {
+        prev.src = url; prev.style.display = "block";
+        prev.onerror = () => { prev.style.display = "none"; };
+    } else { prev.style.display = "none"; }
+}
+document.getElementById("imgSendModal").addEventListener("click", function(e) {
+    if(e.target === this) closeImgSendModal();
+});
+
+/* ── Emoji picker ── */
+const EMOJI_DATA = [
+    { label:"Smileys",  emojis:["😀","😂","😅","😊","🥰","😍","🤩","😘","😎","🤔","😏","😒","😢","😭","😤","🥺","😱","🤯","😴","🥳","😇","🤗","😬","😵","🤪","🧐","🙄","😫","🥱","😋"] },
+    { label:"People",   emojis:["👋","🤝","👍","👎","👏","🙌","🤜","🤛","💪","🫶","❤️","🧡","💛","💚","💙","💜","🖤","🤍","💯","🔥","✨","⭐","🎉","🎊","🎈","💥","💫","🌙","☀️","🌈"] },
+    { label:"Nature",   emojis:["🐶","🐱","🐭","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐸","🐙","🦋","🌸","🌺","🌻","🍀","🌴","🌊","🔮"] },
+    { label:"Food",     emojis:["🍕","🍔","🌮","🌯","🍜","🍱","🍣","🍩","🎂","🍰","☕","🧋","🍺","🥂","🧃","🍓","🍇","🍉","🍑","🥑"] },
+    { label:"Symbols",  emojis:["💬","📷","🎵","🎮","🏆","🎯","🚀","💻","📱","⚡","🔑","🔒","💡","📍","✅","❌","❓","💤","🔔","👀"] }
+];
+
+function buildEmojiPicker() {
+    const grid = document.getElementById("emojiPickerGrid");
+    if(grid.childElementCount) return; // already built
+    EMOJI_DATA.forEach(section => {
+        const lbl = document.createElement("div");
+        lbl.className = "ep-section-label"; lbl.textContent = section.label;
+        grid.appendChild(lbl);
+        section.emojis.forEach(em => {
+            const btn = document.createElement("button");
+            btn.className = "ep-btn"; btn.textContent = em; btn.type = "button";
+            btn.addEventListener("click", () => insertEmoji(em));
+            grid.appendChild(btn);
+        });
+    });
+}
+function toggleEmojiPicker() {
+    const picker = document.getElementById("emojiPicker");
+    buildEmojiPicker();
+    picker.classList.toggle("open");
+}
+function closeEmojiPicker() {
+    const p = document.getElementById("emojiPicker");
+    if(p) p.classList.remove("open");
+}
+function insertEmoji(em) {
+    const ta = document.getElementById("msgInputBox");
+    const s = ta.selectionStart || ta.value.length;
+    const e = ta.selectionEnd   || ta.value.length;
+    ta.value = ta.value.slice(0, s) + em + ta.value.slice(e);
+    ta.selectionStart = ta.selectionEnd = s + em.length;
+    ta.focus();
+    ta.dispatchEvent(new Event("input", { bubbles: true }));
+}
+// Close picker on outside click
+document.addEventListener("click", (e) => {
+    const picker = document.getElementById("emojiPicker");
+    const btn    = document.getElementById("btnEmojiToggle");
+    if(picker && !picker.contains(e.target) && e.target !== btn) closeEmojiPicker();
+});
 
 /* ═══ MINI-GAME ENGINE ═══
    Player: fixed left 40–62px, height 22px, jumps via `bottom` CSS transition.
@@ -15626,6 +16924,57 @@ function clearPostMedia() {
     document.getElementById('postMediaPreviewAud').style.display = 'none';
 }
 
+/* ══ DM file upload handlers ══ */
+let _dmUploadedUrl = '';
+
+async function handleDmFilePick(input) {
+    const file = input.files[0];
+    if (!file) return;
+    _dmUploadedUrl = '';
+    document.getElementById('imgSendUrl').value = '';
+    document.getElementById('imgSendFilename').textContent = file.name;
+    document.getElementById('imgSendClear').style.display = '';
+    document.getElementById('btnConfirmSendImg').disabled = true;
+
+    showLocalPreview(
+        file,
+        document.getElementById('imgSendPreview'),
+        document.getElementById('imgSendPreviewVid'),
+        document.getElementById('imgSendPreviewAud')
+    );
+
+    try {
+        const url = await uploadToR2(file, 'imgSendProgressBar', 'imgSendProgress');
+        _dmUploadedUrl = url;
+        document.getElementById('imgSendUrl').value = url;
+        document.getElementById('btnConfirmSendImg').disabled = false;
+        toastNotification('✅ File ready to send!');
+    } catch(e) {
+        toastNotification('❌ Upload failed: ' + e.message);
+        clearDmFile();
+    }
+}
+
+function clearDmFile() {
+    _dmUploadedUrl = '';
+    document.getElementById('imgSendUrl').value = '';
+    document.getElementById('imgSendFile').value = '';
+    document.getElementById('imgSendFilename').textContent = 'No file chosen';
+    document.getElementById('imgSendClear').style.display = 'none';
+    document.getElementById('imgSendPreview').style.display = 'none';
+    document.getElementById('imgSendPreviewVid').style.display = 'none';
+    document.getElementById('imgSendPreviewAud').style.display = 'none';
+    document.getElementById('btnConfirmSendImg').disabled = true;
+}
+
+function handleDmFileDrop(event) {
+    event.preventDefault();
+    document.getElementById('imgSendDropZone').classList.remove('drag-over');
+    const dt = event.dataTransfer;
+    if (!dt || !dt.files.length) return;
+    handleDmFilePick({ files: dt.files });
+}
+
 /* ══ Profile picture upload handlers ══ */
 async function handleAvatarPick(input) {
     const file = input.files[0];
@@ -15706,6 +17055,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') window.close
 window.handlePostMediaPick = handlePostMediaPick;
 window.handlePostMediaDrop = handlePostMediaDrop;
 window.clearPostMedia      = clearPostMedia;
+window.handleDmFilePick    = handleDmFilePick;
+window.handleDmFileDrop    = handleDmFileDrop;
+window.clearDmFile         = clearDmFile;
 window.handleAvatarPick    = handleAvatarPick;
 window.clearAvatarUpload   = clearAvatarUpload;
 window.handleBannerPick    = handleBannerPick;

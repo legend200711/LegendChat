@@ -6523,8 +6523,11 @@ body.arcade-fs-ios body::after { display:none !important; }
                 <div class="ipc-modal-sub"  id="ipcModalSub">Connecting…</div>
             </div>
             <div class="ipc-modal-header-btns">
-                <!-- Open full DMs inbox -->
-                <button class="ipc-modal-btn" title="Open in Messages" onclick="window.ipcModalExpandToInbox && window.ipcModalExpandToInbox()" aria-label="Open in full Messages">⤢</button>
+                <!-- Open full DMs inbox — hidden while inbox is disabled -->
+                <button class="ipc-modal-btn" id="ipcModalExpandBtn"
+                    title="Open in Messages" aria-label="Open in full Messages"
+                    onclick="window.ipcModalExpandToInbox && window.ipcModalExpandToInbox()"
+                    style="display:none;">⤢</button>
                 <!-- Close button -->
                 <button class="ipc-modal-btn" title="Close chat" onclick="window.ipcModalClose && window.ipcModalClose()" aria-label="Close chat" style="font-size:20px;color:#ff5566;">✕</button>
             </div>
@@ -6566,6 +6569,19 @@ body.arcade-fs-ios body::after { display:none !important; }
 
 <!-- ═══════════════════════════════════════════════════════════
      MESSAGING PAGE — split-pane: inbox list  |  chat window
+
+     ⚠️  INBOX TEMPORARILY DISABLED
+     The inbox is currently hidden from non-founders via the
+     messagesTabEnabled flag in siteSettings/config.
+     Users reach conversations via the Profile 💬 Message button
+     (ipcModal) which writes to the same `chats` collection.
+
+     MIGRATION PLAN (when inbox is repaired):
+       1. Set messagesTabEnabled = true in siteSettings/config.
+       2. All Profile Message conversations already live in the
+          `chats` collection and will appear automatically — no
+          data migration needed, zero message loss.
+       3. Remove the _snxInboxDisabled guard below if added.
      ═══════════════════════════════════════════════════════════ -->
 <div class="page" id="messagesInbox">
 
@@ -9327,8 +9343,10 @@ body.arcade-fs-ios body::after { display:none !important; }
       }
 
       // Messages tab visibility (live — hides/shows nav button for all users)
+      // ⚠️ INBOX DISABLED: defaults to false until the inbox is repaired.
+      // When the inbox is ready, set messagesTabEnabled = true in siteSettings/config.
       // Cache the raw value so _snxReapplyNavVisibility() can replay it after role resolves.
-      const _msgEnabled = cfg.messagesTabEnabled !== false;
+      const _msgEnabled = cfg.messagesTabEnabled === true;
       window._snxMessagesTabEnabled = _msgEnabled;
       window._snxCfgMessagesTabEnabled = _msgEnabled; // persisted cache
       _syncMessagesTabUI(_msgEnabled);
@@ -9379,6 +9397,7 @@ body.arcade-fs-ios body::after { display:none !important; }
      Called from onAuthStateChanged after _snxRole is confirmed. ── */
   window._snxReapplyNavVisibility = function() {
       // Re-apply Messages tab state (saved from siteSettings/config onSnapshot)
+      // Founders always see the tab; non-founders only see it if explicitly enabled
       const _msgEnabled = window._snxCfgMessagesTabEnabled;
       if (typeof _msgEnabled === 'boolean') {
           window._snxMessagesTabEnabled = _msgEnabled;
@@ -10301,7 +10320,9 @@ body.arcade-fs-ios body::after { display:none !important; }
           tag: '🏷️ You were tagged',
       };
       const pushBodies = {
-          message:       `${notif.fromName || 'Someone'} sent you a message`,
+          message:       notif.preview
+              ? `${notif.fromName || 'Someone'}: ${notif.preview}`
+              : `${notif.fromName || 'Someone'} sent you a message`,
           like:          `${notif.fromName || 'Someone'} liked your post`,
           comment:       `${notif.fromName || 'Someone'} commented: "${(notif.commentText || '').substring(0,60)}"`,
           reply:         `${notif.fromName || 'Someone'} replied to your comment`,
@@ -11221,8 +11242,11 @@ body.arcade-fs-ios body::after { display:none !important; }
               navFn = `navTo('feed')`;
           } else if (n.type === 'message') {
               icon = '✉️';
-              text = `<b>${escFeed(n.fromName)}</b> sent you a message.`;
-              navFn = `navTo('messagesInbox');if(typeof window.establishDirectMessageChannel==='function')window.establishDirectMessageChannel('${n.fromUid}')`;
+              // Show message preview if available
+              const _prev = n.preview ? `: <i>"${escFeed(n.preview)}"</i>` : '.';
+              text = `<b>${escFeed(n.fromName)}</b> sent you a message${_prev}`;
+              // Route directly to ipcModal (profile message system) — inbox temporarily disabled
+              navFn = `if(typeof window.ipcOpen==='function')window.ipcOpen('${n.fromUid}')`;
           } else if (n.type === 'wallPost') {
               icon = '📝';
               text = `<b>${escFeed(n.fromName)}</b> posted on your wall.`;
@@ -12901,13 +12925,15 @@ body.arcade-fs-ios body::after { display:none !important; }
           const msgBox = document.getElementById('ipcModalMessages');
           if (msgBox) msgBox.scrollTop = msgBox.scrollHeight;
 
-          // Push notification to recipient (best-effort)
+          // Push notification to recipient with message preview (best-effort)
           try {
+              const _previewText = text.length > 80 ? text.substring(0, 80) + '…' : text;
               await pushNotification(tgtUidSnapshot, {
                   type:       'message',
                   fromUid:    currentUser.uid,
                   fromName:   userData.displayName,
-                  fromAvatar: userData.avatar || ''
+                  fromAvatar: userData.avatar || '',
+                  preview:    _previewText
               });
           } catch(_) {}
 
@@ -12926,6 +12952,25 @@ body.arcade-fs-ios body::after { display:none !important; }
   window.ipcOpen = async function(targetUid) {
       if (!currentUser) { console.warn('[Chat] Not logged in'); return; }
       if (targetUid === currentUser.uid) return; // can't message yourself
+
+      // Mark any unread message notifications from this user as read
+      // (best-effort — does not block opening the chat)
+      try {
+          if (userData && Array.isArray(userData.notifications)) {
+              const notifs = userData.notifications;
+              let changed = false;
+              const updated = notifs.map(n => {
+                  if (n.type === 'message' && n.fromUid === targetUid && !n.read) {
+                      changed = true;
+                      return { ...n, read: true };
+                  }
+                  return n;
+              });
+              if (changed) {
+                  updateDoc(doc(db, 'users', currentUser.uid), { notifications: updated }).catch(() => {});
+              }
+          }
+      } catch(_) {}
 
       const newChId = [currentUser.uid, targetUid].sort().join('_');
 
@@ -14038,6 +14083,9 @@ body.arcade-fs-ios body::after { display:none !important; }
       const cb2 = document.getElementById('settingsToggleMessagesTab');
       if (cb1) cb1.checked = enabled;
       if (cb2) cb2.checked = enabled;
+      // Show/hide the "expand to inbox" button in the ipcModal (only shown when inbox is available)
+      const expandBtn = document.getElementById('ipcModalExpandBtn');
+      if (expandBtn) expandBtn.style.display = (enabled || window._snxRole === 'founder') ? '' : 'none';
       // If a non-founder is currently on the messages page and it just got hidden, redirect to feed
       if (!enabled && window._snxRole !== 'founder') {
           const activePage = document.querySelector('.page.active');
@@ -14081,8 +14129,8 @@ body.arcade-fs-ios body::after { display:none !important; }
           const r=document.getElementById('siteSettingRulesUrl'); if(r&&cfg.rulesUrl)r.value=cfg.rulesUrl;
           // Sync AI moderation toggle state
           _syncAIToggleUI(cfg.aiModerationEnabled !== false);
-          // Sync Messages tab toggle state
-          _syncMessagesTabUI(cfg.messagesTabEnabled !== false);
+          // Sync Messages tab toggle state (⚠️ inbox disabled by default — must be explicitly true)
+          _syncMessagesTabUI(cfg.messagesTabEnabled === true);
       }catch(_){}
   };
   window.adminExportUsers = async function() {
@@ -15049,9 +15097,9 @@ function navTo(pageId) {
         return;
     }
 
-    // ── Messages tab guard — hidden by Founder; non-founders cannot navigate to inbox ──
+    // ── Messages tab guard — inbox disabled; route users to Profile Message button ──
     if (pageId === 'messagesInbox' && window._snxMessagesTabEnabled === false && window._snxRole !== 'founder') {
-        _snxShowUnavailablePage('The Messages inbox is temporarily unavailable while we work on improvements. You can still message users from their profiles. 💬');
+        _snxShowUnavailablePage('The Messages inbox is temporarily unavailable. To message someone, visit their profile and tap the 💬 Message button — your conversations are saved and you\'ll receive notifications for replies.');
         return;
     }
 

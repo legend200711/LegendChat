@@ -809,9 +809,17 @@ input:focus, textarea:focus, select:focus {
 .profile-stat { cursor:pointer; transition:background 0.15s, transform 0.12s; border-radius:8px; padding:4px 8px; }
 .profile-stat:hover { background:rgba(0,174,239,0.1); transform:scale(1.04); }
 
-/* ── Clickable DM header ── */
-.ipc-modal-avatar, .ipc-modal-name { cursor:pointer; }
-.ipc-modal-name:hover { color:#00AEEF; text-decoration:underline; }
+/* ── Chat header: only avatar is clickable ── */
+.ipc-modal-avatar {
+    cursor: pointer;
+    /* Larger mobile tap area without changing visual size */
+    padding: 8px;
+    margin: -8px;
+    box-sizing: content-box;
+    -webkit-tap-highlight-color: transparent;
+}
+/* username is plain text — tapping avatar opens profile, not the name */
+.ipc-modal-name   { cursor: default; }
 
 /* ── R2 Upload UI ── */
 .snx-upload-btn {
@@ -1622,6 +1630,8 @@ img.post-media-preview::before {
     flex: 1;
     overflow: hidden;
     height: calc(100vh - 56px); /* subtract header bar */
+    /* Dynamic viewport height so mobile keyboard doesn't cover the chat footer */
+    height: calc(100dvh - 56px);
 }
 
 /* ── Inbox sidebar panel ── */
@@ -1670,8 +1680,8 @@ img.post-media-preview::before {
 }
 .msg-online-avatars::-webkit-scrollbar { display: none; }
 .msg-online-avatar {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: #0B1F3A;
     background-size: cover;
@@ -1682,8 +1692,14 @@ img.post-media-preview::before {
     position: relative;
     box-shadow: 0 0 10px rgba(0,160,255,0.4);
     transition: transform 0.15s, box-shadow 0.15s;
+    /* minimum touch target */
+    min-width: 40px;
+    min-height: 40px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 .msg-online-avatar:hover { transform: scale(1.1); }
+.msg-online-avatar:active { transform: scale(0.93); }
 .msg-online-avatar-name {
     font-size: 9px;
     color: #3a6a9a;
@@ -1771,12 +1787,10 @@ img.post-media-preview::before {
     width: 38px; height: 38px; border-radius: 50%;
     background: #0B1F3A; background-size: cover; background-position: center;
     cursor: pointer; transition: opacity 0.15s;
-}
-.chat-header-avatar:hover { opacity: 0.8; }
-.chat-header-name { font-size: 14px; font-weight: bold; color: #eee; }
-.chat-header-name:hover { color: #00AEEF; text-decoration: underline; }    border: 2px solid rgba(0,174,239,0.38);
+    border: 2px solid rgba(0,174,239,0.38);
     position: relative; flex-shrink: 0;
 }
+.chat-header-avatar:hover { opacity: 0.8; }
 .chat-header-online {
     width: 10px; height: 10px; border-radius: 50%;
     background: #555; border: 2px solid var(--bg-card);
@@ -1784,7 +1798,8 @@ img.post-media-preview::before {
 }
 .chat-header-online.online { background: #00ff88; box-shadow: 0 0 6px rgba(0,255,136,0.8); }
 .chat-header-info { flex: 1; min-width: 0; }
-.chat-header-name { font-size: 14px; font-weight: bold; color: #eee; }
+/* Chat header name: plain label, not clickable */
+.chat-header-name { font-size: 14px; font-weight: bold; color: #eee; cursor: default; }
 .chat-header-status { font-size: 11px; color: #3a6a8a; margin-top: 1px; }
 #chatBackBtn {
     display: none;
@@ -2053,6 +2068,7 @@ img.post-media-preview::before {
     display: none;
     box-shadow: 0 0 6px rgba(0,255,136,0.5);
 }
+#sidebarMsgBadge.visible { display: inline-flex; }
 
 /* ════════════════════════════════════════════
    SEARCH PAGE
@@ -4961,6 +4977,198 @@ body.arcade-fs-ios body::after { display:none !important; }
 }
 </style>
 
+<style>
+/* ══════════════════════════════════════════════════════════
+   STORY BAR
+   ══════════════════════════════════════════════════════════ */
+#storyBar {
+    display: flex; gap: 14px; overflow-x: auto; padding: 6px 2px 10px;
+    scrollbar-width: none; align-items: flex-start;
+}
+#storyBar::-webkit-scrollbar { display: none; }
+
+/* "Add Story" button + all story bubbles share this base */
+.story-bubble {
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    flex-shrink: 0; cursor: pointer; width: 64px;
+}
+.story-ring {
+    width: 58px; height: 58px; border-radius: 50%; padding: 2.5px;
+    background: linear-gradient(135deg, #00AEEF, #7c5cd8, #ff3399);
+    box-sizing: border-box; flex-shrink: 0;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.story-ring:hover { transform: scale(1.08); box-shadow: 0 0 14px rgba(0,174,239,0.55); }
+.story-ring-seen {
+    background: rgba(0,80,150,0.35) !important;
+    border: 2.5px solid rgba(0,80,150,0.4);
+    padding: 0;
+}
+.story-ring-inner {
+    width: 100%; height: 100%; border-radius: 50%;
+    background: #070f20 center/cover no-repeat;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #00AEEF;
+    overflow: hidden;
+    border: 2px solid #070f20;
+}
+.story-add-ring {
+    background: none !important;
+    border: 2px dashed rgba(0,174,239,0.5) !important;
+    padding: 0 !important;
+}
+.story-add-inner {
+    font-size: 24px; color: #00AEEF; background: rgba(0,174,239,0.08) !important;
+}
+.story-label {
+    font-size: 10px; color: #7a9bb8; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; max-width: 64px; text-align: center;
+    line-height: 1.2;
+}
+.story-bubble.own-story .story-label { color: #00AEEF; }
+
+/* ── Create Story Modal ── */
+#createStoryModal {
+    position: fixed; inset: 0; z-index: 4000;
+    background: rgba(4,10,22,0.95); display: none;
+    align-items: center; justify-content: center;
+    flex-direction: column;
+}
+#createStoryModal.open { display: flex; }
+.create-story-card {
+    background: #070f20; border: 1px solid rgba(0,174,239,0.3);
+    border-radius: 18px; padding: 24px 22px 20px; width: min(94vw,420px);
+    display: flex; flex-direction: column; gap: 14px;
+    max-height: 90vh; overflow-y: auto;
+}
+.create-story-card h3 {
+    margin: 0; font-size: 15px; color: #00AEEF; text-align: center;
+    letter-spacing: 0.5px;
+}
+.story-type-tabs {
+    display: flex; gap: 8px; justify-content: center;
+}
+.story-type-tab {
+    padding: 6px 16px; border-radius: 20px; border: 1px solid rgba(0,174,239,0.35);
+    background: rgba(0,174,239,0.07); color: #8ab0cc; font-size: 12px;
+    cursor: pointer; transition: all 0.15s;
+}
+.story-type-tab.active {
+    background: rgba(0,174,239,0.2); border-color: rgba(0,174,239,0.7); color: #fff;
+}
+#storyTextArea {
+    width: 100%; box-sizing: border-box; min-height: 100px; resize: vertical;
+    background: rgba(0,20,60,0.55); border: 1px solid rgba(0,120,220,0.3);
+    border-radius: 10px; color: #d8eeff; font-size: 14px; padding: 10px 12px;
+    font-family: inherit;
+}
+.story-bg-picker {
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+}
+.story-bg-swatch {
+    width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+    border: 2px solid transparent; transition: border-color 0.15s, transform 0.15s;
+}
+.story-bg-swatch.selected { border-color: #fff; transform: scale(1.15); }
+.story-submit-btn {
+    width: 100%; padding: 11px; border-radius: 12px; border: none;
+    background: linear-gradient(135deg,#003d99,#0077dd);
+    color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: opacity 0.15s;
+}
+.story-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.story-close-btn {
+    align-self: flex-end; background: none; border: none; color: #4a7a9a;
+    font-size: 20px; cursor: pointer; line-height: 1; padding: 0 2px;
+}
+
+/* ── Story Viewer Modal ── */
+#storyViewerModal {
+    position: fixed; inset: 0; z-index: 5000; background: #000;
+    display: none; flex-direction: column;
+}
+#storyViewerModal.open { display: flex; }
+.story-viewer-header {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 2;
+    padding: 12px 16px 0;
+    display: flex; flex-direction: column; gap: 8px;
+}
+.story-progress-bars {
+    display: flex; gap: 4px;
+}
+.story-progress-seg {
+    flex: 1; height: 2.5px; background: rgba(255,255,255,0.25);
+    border-radius: 2px; overflow: hidden;
+}
+.story-progress-fill {
+    height: 100%; background: #fff; border-radius: 2px; width: 0%;
+    transition: none;
+}
+.story-progress-fill.done { width: 100%; }
+.story-viewer-meta {
+    display: flex; align-items: center; gap: 10px;
+}
+.story-viewer-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #0B1F3A center/cover no-repeat;
+    border: 2px solid rgba(0,174,239,0.6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: bold; color: #00AEEF; flex-shrink: 0;
+}
+.story-viewer-name { color: #fff; font-size: 13px; font-weight: 600; }
+.story-viewer-time { color: rgba(255,255,255,0.55); font-size: 11px; }
+.story-viewer-close {
+    margin-left: auto; background: none; border: none; color: rgba(255,255,255,0.7);
+    font-size: 22px; cursor: pointer; line-height: 1; padding: 4px;
+}
+.story-viewer-close:hover { color: #fff; }
+.story-viewer-del {
+    background: none; border: none; color: rgba(255,80,80,0.7);
+    font-size: 14px; cursor: pointer; padding: 4px 8px; border-radius: 8px;
+    transition: background 0.15s;
+}
+.story-viewer-del:hover { background: rgba(255,50,50,0.12); color: #ff5555; }
+/* Content area */
+.story-viewer-content {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+}
+.story-viewer-img {
+    max-width: 100%; max-height: 100%; object-fit: contain;
+    display: none;
+}
+.story-viewer-vid {
+    max-width: 100%; max-height: 100%; display: none;
+}
+.story-viewer-text-display {
+    display: none; align-items: center; justify-content: center;
+    width: 100%; height: 100%; padding: 40px 28px; box-sizing: border-box;
+    font-size: clamp(18px,4vw,28px); font-weight: 600; color: #fff;
+    text-align: center; line-height: 1.5; word-break: break-word;
+}
+/* Tap zones */
+.story-tap-prev, .story-tap-next {
+    position: absolute; top: 80px; bottom: 0; width: 40%; z-index: 3;
+    cursor: pointer;
+}
+.story-tap-prev { left: 0; }
+.story-tap-next { right: 0; }
+/* Caption overlay on media stories */
+.story-media-caption {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 3;
+    padding: 28px 20px 18px;
+    background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%);
+    color: #fff; font-size: 15px; font-weight: 500; line-height: 1.45;
+    text-align: center; word-break: break-word; pointer-events: none;
+    display: none;
+}
+/* Bottom delete row for own stories */
+.story-viewer-footer {
+    position: absolute; bottom: 0; left: 0; right: 0; z-index: 4;
+    padding: 12px 16px; display: flex; justify-content: center;
+}
+</style>
+
 <!-- ══════════════════════════════════════════════════════════
      AUTH GATE OVERLAY
      Shown instantly on every page load, dismissed only after
@@ -5163,6 +5371,23 @@ body.arcade-fs-ios body::after { display:none !important; }
 
 <div class="page" id="feed">
     <h2 class="eclipse-title">⚡ Eclipse Feed</h2>
+
+    <!-- ── Story Bar ── always visible ── -->
+    <div class="section-card" style="padding:12px 14px 8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="font-size:11px;font-weight:700;color:#3a6a9a;letter-spacing:1px;text-transform:uppercase;">📖 Stories</span>
+        </div>
+        <div id="storyBar">
+            <!-- Add Story bubble — always first -->
+            <div class="story-bubble own-story" id="storyAddBubble" onclick="openCreateStoryModal()">
+                <div class="story-ring story-add-ring">
+                    <div class="story-ring-inner story-add-inner">＋</div>
+                </div>
+                <span class="story-label">Your Story</span>
+            </div>
+            <!-- Live story bubbles injected here by JS -->
+        </div>
+    </div>
 
     <!-- Active-now strip — only shown when other members exist -->
     <div id="activeUsersStripWrap">
@@ -7791,7 +8016,7 @@ body.arcade-fs-ios body::after { display:none !important; }
 
   window.handleLogout = async () => {
       if (currentUser) {
-          try { await updateDoc(doc(db, "users", currentUser.uid), { status: "offline" }); } catch(_) {}
+          try { await updateDoc(doc(db, "users", currentUser.uid), { status: "offline", lastSeen: Date.now() }); } catch(_) {}
       }
       signOut(auth);
   };
@@ -7846,9 +8071,50 @@ body.arcade-fs-ios body::after { display:none !important; }
   // Mark offline when the tab is closed / navigated away (best-effort)
   window.addEventListener('beforeunload', () => {
       if (currentUser) {
-          try { updateDoc(doc(db, "users", currentUser.uid), { status: "offline" }); } catch(_) {}
+          try { updateDoc(doc(db, "users", currentUser.uid), { status: "offline", lastSeen: Date.now() }); } catch(_) {}
       }
   });
+
+  // ── Network reconnect: when the browser comes back online, restore presence
+  //    and re-open the active DM chat if one was open. ──
+  window.addEventListener('online', () => {
+      console.log('[SNX] Network reconnected — restoring presence');
+      if (currentUser) {
+          // Re-mark user as online in Firestore
+          try { updateDoc(doc(db, "users", currentUser.uid), { status: "online", lastSeen: Date.now() }); } catch(_) {}
+          // Re-open the active DM chat channel so messages resume
+          if (activeChatTargetUid && typeof window.establishDirectMessageChannel === 'function') {
+              window.establishDirectMessageChannel(activeChatTargetUid);
+          }
+          // Re-open the profile chat modal if it was open
+          if (typeof window._m_tgtUid !== 'undefined' && window._m_tgtUid && typeof window.ipcOpen === 'function') {
+              window.ipcOpen(window._m_tgtUid);
+          }
+      }
+  });
+
+  // ── visualViewport: shrink the chat card when the mobile keyboard appears
+  //    so the footer + send button are never hidden behind the keyboard. ──
+  if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+          const vvh = window.visualViewport.height;
+
+          // Profile chat modal — shrink card to visible viewport height
+          const modal = document.getElementById('ipcModal');
+          const card  = document.querySelector('.ipc-modal-card');
+          if (card && modal && modal.classList.contains('open')) {
+              card.style.maxHeight = vvh + 'px';
+          }
+
+          // Full DM page — keep chat panel filling the visible area
+          const msgLayout = document.getElementById('msgLayout');
+          if (msgLayout) {
+              const topbar = document.querySelector('.msg-topbar');
+              const topbarH = topbar ? topbar.offsetHeight : 56;
+              msgLayout.style.height = (vvh - topbarH) + 'px';
+          }
+      });
+  }
 
   onAuthStateChanged(auth, async (user) => {
       const _firstCall = !_authFirstResolved;
@@ -7875,7 +8141,7 @@ body.arcade-fs-ios body::after { display:none !important; }
               } catch(_) {}
           }
 
-          try { await updateDoc(doc(db, "users", user.uid), { status: "online" }); } catch(_) {}
+          try { await updateDoc(doc(db, "users", user.uid), { status: "online", lastSeen: Date.now() }); } catch(_) {}
 
           // Save email to Firestore so username login works for existing accounts
           try {
@@ -8036,6 +8302,7 @@ body.arcade-fs-ios body::after { display:none !important; }
           presenceUnsubscribe = initPresenceStrip();
           inboxUnsubscribe    = initInboxMonitor();
           scheduleExpiredPostCleanup();
+          if (typeof window._initStorySystem === 'function') window._initStorySystem();
           // Check if user has earned the OG badge (first 100 users, 50+ days old account)
           checkOGBadgeEligibility(user.uid);
           // Start push notifications (requests permission if not yet granted)
@@ -8273,10 +8540,27 @@ body.arcade-fs-ios body::after { display:none !important; }
 
   /* ACTIVE DIRECTORY COMPONENT PRESENCE STRIP
      Queries only online users (where status == 'online') to avoid downloading
-     the entire users collection on every presence change. */
+     the entire users collection on every presence change.
+     Guard: tear down existing listener before re-creating so we never accumulate
+     duplicate presence snapshots. */
   function initPresenceStrip() {
+      if (presenceUnsubscribe) { presenceUnsubscribe(); presenceUnsubscribe = null; }
       const q = query(collection(db, "users"), where("status", "==", "online"));
       const unsub = onSnapshot(q, (snap) => {
+          // Collect online users, deduplicate by uid, sort by lastSeen desc
+          const seenUids = new Set();
+          const onlineUsers = [];
+          snap.forEach(uDoc => {
+              const u = uDoc.data();
+              if (!u.uid || u.uid === currentUser.uid) return;
+              if (!u.displayName) return; // skip incomplete registrations
+              if (seenUids.has(u.uid)) return; // deduplicate
+              seenUids.add(u.uid);
+              onlineUsers.push(u);
+          });
+          // Sort by most recently active (lastSeen field, fallback joinedAt)
+          onlineUsers.sort((a, b) => (b.lastSeen || b.joinedAt || 0) - (a.lastSeen || a.joinedAt || 0));
+
           // ── Feed page "Active Now" strip ──
           const strip     = document.getElementById("activeUsersStrip");
           const stripWrap = document.getElementById("activeUsersStripWrap");
@@ -8287,42 +8571,53 @@ body.arcade-fs-ios body::after { display:none !important; }
           const onlineCountEl = document.getElementById("msgHeaderOnlineCount");
           if (onlineAvatars) onlineAvatars.innerHTML = "";
 
-          let onlineCount = 0;
+          const onlineCount = onlineUsers.length;
 
-          snap.forEach(uDoc => {
-              const u = uDoc.data();
-              if (!u.uid || u.uid === currentUser.uid) return;
-              if (!u.displayName) return; // skip incomplete registrations
-
-              onlineCount++;
-
-              // Feed strip chip
+          onlineUsers.forEach(u => {
+              // Feed strip chip — clicking chip opens profile
               const chip = document.createElement("div");
               chip.className = "user-chip";
               const initial = (u.displayName || '?')[0].toUpperCase();
               const chipBadges = buildBadgeHtml(u.badges||[], u.role||'member');
               chip.innerHTML = `
-                <div style="width:28px;height:28px;border-radius:50%;background:${u.avatar ? `url('${u.avatar}') center/cover no-repeat` : '#0B1F3A'};border:1.5px solid rgba(0,174,239,0.55);display:flex;align-items:center;justify-content:center;font-size:11px;color:#00AEEF;flex-shrink:0;">${u.avatar ? '' : initial}</div>
+                <div style="width:28px;height:28px;border-radius:50%;background:${u.avatar ? `url('${u.avatar}') center/cover no-repeat` : '#0B1F3A'};border:1.5px solid rgba(0,174,239,0.55);display:flex;align-items:center;justify-content:center;font-size:11px;color:#00AEEF;flex-shrink:0;cursor:pointer;">${u.avatar ? '' : initial}</div>
                 <div class="indicator-dot online"></div>
                 <span>${escFeed(u.displayName)}</span>${chipBadges}`;
               chip.onclick = () => viewProfile(u.uid);
               strip.appendChild(chip);
 
-              // Messages online strip
+              // Messages online strip — clicking AVATAR opens DM, name is a plain label
               if (onlineAvatars) {
                   const item = document.createElement("div");
                   item.className = "msg-online-item";
+
                   const av = document.createElement("div");
                   av.className = "msg-online-avatar";
                   av.setAttribute('data-uid', u.uid);
-                  if (u.avatar) av.style.backgroundImage = `url('${u.avatar}')`;
-                  else { av.textContent = (u.displayName || '?')[0].toUpperCase(); av.style.cssText += ';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;color:#00AEEF;'; }
+                  av.style.cursor = 'pointer';
+                  if (u.avatar) {
+                      av.style.backgroundImage = `url('${u.avatar}')`;
+                  } else {
+                      av.textContent = (u.displayName || '?')[0].toUpperCase();
+                      av.style.cssText += ';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;color:#00AEEF;';
+                  }
                   const badgeNames = (u.badges||[]).filter(b => b !== 'Founder' || u.role === 'founder').join(', ');
-                  av.title = u.displayName + (badgeNames ? ' · ' + badgeNames : '');
-                  av.onclick = () => establishDirectMessageChannel(u.uid);
+                  av.title = 'Message ' + u.displayName + (badgeNames ? ' · ' + badgeNames : '');
+                  // Clicking the avatar always opens a DM — reliable on both mobile & desktop
+                  av.addEventListener('click', (e) => {
+                      e.stopPropagation();
+                      if (typeof establishDirectMessageChannel === 'function') {
+                          navTo('messagesInbox');
+                          establishDirectMessageChannel(u.uid);
+                      }
+                  });
+
+                  // Name label — plain text, no click handler
                   const nm = document.createElement("div");
                   nm.className = "msg-online-avatar-name";
                   nm.textContent = (u.displayName || '').split(' ')[0];
+                  nm.style.cursor = 'default';
+
                   item.appendChild(av);
                   item.appendChild(nm);
                   onlineAvatars.appendChild(item);
@@ -8348,7 +8643,7 @@ body.arcade-fs-ios body::after { display:none !important; }
   }
 
   /* TIMELINE DYNAMIC TIMELINE STREAM ENGINE WITH MEDIA INTERPRETATION */
-  const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours — posts auto-expire after this
+  const TTL_MS = 48 * 60 * 60 * 1000; // 48 hours — posts auto-expire after this
 
   /* ── Helper: format remaining lifetime as "⏳ 23h 59m" or "⏳ 45m" ── */
   function _postExpiryLabel(expiresAt) {
@@ -8385,7 +8680,7 @@ body.arcade-fs-ios body::after { display:none !important; }
           const container = document.getElementById("feedPosts");
           const nowMs = Date.now();
 
-          // Filter out expired posts (24h TTL) — they may still be in Firestore until
+          // Filter out expired posts (48h TTL) — they may still be in Firestore until
           // the background cleanup runs, so we skip them here silently.
           const incomingIds = new Set();
           snapshot.forEach(pDoc => {
@@ -8505,6 +8800,10 @@ body.arcade-fs-ios body::after { display:none !important; }
                       if (commentBox) commentBox.dataset.count = newCount;
                   }
 
+                  // 4. Comment count badge in action row
+                  const commCountEl = existingEl.querySelector(`#comm-count-${pDoc.id}`);
+                  if (commCountEl) commCountEl.textContent = (post.comments || []).length;
+
                   // 4. Keep post in correct DOM position (cheap — only moves if out of order)
                   const posIdx = finalOrderedIds.indexOf(pDoc.id);
                   const children = [...container.children];
@@ -8567,14 +8866,15 @@ body.arcade-fs-ios body::after { display:none !important; }
                     ${buildTaggedStrip(post.taggedUsers || [], pDoc.id, post.uid)}
                     <div class="action-row">
                         <button class="react-btn ${isLiked ? 'liked' : ''}" id="like-btn-${pDoc.id}" onclick="processPostReaction('${pDoc.id}','like',this)">❤️ <span class="like-count">${post.likes || 0}</span></button>
+                        <button class="react-btn" id="comm-toggle-${pDoc.id}" onclick="toggleCommentBox('${pDoc.id}')">💬 <span id="comm-count-${pDoc.id}">${(post.comments || []).length}</span></button>
                         ${!post.isRepost ? `<button class="react-btn" id="repost-btn-${pDoc.id}" onclick="processPostReaction('${pDoc.id}','repost',this)">🔄 <span class="repost-count">${post.repostCount || 0}</span></button>` : ''}
                         <button class="react-btn" onclick="sharePostItem('${pDoc.id}')">🔗 Share</button>
                         ${isOwner ? `<button class="react-btn btn-del-post" onclick="window.deleteTimelinePost('${pDoc.id}')">🗑️ Delete</button>` : ''}
                     </div>
                     <div class="commentBox" id="comments-${pDoc.id}" data-count="0"></div>
-                    <div class="comment-input-row">
+                    <div class="comment-input-row" id="comm-input-row-${pDoc.id}">
                         <input id="input-comm-${pDoc.id}" placeholder="Write a comment…" autocomplete="off">
-                        <button class="comment-submit-btn" onclick="submitPostComment('${pDoc.id}')">Post</button>
+                        <button class="comment-submit-btn" id="comm-submit-${pDoc.id}" onclick="submitPostComment('${pDoc.id}')">Post</button>
                     </div>
                   `;
 
@@ -8852,7 +9152,7 @@ body.arcade-fs-ios body::after { display:none !important; }
       btn.disabled = true; btn.textContent = "Posting…";
       try {
           const now = Date.now();
-          const expiresAt = now + 24 * 60 * 60 * 1000; // auto-delete after 24 hours
+          const expiresAt = now + 48 * 60 * 60 * 1000; // auto-delete after 48 hours
           const mediaUrlsRaw = mediaUrl.split(',').map(u => u.trim()).filter(Boolean);
           // Extract tagged usernames from @mentions
           const taggedHandles = [...new Set((text.match(/@([a-zA-Z0-9_]+)/g) || []).map(m => m.slice(1).toLowerCase()))];
@@ -8940,6 +9240,7 @@ body.arcade-fs-ios body::after { display:none !important; }
   }
 
   window.processPostReaction = async (postId, type, element) => {
+      if (!currentUser) { toastNotification("You must be logged in to react."); return; }
       const ref = doc(db, "posts", postId);
 
       // Floating reaction visual
@@ -8954,6 +9255,8 @@ body.arcade-fs-ios body::after { display:none !important; }
       setTimeout(() => floatEl.remove(), 1000);
 
       if (type === 'like') {
+          // Prevent double-tap spam — disable button during transaction
+          element.disabled = true;
           // Optimistically update the button while Firestore transaction completes
           const likeBtn = document.getElementById(`like-btn-${postId}`);
           const wasLiked = likeBtn && likeBtn.classList.contains('liked');
@@ -8964,29 +9267,43 @@ body.arcade-fs-ios body::after { display:none !important; }
               else          { likeBtn.classList.add('liked');    countEl.textContent = cur + 1; }
           }
           let postOwnerUid = null;
-          await runTransaction(db, async (transaction) => {
-              const sfDoc = await transaction.get(ref);
-              const data = sfDoc.data();
-              postOwnerUid = data.uid;
-              let arr = data.likedBy || [];
-              const idx = arr.indexOf(currentUser.uid);
-              if (idx > -1) {
-                  arr.splice(idx, 1);
+          try {
+              await runTransaction(db, async (transaction) => {
+                  const sfDoc = await transaction.get(ref);
+                  if (!sfDoc.exists()) throw new Error('post-not-found');
+                  const data = sfDoc.data();
+                  postOwnerUid = data.uid;
+                  let arr = Array.isArray(data.likedBy) ? [...data.likedBy] : [];
+                  const idx = arr.indexOf(currentUser.uid);
+                  if (idx > -1) {
+                      arr.splice(idx, 1);
+                  } else {
+                      arr.push(currentUser.uid);
+                  }
                   transaction.update(ref, { likedBy: arr, likes: arr.length });
-              } else {
-                  arr.push(currentUser.uid);
-                  transaction.update(ref, { likedBy: arr, likes: arr.length });
-              }
-          });
-          // Send like notification to post owner (only on like, not unlike)
-          if (!wasLiked && postOwnerUid && postOwnerUid !== currentUser.uid) {
-              await pushNotification(postOwnerUid, {
-                  type: 'like',
-                  fromUid: currentUser.uid,
-                  fromName: userData.displayName,
-                  fromAvatar: userData.avatar || '',
-                  postId
               });
+              // Send like notification to post owner (only on like, not unlike)
+              if (!wasLiked && postOwnerUid && postOwnerUid !== currentUser.uid) {
+                  pushNotification(postOwnerUid, {
+                      type: 'like',
+                      fromUid: currentUser.uid,
+                      fromName: userData.displayName,
+                      fromAvatar: userData.avatar || '',
+                      postId
+                  }).catch(() => {});
+              }
+          } catch(e) {
+              console.error('[SNX] Like failed:', e);
+              // Roll back optimistic UI
+              if (likeBtn) {
+                  const countEl = likeBtn.querySelector('.like-count');
+                  const cur = parseInt(countEl.textContent) || 0;
+                  if (wasLiked) { likeBtn.classList.add('liked');    countEl.textContent = cur + 1; }
+                  else          { likeBtn.classList.remove('liked'); countEl.textContent = Math.max(0, cur - 1); }
+              }
+              toastNotification("Could not save like — please try again.");
+          } finally {
+              element.disabled = false;
           }
       } else if (type === 'repost') {
           await handleRepost(postId, element);
@@ -9013,7 +9330,7 @@ body.arcade-fs-ios body::after { display:none !important; }
       }
 
       const now = Date.now();
-      const expiresAt = now + 24 * 60 * 60 * 1000; // auto-delete after 24 hours
+      const expiresAt = now + 48 * 60 * 60 * 1000; // auto-delete after 48 hours
       // Create the repost as a new post document
       await addDoc(collection(db, 'posts'), {
           uid:            currentUser.uid,
@@ -9191,7 +9508,9 @@ body.arcade-fs-ios body::after { display:none !important; }
   }
 
   window.submitPostComment = async (id) => {
+      if (!currentUser) { toastNotification("You must be logged in to comment."); return; }
       const el = document.getElementById(`input-comm-${id}`);
+      const btn = document.getElementById(`comm-submit-${id}`);
       const txt = el.value.trim();
       if (!txt) return;
       // ── AI Safety scan ──
@@ -9199,38 +9518,50 @@ body.arcade-fs-ios body::after { display:none !important; }
           const _blocked = await window.snxAIScan(txt, 'comment');
           if (_blocked) { el.value = txt; return; }  // restore text so user can edit
       }
+      // Optimistic UI: clear input + show loading state
       el.value = "";
-      await updateDoc(doc(db, "posts", id), {
-          comments: arrayUnion({
-              authorUid:       currentUser.uid,
-              author:          userData.displayName,
-              authorBadges:    userData.badges || [],
-              authorRole:      userData.role   || 'member',
-              authorMoodType:  (userData.profileCustom?.moodType  || userData.moodType  || ''),
-              authorMoodValue: (userData.profileCustom?.moodValue || userData.moodValue || ''),
-              text:            txt,
-              ts:              Date.now()
-          })
-      });
-      // Send comment notification to post owner
+      el.disabled = true;
+      if (btn) { btn.disabled = true; btn.textContent = "…"; }
       try {
-          const postSnap = await getDoc(doc(db, "posts", id));
-          if (postSnap.exists()) {
-              const postData = postSnap.data();
-              if (postData.uid !== currentUser.uid) {
-                  await pushNotification(postData.uid, {
-                      type: 'comment',
-                      fromUid: currentUser.uid,
-                      fromName: userData.displayName,
-                      fromAvatar: userData.avatar || '',
-                      postId: id,
-                      commentText: txt.substring(0, 60)
-                  });
+          await updateDoc(doc(db, "posts", id), {
+              comments: arrayUnion({
+                  authorUid:       currentUser.uid,
+                  author:          userData.displayName,
+                  authorBadges:    userData.badges || [],
+                  authorRole:      userData.role   || 'member',
+                  authorMoodType:  (userData.profileCustom?.moodType  || userData.moodType  || ''),
+                  authorMoodValue: (userData.profileCustom?.moodValue || userData.moodValue || ''),
+                  text:            txt,
+                  ts:              Date.now()
+              })
+          });
+          // Send comment notification to post owner (best-effort)
+          try {
+              const postSnap = await getDoc(doc(db, "posts", id));
+              if (postSnap.exists()) {
+                  const postData = postSnap.data();
+                  if (postData.uid !== currentUser.uid) {
+                      pushNotification(postData.uid, {
+                          type: 'comment',
+                          fromUid: currentUser.uid,
+                          fromName: userData.displayName,
+                          fromAvatar: userData.avatar || '',
+                          postId: id,
+                          commentText: txt.substring(0, 60)
+                      });
+                  }
               }
-          }
-          // Detect @mentions in the comment text (isComment = true)
-          detectAndNotifyMentions(txt, id, true);
-      } catch(e) { /* best-effort */ }
+              detectAndNotifyMentions(txt, id, true);
+          } catch(_) { /* best-effort */ }
+      } catch(e) {
+          console.error('[SNX] Comment save failed:', e);
+          toastNotification("Could not save comment — please try again.");
+          el.value = txt; // restore text so user doesn't lose it
+      } finally {
+          el.disabled = false;
+          if (btn) { btn.disabled = false; btn.textContent = "Post"; }
+          el.focus();
+      }
   };
 
   // Delete a single comment by its stable ts+authorUid key — race-condition-safe transaction
@@ -9284,6 +9615,24 @@ body.arcade-fs-ios body::after { display:none !important; }
           box.appendChild(d);
       });
   }
+
+  /* ── toggleCommentBox — show/hide the comment box + input for a post ── */
+  window.toggleCommentBox = function(postId) {
+      const inputRow = document.getElementById(`comm-input-row-${postId}`);
+      const commBox  = document.getElementById(`comments-${postId}`);
+      const commCount = parseInt((document.getElementById(`comm-count-${postId}`) || {}).textContent || '0');
+      // Always show if there are comments; otherwise toggle
+      if (!inputRow) return;
+      const isHidden = inputRow.style.display === 'none';
+      if (isHidden) {
+          inputRow.style.display = '';
+          if (commBox && commCount > 0) commBox.style.display = 'block';
+          const inp = document.getElementById(`input-comm-${postId}`);
+          if (inp) inp.focus();
+      } else {
+          inputRow.style.display = 'none';
+      }
+  };
 
   // ── Wire comment input Enter key (delegated — works for dynamically created inputs) ──
   document.getElementById("feedPosts").addEventListener("keydown", (e) => {
@@ -10529,7 +10878,7 @@ body.arcade-fs-ios body::after { display:none !important; }
           ? targetSnap.data()
           : { displayName: targetUid.substring(0,8), avatar: '', status: 'offline', mood: '' };
 
-      // Populate chat header
+      // Populate chat header — only the avatar is tappable, name is plain text
       const hAvatar = document.getElementById("chatHeaderAvatar");
       hAvatar.style.backgroundImage = tData.avatar ? `url('${tData.avatar}')` : '';
       hAvatar.style.cursor = 'pointer';
@@ -10538,9 +10887,9 @@ body.arcade-fs-ios body::after { display:none !important; }
       hAvatar.setAttribute('data-uid', targetUid);
       const hName = document.getElementById("chatHeaderName");
       hName.innerHTML = escapeHtml(tData.displayName) + buildBadgeHtml(tData.badges||[], tData.role||'member') + buildMoodChipHtml(tData.profileCustom?.moodType || '', tData.profileCustom?.moodValue || '');
-      hName.style.cursor = 'pointer';
-      hName.title = 'View profile';
-      hName.onclick = () => viewProfile(targetUid);
+      hName.style.cursor = 'default';
+      hName.title = '';
+      hName.onclick = null;
       // Header status updated live below ↓
 
       // Show footer + panel — use classes, never inline style, so CSS media queries stay in control
@@ -10567,6 +10916,9 @@ body.arcade-fs-ios body::after { display:none !important; }
       // Teardown previous chat listener
       if(activeChatUnsubscribe) { activeChatUnsubscribe(); activeChatUnsubscribe = null; }
 
+      // Track whether this is the first snapshot delivery for this conversation
+      let _firstSnapshot = true;
+
       // Real-time messages listener
       activeChatUnsubscribe = onSnapshot(doc(db, "chats", channelId), async (chatSnap) => {
           if(!chatSnap.exists()) return;
@@ -10580,7 +10932,10 @@ body.arcade-fs-ios body::after { display:none !important; }
 
           // Render messages with date separators
           const msgContainer = document.getElementById("chatBoxContainer");
-          const wasAtBottom = msgContainer.scrollHeight - msgContainer.scrollTop <= msgContainer.clientHeight + 80;
+          // On first load always scroll to bottom; on subsequent updates only scroll
+          // if the user was already near the bottom (so they aren't interrupted mid-scroll).
+          const wasAtBottom = _firstSnapshot || msgContainer.scrollHeight - msgContainer.scrollTop <= msgContainer.clientHeight + 80;
+          _firstSnapshot = false;
           msgContainer.innerHTML = '';
 
           if(!list.length) {
@@ -10797,8 +11152,8 @@ body.arcade-fs-ios body::after { display:none !important; }
 
           closeEmojiPicker();
       } catch(err) {
-          console.error('[DM] Send error:', err);
-          toastNotification('Message failed — please try again.');
+          console.error('[DM] Send error:', err.code || err.message || err);
+          toastNotification(`Message failed (${err.code || 'network'}) — try again.`);
       }
   }
 
@@ -10934,8 +11289,11 @@ body.arcade-fs-ios body::after { display:none !important; }
   };
 
   // Inbox monitor — scoped to this user's channels only via a where() query,
-  // avoiding a full collection scan that would read every chat on the platform
+  // avoiding a full collection scan that would read every chat on the platform.
+  // Guard: tear down any existing listener before creating a new one so we
+  // never accumulate duplicate inbox snapshots.
   function initInboxMonitor() {
+      if (inboxUnsubscribe) { inboxUnsubscribe(); inboxUnsubscribe = null; }
       const q = query(
           collection(db, "chats"),
           where("participants", "array-contains", currentUser.uid)
@@ -11103,7 +11461,7 @@ body.arcade-fs-ios body::after { display:none !important; }
 
       // Reset state
       _m_ready = false;
-      _m_tgtUid = null; _m_tgtData = null; _m_chId = null;
+      _m_tgtUid = null; window._m_tgtUid = null; _m_tgtData = null; _m_chId = null;
   }
 
   // ── Expose close to inline HTML onclick ──
@@ -11126,7 +11484,7 @@ body.arcade-fs-ios body::after { display:none !important; }
   window.ipcExpandToInbox = window.ipcModalExpandToInbox;
 
   // ── Render messages into the modal ──
-  function _mRender(cData) {
+  function _mRender(cData, forceScrollToBottom) {
       const list    = cData.messages  || [];
       const isSeen  = cData.readReceipt === true;
       const msgBox  = document.getElementById('ipcModalMessages');
@@ -11140,8 +11498,8 @@ body.arcade-fs-ios body::after { display:none !important; }
               : '';
       }
 
-      // Remember scroll position before re-render
-      const atBot = msgBox.scrollHeight - msgBox.scrollTop <= msgBox.clientHeight + 100;
+      // On first load always scroll to bottom; on subsequent updates only when near bottom
+      const atBot = forceScrollToBottom || msgBox.scrollHeight - msgBox.scrollTop <= msgBox.clientHeight + 100;
 
       // Clear and re-build
       msgBox.innerHTML = '';
@@ -11371,7 +11729,7 @@ body.arcade-fs-ios body::after { display:none !important; }
       _mClose();
 
       // Set state immediately (before any awaits so close buttons work right away)
-      _m_tgtUid = targetUid;
+      _m_tgtUid = targetUid; window._m_tgtUid = targetUid;
       _m_chId   = newChId;
       _m_ready  = false;
 
@@ -11396,19 +11754,44 @@ body.arcade-fs-ios body::after { display:none !important; }
       const capturedChId  = newChId;
       const capturedTgtUid = targetUid;
 
-      // ── Step 1: Ensure Firestore chat document exists ──
+      // ── Step 1: Ensure Firestore chat document exists (with auto-retry) ──
       // merge:true never overwrites existing messages
-      try {
-          await setDoc(doc(db, 'chats', capturedChId), {
-              participants: [currentUser.uid, capturedTgtUid],
-              initialized:  true,
-              [`unread_${currentUser.uid}`]: 0
-          }, { merge: true });
-      } catch (e) {
-          console.error('[Chat Modal] setDoc error:', e);
-          // Only show error if this session is still the active one
+      let _initOk = false;
+      for (let _attempt = 1; _attempt <= 5; _attempt++) {
+          try {
+              await setDoc(doc(db, 'chats', capturedChId), {
+                  participants: [currentUser.uid, capturedTgtUid],
+                  initialized:  true,
+                  [`unread_${currentUser.uid}`]: 0
+              }, { merge: true });
+              _initOk = true;
+              break;
+          } catch (e) {
+              console.error(`[Chat Modal] setDoc attempt ${_attempt} error:`, e);
+              if (_m_chId !== capturedChId) return; // user switched — abort
+              if (_attempt < 5) {
+                  // Show reconnecting spinner and wait before retrying
+                  if (msgBox) msgBox.innerHTML = `
+                      <div class="ipc-modal-loading">
+                          <div class="ipc-ldot"></div>
+                          <div class="ipc-ldot"></div>
+                          <div class="ipc-ldot"></div>
+                          <span>Reconnecting… (${_attempt}/5)</span>
+                      </div>`;
+                  await new Promise(r => setTimeout(r, _attempt * 1500));
+              }
+          }
+      }
+      if (!_initOk) {
           if (_m_chId === capturedChId && msgBox) {
-              msgBox.innerHTML = `<div class="ipc-modal-empty"><div class="ipc-modal-empty-icon">⚠️</div><div class="ipc-modal-empty-text">Could not connect to chat.<br>Check your connection and try again.</div></div>`;
+              // Show retry button instead of dead-end message
+              msgBox.innerHTML = `<div class="ipc-modal-empty">
+                  <div class="ipc-modal-empty-icon">📡</div>
+                  <div class="ipc-modal-empty-text">
+                      Connection failed.<br>
+                      <button onclick="window.ipcOpen('${capturedTgtUid}')" style="margin-top:10px;padding:8px 18px;border-radius:20px;font-size:12px;cursor:pointer;">🔄 Retry</button>
+                  </div>
+              </div>`;
           }
           if (inp) inp.placeholder = 'Type a message… (Enter to send)';
           return;
@@ -11467,10 +11850,13 @@ body.arcade-fs-ios body::after { display:none !important; }
       });
 
       // ── Step 5: Live messages listener ──
+      // Track first delivery so we always scroll to bottom on open
+      let _m_firstSnap = true;
       _m_msgUnsub = onSnapshot(doc(db, 'chats', capturedChId), cSnap => {
           if (_m_chId !== capturedChId) return; // stale callback — ignore
           if (!cSnap.exists()) {
               // Document was just created with merge but has no messages yet
+              _m_firstSnap = false;
               if (msgBox) msgBox.innerHTML = `
                   <div class="ipc-modal-empty">
                       <div class="ipc-modal-empty-icon">👋</div>
@@ -11481,7 +11867,8 @@ body.arcade-fs-ios body::after { display:none !important; }
                   </div>`;
               return;
           }
-          _mRender(cSnap.data());
+          _mRender(cSnap.data(), _m_firstSnap);
+          _m_firstSnap = false;
       });
 
       // ── Step 6: Activate the input ──
@@ -12622,6 +13009,404 @@ body.arcade-fs-ios body::after { display:none !important; }
           window.snxLoadFriendsSection(currentUser.uid, true);
           if (typeof renderFriendsPage === 'function') renderFriendsPage();
       } catch(e) { toastNotification('Failed: ' + e.message); }
+  };
+
+  /* ══════════════════════════════════════════════════════════════
+     STORIES  — 24-hour disappearing content
+     ══════════════════════════════════════════════════════════════
+     Firestore collection: "stories"
+     Doc shape: {
+       uid, authorName, authorHandle, authorAvatar,
+       type: 'text'|'image'|'video',
+       text, bg, mediaUrl, mediaType,
+       createdAt (ms), expiresAt (ms = createdAt + 24h)
+     }
+  ══════════════════════════════════════════════════════════════ */
+
+  const STORY_TTL = 24 * 60 * 60 * 1000; // 24 hours
+  const STORY_BG_OPTIONS = [
+      'linear-gradient(135deg,#0a0a2e,#1a0a3e)',
+      'linear-gradient(135deg,#0d1b2a,#1a3a5c)',
+      'linear-gradient(135deg,#1a0a0a,#3a0a1a)',
+      'linear-gradient(135deg,#0a1a0a,#0a3a1a)',
+      'linear-gradient(135deg,#1a1a0a,#3a2a0a)',
+      'linear-gradient(135deg,#000,#1a1a2e)',
+  ];
+
+  let _storyUnsub = null;           // Firestore real-time listener
+  let _liveStories = [];            // flat array of all active story docs {id,...data}
+
+  // ── viewer state ──
+  let _svStories = [];              // stories being viewed (one user's set)
+  let _svIdx = 0;                   // current index within _svStories
+  let _svTimer = null;              // auto-advance interval
+
+  /* ─────────────────────────────────────────
+     Story bar — real-time listener
+  ───────────────────────────────────────── */
+  function initStoryBar() {
+      if (_storyUnsub) _storyUnsub();
+      const nowMs = Date.now();
+      const q = query(
+          collection(db, 'stories'),
+          where('expiresAt', '>', nowMs),
+          orderBy('expiresAt', 'asc')
+      );
+      _storyUnsub = onSnapshot(q, snap => {
+          _liveStories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          _renderStoryBar();
+      });
+  }
+
+  function _renderStoryBar() {
+      const bar = document.getElementById('storyBar');
+      if (!bar) return;
+
+      // Remove all bubbles except the static "Add Story" one
+      Array.from(bar.children).forEach(el => {
+          if (el.id !== 'storyAddBubble') el.remove();
+      });
+
+      // Group stories by uid, keeping the latest per user
+      const byUid = new Map();
+      _liveStories.forEach(s => {
+          if (!byUid.has(s.uid)) byUid.set(s.uid, []);
+          byUid.get(s.uid).push(s);
+      });
+
+      // Own stories first, then others sorted by most recent
+      const myUid = currentUser ? currentUser.uid : null;
+      const sorted = [...byUid.entries()].sort(([a], [b]) => {
+          if (a === myUid) return -1;
+          if (b === myUid) return 1;
+          return 0;
+      });
+
+      const seenStories = _getSeenStories();
+
+      sorted.forEach(([uid, stories]) => {
+          const latest = stories[stories.length - 1];
+          const allSeen = stories.every(s => seenStories.has(s.id));
+          const bubble = document.createElement('div');
+          bubble.className = 'story-bubble' + (uid === myUid ? ' own-story' : '');
+          bubble.dataset.uid = uid;
+
+          const initial = (latest.authorName || '?')[0].toUpperCase();
+          const avatarStyle = latest.authorAvatar
+              ? `background-image:url('${escFeed(latest.authorAvatar)}')`
+              : '';
+          const ringClass = 'story-ring' + (allSeen ? ' story-ring-seen' : '');
+
+          bubble.innerHTML = `
+              <div class="${ringClass}">
+                  <div class="story-ring-inner" style="${avatarStyle}">${latest.authorAvatar ? '' : escFeed(initial)}</div>
+              </div>
+              <span class="story-label">${escFeed(latest.authorName || 'Unknown')}</span>`;
+
+          bubble.addEventListener('click', () => openStoryViewer(uid));
+          bar.appendChild(bubble);
+      });
+  }
+
+  /* ─────────────────────────────────────────
+     Seen-story tracking (sessionStorage)
+  ───────────────────────────────────────── */
+  function _getSeenStories() {
+      try { return new Set(JSON.parse(sessionStorage.getItem('snxSeenStories') || '[]')); }
+      catch(_) { return new Set(); }
+  }
+  function _markStorySeen(id) {
+      const s = _getSeenStories(); s.add(id);
+      try { sessionStorage.setItem('snxSeenStories', JSON.stringify([...s])); } catch(_) {}
+  }
+
+  /* ─────────────────────────────────────────
+     Create Story modal
+  ───────────────────────────────────────── */
+  let _storyType = 'text';
+  let _storyBg   = STORY_BG_OPTIONS[0];
+
+  window.openCreateStoryModal = function() {
+      if (!currentUser) { toastNotification('Sign in to share a story.'); return; }
+      // Reset form
+      document.getElementById('storyTextArea').value = '';
+      document.getElementById('storyMediaUrl').value = '';
+      document.getElementById('storyMediaCaption').value = '';
+      document.getElementById('storyMediaFilename').textContent = '';
+      document.getElementById('storyMediaClear').style.display = 'none';
+      const pImg = document.getElementById('storyMediaPreviewImg');
+      const pVid = document.getElementById('storyMediaPreviewVid');
+      pImg.style.display = 'none'; pImg.src = '';
+      pVid.style.display = 'none'; pVid.src = '';
+      switchStoryType('text', document.getElementById('storyTabText'));
+      _buildBgPicker();
+      document.getElementById('createStoryModal').classList.add('open');
+  };
+  window.closeCreateStoryModal = function() {
+      document.getElementById('createStoryModal').classList.remove('open');
+  };
+
+  function _buildBgPicker() {
+      const picker = document.getElementById('storyBgPicker');
+      picker.innerHTML = '';
+      STORY_BG_OPTIONS.forEach((bg, i) => {
+          const sw = document.createElement('div');
+          sw.className = 'story-bg-swatch' + (i === 0 ? ' selected' : '');
+          sw.style.background = bg;
+          sw.title = 'Background ' + (i + 1);
+          sw.addEventListener('click', () => {
+              _storyBg = bg;
+              picker.querySelectorAll('.story-bg-swatch').forEach(s => s.classList.remove('selected'));
+              sw.classList.add('selected');
+          });
+          picker.appendChild(sw);
+      });
+      _storyBg = STORY_BG_OPTIONS[0];
+  }
+
+  window.switchStoryType = function(type, btn) {
+      _storyType = type;
+      document.querySelectorAll('.story-type-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('storyPanelText').style.display  = type === 'text'  ? '' : 'none';
+      document.getElementById('storyPanelMedia').style.display = type === 'media' ? '' : 'none';
+  };
+
+  window.handleStoryMediaPick = function(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      document.getElementById('storyMediaFilename').textContent = file.name;
+      document.getElementById('storyMediaClear').style.display = 'inline-flex';
+      const pImg = document.getElementById('storyMediaPreviewImg');
+      const pVid = document.getElementById('storyMediaPreviewVid');
+      pImg.style.display = 'none'; pVid.style.display = 'none';
+      const url = URL.createObjectURL(file);
+      if (file.type.startsWith('image/')) { pImg.src = url; pImg.style.display = 'block'; }
+      else if (file.type.startsWith('video/')) { pVid.src = url; pVid.style.display = 'block'; }
+  };
+
+  window.clearStoryMedia = function() {
+      document.getElementById('storyMediaFile').value = '';
+      document.getElementById('storyMediaFilename').textContent = '';
+      document.getElementById('storyMediaClear').style.display = 'none';
+      document.getElementById('storyMediaUrl').value = '';
+      const pImg = document.getElementById('storyMediaPreviewImg');
+      const pVid = document.getElementById('storyMediaPreviewVid');
+      pImg.style.display = 'none'; pImg.src = '';
+      pVid.style.display = 'none'; pVid.src = '';
+  };
+
+  window.submitStory = async function() {
+      if (!currentUser) return;
+      const btn = document.getElementById('storySubmitBtn');
+      btn.disabled = true;
+      try {
+          const now = Date.now();
+          const base = {
+              uid:          currentUser.uid,
+              authorName:   userData.displayName   || '',
+              authorHandle: userData.username       || '',
+              authorAvatar: userData.avatar         || '',
+              createdAt:    now,
+              expiresAt:    now + STORY_TTL,
+          };
+
+          if (_storyType === 'text') {
+              const text = document.getElementById('storyTextArea').value.trim();
+              if (!text) { toastNotification('Write something first.'); btn.disabled = false; return; }
+              await addDoc(collection(db, 'stories'), { ...base, type: 'text', text, bg: _storyBg });
+
+          } else {
+              // Upload media first
+              const fileInput = document.getElementById('storyMediaFile');
+              const file = fileInput.files && fileInput.files[0];
+              if (!file) { toastNotification('Pick a photo or video first.'); btn.disabled = false; return; }
+              const mediaUrl  = await uploadToR2(file, 'storyMediaProgressBar', 'storyMediaProgress');
+              const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
+              const caption   = document.getElementById('storyMediaCaption').value.trim();
+              await addDoc(collection(db, 'stories'), { ...base, type: mediaType, mediaUrl, bg: '', caption });
+          }
+
+          toastNotification('✨ Story shared! It will disappear in 24 hours.');
+          window.closeCreateStoryModal();
+      } catch(e) {
+          toastNotification('Failed to share story: ' + e.message);
+      } finally {
+          btn.disabled = false;
+      }
+  };
+
+  /* ─────────────────────────────────────────
+     Story Viewer
+  ───────────────────────────────────────── */
+  window.openStoryViewer = function(uid) {
+      const userStories = _liveStories.filter(s => s.uid === uid);
+      if (!userStories.length) return;
+      _svStories = userStories.sort((a, b) => a.createdAt - b.createdAt);
+      _svIdx = 0;
+      _svShowSlide(0);
+      document.getElementById('storyViewerModal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+  };
+
+  window.closeStoryViewer = function() {
+      document.getElementById('storyViewerModal').classList.remove('open');
+      document.body.style.overflow = '';
+      _svStop();
+      const vid = document.getElementById('svVid');
+      vid.pause(); vid.src = '';
+  };
+
+  window.storyViewerNav = function(dir) {
+      const next = _svIdx + dir;
+      if (next < 0) { window.closeStoryViewer(); return; }
+      if (next >= _svStories.length) { window.closeStoryViewer(); return; }
+      _svStop();
+      _svIdx = next;
+      _svShowSlide(_svIdx);
+  };
+
+  function _svShowSlide(idx) {
+      const story = _svStories[idx];
+      if (!story) return;
+
+      _markStorySeen(story.id);
+      _renderStoryBar(); // refresh ring colours
+
+      // Progress bars
+      const barsEl = document.getElementById('storyProgressBars');
+      barsEl.innerHTML = '';
+      _svStories.forEach((_, i) => {
+          const seg = document.createElement('div');
+          seg.className = 'story-progress-seg';
+          const fill = document.createElement('div');
+          fill.className = 'story-progress-fill' + (i < idx ? ' done' : '');
+          fill.id = 'svFill-' + i;
+          seg.appendChild(fill);
+          barsEl.appendChild(seg);
+      });
+
+      // Meta
+      const avEl = document.getElementById('svAvatar');
+      if (story.authorAvatar) {
+          avEl.style.backgroundImage = `url('${story.authorAvatar}')`;
+          avEl.textContent = '';
+      } else {
+          avEl.style.backgroundImage = '';
+          avEl.textContent = (story.authorName || '?')[0].toUpperCase();
+      }
+      document.getElementById('svName').textContent = story.authorName || '';
+      const msLeft = story.expiresAt - Date.now();
+      const hLeft = Math.max(0, Math.floor(msLeft / 3600000));
+      const mLeft = Math.max(0, Math.floor((msLeft % 3600000) / 60000));
+      document.getElementById('svTime').textContent = hLeft > 0
+          ? `⏳ ${hLeft}h ${mLeft}m left`
+          : `⏳ ${mLeft}m left`;
+
+      // Delete button for own stories
+      const delBtn = document.getElementById('svDelBtn');
+      delBtn.style.display = (currentUser && story.uid === currentUser.uid) ? 'inline-flex' : 'none';
+
+      // Content
+      const img     = document.getElementById('svImg');
+      const vid     = document.getElementById('svVid');
+      const txt     = document.getElementById('svText');
+      const capEl   = document.getElementById('svCaption');
+      img.style.display = 'none'; vid.style.display = 'none';
+      txt.style.display = 'none'; capEl.style.display = 'none';
+      vid.pause();
+
+      const content = document.getElementById('svContent');
+
+      if (story.type === 'image') {
+          img.src = story.mediaUrl || '';
+          img.style.display = 'block';
+          content.style.background = '#000';
+          if (story.caption) { capEl.textContent = story.caption; capEl.style.display = 'block'; }
+      } else if (story.type === 'video') {
+          vid.src = story.mediaUrl || '';
+          vid.style.display = 'block';
+          vid.play().catch(() => {});
+          content.style.background = '#000';
+          if (story.caption) { capEl.textContent = story.caption; capEl.style.display = 'block'; }
+      } else {
+          // text
+          txt.textContent = story.text || '';
+          txt.style.display = 'flex';
+          content.style.background = story.bg || STORY_BG_OPTIONS[0];
+      }
+
+      // Auto-advance — 6 s for text/image, or video length
+      _svStop();
+      const DURATION = (story.type === 'video') ? null : 6000;
+      const fillEl = document.getElementById('svFill-' + idx);
+
+      if (DURATION) {
+          if (fillEl) {
+              fillEl.style.transition = `width ${DURATION}ms linear`;
+              // Force reflow before starting transition
+              void fillEl.offsetWidth;
+              fillEl.style.width = '100%';
+          }
+          _svTimer = setTimeout(() => {
+              if (_svIdx === idx) storyViewerNav(1);
+          }, DURATION);
+      } else {
+          // Video — advance when it ends
+          if (fillEl) {
+              vid.addEventListener('timeupdate', function _tu() {
+                  if (vid.duration) {
+                      fillEl.style.width = (vid.currentTime / vid.duration * 100) + '%';
+                  }
+              });
+              vid.addEventListener('ended', function _vend() {
+                  vid.removeEventListener('ended', _vend);
+                  if (_svIdx === idx) storyViewerNav(1);
+              });
+          }
+      }
+  }
+
+  function _svStop() {
+      clearTimeout(_svTimer);
+      _svTimer = null;
+  }
+
+  window.deleteCurrentStory = async function() {
+      const story = _svStories[_svIdx];
+      if (!story || !currentUser || story.uid !== currentUser.uid) return;
+      if (!confirm('Delete this story?')) return;
+      try {
+          await deleteDoc(doc(db, 'stories', story.id));
+          toastNotification('Story deleted.');
+          // Remove from local array and re-render
+          _svStories.splice(_svIdx, 1);
+          if (!_svStories.length) { window.closeStoryViewer(); return; }
+          if (_svIdx >= _svStories.length) _svIdx = _svStories.length - 1;
+          _svShowSlide(_svIdx);
+      } catch(e) { toastNotification('Failed: ' + e.message); }
+  };
+
+  /* ─────────────────────────────────────────
+     Expired story cleanup (runs on login + every 5 min)
+  ───────────────────────────────────────── */
+  async function _cleanExpiredStories() {
+      try {
+          const snap = await getDocs(
+              query(collection(db, 'stories'), where('expiresAt', '<', Date.now()))
+          );
+          if (snap.empty) return;
+          const batch = writeBatch(db);
+          snap.forEach(d => batch.delete(doc(db, 'stories', d.id)));
+          await batch.commit();
+      } catch(_) {}
+  }
+
+  /* Boot — called right after login, same place as initPresenceStrip */
+  window._initStorySystem = function() {
+      initStoryBar();
+      _cleanExpiredStories();
+      setInterval(_cleanExpiredStories, 5 * 60 * 1000);
   };
 
 </script>
@@ -18978,6 +19763,87 @@ window._snxArcadeSubscribeInvites = _subscribeInvites;
 
     </div>
 </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     CREATE STORY MODAL
+     ══════════════════════════════════════════════════════════ -->
+<div id="createStoryModal" role="dialog" aria-modal="true" aria-label="Create Story">
+    <div class="create-story-card">
+        <button class="story-close-btn" onclick="closeCreateStoryModal()">✕</button>
+        <h3>📖 Share a Story</h3>
+
+        <!-- Type tabs -->
+        <div class="story-type-tabs">
+            <button class="story-type-tab active" id="storyTabText" onclick="switchStoryType('text',this)">✏️ Text</button>
+            <button class="story-type-tab" id="storyTabMedia" onclick="switchStoryType('media',this)">📷 Photo / Video</button>
+        </div>
+
+        <!-- Text panel -->
+        <div id="storyPanelText">
+            <textarea id="storyTextArea" placeholder="What's on your mind? ✨" maxlength="300"></textarea>
+            <!-- Background colour picker -->
+            <div style="font-size:11px;color:#6a90b8;margin-bottom:4px;">Background</div>
+            <div class="story-bg-picker" id="storyBgPicker"></div>
+        </div>
+
+        <!-- Media panel -->
+        <div id="storyPanelMedia" style="display:none;">
+            <div class="snx-upload-row snx-dropzone" id="storyMediaRow">
+                <input type="file" id="storyMediaFile" accept="image/*,video/*" style="display:none;" onchange="handleStoryMediaPick(this)">
+                <button class="snx-upload-btn" onclick="document.getElementById('storyMediaFile').click()" type="button">
+                    📎 Choose Photo or Video
+                </button>
+                <span class="snx-upload-filename" id="storyMediaFilename"></span>
+                <button class="snx-upload-clear" id="storyMediaClear" style="display:none;" onclick="clearStoryMedia()">✕</button>
+            </div>
+            <div class="snx-upload-progress" id="storyMediaProgress">
+                <div class="snx-upload-progress-bar" id="storyMediaProgressBar"></div>
+            </div>
+            <img   id="storyMediaPreviewImg" class="snx-upload-preview" alt="preview">
+            <video id="storyMediaPreviewVid" class="snx-upload-preview" controls style="display:none;max-width:100%;border-radius:10px;margin-top:8px;"></video>
+            <input type="hidden" id="storyMediaUrl" value="">
+            <!-- Caption on media -->
+            <textarea id="storyMediaCaption" placeholder="Add a caption… (optional)" maxlength="200"
+                style="width:100%;box-sizing:border-box;margin-top:10px;min-height:64px;resize:vertical;
+                       background:rgba(0,20,60,0.55);border:1px solid rgba(0,120,220,0.3);border-radius:10px;
+                       color:#d8eeff;font-size:13px;padding:8px 12px;font-family:inherit;"></textarea>
+        </div>
+
+        <button class="story-submit-btn" id="storySubmitBtn" onclick="submitStory()">✨ Share Story</button>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     STORY VIEWER MODAL (fullscreen)
+     ══════════════════════════════════════════════════════════ -->
+<div id="storyViewerModal" role="dialog" aria-modal="true" aria-label="Story Viewer">
+
+    <!-- Progress bars + meta header -->
+    <div class="story-viewer-header">
+        <div class="story-progress-bars" id="storyProgressBars"></div>
+        <div class="story-viewer-meta">
+            <div class="story-viewer-avatar" id="svAvatar"></div>
+            <div>
+                <div class="story-viewer-name" id="svName"></div>
+                <div class="story-viewer-time" id="svTime"></div>
+            </div>
+            <button class="story-viewer-del" id="svDelBtn" style="display:none;" onclick="deleteCurrentStory()">🗑 Delete</button>
+            <button class="story-viewer-close" onclick="closeStoryViewer()">✕</button>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="story-viewer-content" id="svContent">
+        <img   id="svImg" class="story-viewer-img" alt="">
+        <video id="svVid" class="story-viewer-vid" playsinline autoplay muted></video>
+        <div   id="svText" class="story-viewer-text-display"></div>
+        <!-- Caption overlay for photo/video stories -->
+        <div   id="svCaption" class="story-media-caption"></div>
+        <!-- Tap zones -->
+        <div class="story-tap-prev" onclick="storyViewerNav(-1)"></div>
+        <div class="story-tap-next" onclick="storyViewerNav(1)"></div>
+    </div>
 </div>
 
 <!-- ── Arcade Game Modal (canvas + controls) ── -->

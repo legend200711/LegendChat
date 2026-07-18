@@ -4,9 +4,11 @@ rules_version = '2';
 // Shadow Nexus Social — Firestore Security Rules
 //
 // Collections used by this app:
-//   /users/{uid}                                      — user profiles
-//   /stories/{storyId}                                — posts
-//   /posts/{postId}                                   — posts
+//   /users/{uid}                                      — user profiles + online status
+//   /stories/{storyId}                                — stories
+//   /posts/{postId}                                   — feed posts
+//   /chats/{channelId}                                — direct messages (1-to-1)
+//   /conversations/{convId}                           — conversation metadata
 //   /siteSettings/{doc}                               — site config (maintenance mode, feature flags)
 //
 
@@ -28,39 +30,81 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'founder';
     }
 
+    function isParticipant() {
+      return isSignedIn()
+        && request.auth.uid in resource.data.participants;
+    }
+
+    function isParticipantIncoming() {
+      return isSignedIn()
+        && request.auth.uid in request.resource.data.participants;
+    }
+
     // ── Users ─────────────────────────────────────────────────────────────────
 
     match /users/{uid} {
-      // Anyone signed in can read any profile (needed for notifications, guest info)
+      // Any signed-in user can read any profile (needed for DMs, notifications, online strip)
       allow read: if isSignedIn();
-      // Only the account owner can write their own profile
+      // Only the account owner can write their own profile (including online/offline status)
       allow write: if isOwner(uid);
+    }
+
+    // ── Direct Messages (chats) ───────────────────────────────────────────────
+    // A chat document ID is always uid1_uid2 (sorted).
+    // Only the two participants can read or write their conversation.
+
+    match /chats/{channelId} {
+      allow read:   if isSignedIn() && isParticipant();
+      allow create: if isSignedIn() && isParticipantIncoming();
+      allow update: if isSignedIn() && isParticipant();
+      allow delete: if isSignedIn() && isParticipant();
+    }
+
+    // ── Conversations metadata ────────────────────────────────────────────────
+
+    match /conversations/{convId} {
+      allow read:   if isSignedIn() && isParticipant();
+      allow create: if isSignedIn() && isParticipantIncoming();
+      allow update: if isSignedIn() && isParticipant();
+      allow delete: if isSignedIn() && isParticipant();
     }
 
     // ── Stories ───────────────────────────────────────────────────────────────
 
     match /stories/{storyId} {
-      // Any signed-in user can read a story
       allow read: if isSignedIn();
-      // Anyone signed in can create
       allow create: if isSignedIn();
-      // Any signed-in user can update
       allow update: if isSignedIn();
-      // Only the author can delete
-      allow delete: if isSignedIn() && resource.data.authorUid == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
     }
 
     // ── Posts ─────────────────────────────────────────────────────────────────
+    //
+    // Post documents use field "uid" (not "authorUid") for the owner UID.
+    //
+    // • read    — any signed-in user (feed/timeline)
+    // • create  — any signed-in user (new posts / reposts)
+    // • update  — any signed-in user; needed for:
+    //               • likes      (runTransaction updates likedBy + likes count)
+    //               • comments   (arrayUnion on comments[])
+    //               • repostCount increments by any user
+    //             The app-level code already enforces ownership for destructive
+    //             operations (delete buttons only shown to the owner).
+    // • delete  — post owner only (resource.data.uid == auth.uid),
+    //             OR a founder/moderator who can moderate content.
 
     match /posts/{postId} {
-      allow read: if isSignedIn();
+      allow read:   if isSignedIn();
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && resource.data.authorUid == request.auth.uid;
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn() && (
+        resource.data.uid == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'founder' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'moderator'
+      );
     }
 
     // ── Site settings (maintenance mode, feature flags) ───────────────────────
-    // Anyone signed in may read (needed for maintenance check on load).
-    // Only the Founder may write.
 
     match /siteSettings/{docId} {
       allow read: if isSignedIn();
@@ -68,8 +112,6 @@ service cloud.firestore {
     }
 
     // ── AI Moderation Log ─────────────────────────────────────────────────────
-    // Any signed-in user can create log entries (written by the client AI engine).
-    // Only the Founder can read or delete entries.
 
     match /aiModerationLog/{docId} {
       allow create: if isSignedIn();
@@ -78,8 +120,6 @@ service cloud.firestore {
     }
 
     // ── Reports ───────────────────────────────────────────────────────────────
-    // Any signed-in user can file a report (human or AI).
-    // Founder / staff can read and update.
 
     match /reports/{docId} {
       allow create: if isSignedIn();
@@ -88,6 +128,7 @@ service cloud.firestore {
     }
 
     // ── Audit Log ─────────────────────────────────────────────────────────────
+
     match /auditLog/{docId} {
       allow create: if isSignedIn();
       allow read: if isFounder();
@@ -95,6 +136,7 @@ service cloud.firestore {
     }
 
     // ── AI Toggle Log ─────────────────────────────────────────────────────────
+
     match /aiToggleLog/{docId} {
       allow create: if isFounder();
       allow read: if isFounder();
@@ -102,6 +144,7 @@ service cloud.firestore {
     }
 
     // ── Announcements ─────────────────────────────────────────────────────────
+
     match /announcements/{docId} {
       allow read: if isSignedIn();
       allow create, update, delete: if isFounder();

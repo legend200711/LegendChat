@@ -7,7 +7,8 @@ rules_version = '2';
 //   /users/{uid}                                      — user profiles
 //   /stories/{storyId}                                — stories
 //   /posts/{postId}                                   — feed posts (comments + likes stored inside doc)
-//   /chats/{chatId}                                   — DM conversations (messages stored inside doc)
+//   /chats/{chatId}                                   — DM inbox conversations (messages stored inside doc)
+//   /profileMessages/{chatId}                         — profile chat messages (separate from DM inbox)
 //   /siteSettings/{doc}                               — site config (maintenance mode, feature flags)
 //   /aiModerationLog/{docId}                          — AI moderation events
 //   /reports/{docId}                                  — user reports
@@ -80,7 +81,7 @@ service cloud.firestore {
             || isFounder());
     }
 
-    // ── Chats (Direct Messages) ───────────────────────────────────────────────
+    // ── Chats (DM Inbox) ──────────────────────────────────────────────────────
     // Each chat document stores both participants and an embedded messages array.
     // A user may only read or write a chat they are a participant in.
     // The Founder can read/delete any chat for moderation purposes.
@@ -99,12 +100,26 @@ service cloud.firestore {
         && (request.auth.uid in resource.data.participants || isFounder());
     }
 
-    // ── Site settings (maintenance mode, feature flags, page visibility) ──────
-    // Documents under this collection:
-    //   config          — maintenance mode, AI moderation, feature flags
-    //   pageVisibility  — per-page nav visibility controls (Founder-managed)
-    //   navChangeLog    — log of page visibility changes (Founder-managed)
-    //
+    // ── Profile Messages ──────────────────────────────────────────────────────
+    // Dedicated collection for the ipcModal profile-chat overlay.
+    // Completely separate from the DM inbox (`chats`) so notifications are
+    // only triggered from here and the two message streams never mix.
+
+    match /profileMessages/{chatId} {
+      // Participant or Founder may read
+      allow read: if isSignedIn()
+        && (request.auth.uid in resource.data.participants || isFounder());
+      // Any signed-in user can create (setDoc with merge when opening a profile chat)
+      allow create: if isSignedIn();
+      // Only participants or the Founder may update (send messages, mark read, typing indicator)
+      allow update: if isSignedIn()
+        && (request.auth.uid in resource.data.participants || isFounder());
+      // Only participants or the Founder may delete
+      allow delete: if isSignedIn()
+        && (request.auth.uid in resource.data.participants || isFounder());
+    }
+
+    // ── Site settings (maintenance mode, feature flags) ───────────────────────
     // Read is allowed without authentication so the startup siteSettings listener
     // (which fires before onAuthStateChanged resolves) does not throw
     // permission-denied on every page load.
@@ -113,12 +128,6 @@ service cloud.firestore {
     match /siteSettings/{docId} {
       allow read: if true;          // public-safe: only contains non-sensitive config
       allow write: if isFounder();
-
-      // Subcollections (navChangeLog/items written by Founder JS)
-      match /{subcollection}/{subDocId} {
-        allow read: if isFounder();
-        allow write: if isFounder();
-      }
     }
 
     // ── AI Moderation Log ─────────────────────────────────────────────────────

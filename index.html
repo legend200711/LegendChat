@@ -6569,19 +6569,8 @@ body.arcade-fs-ios body::after { display:none !important; }
 
 <!-- ═══════════════════════════════════════════════════════════
      MESSAGING PAGE — split-pane: inbox list  |  chat window
-
-     ⚠️  INBOX TEMPORARILY DISABLED
-     The inbox is currently hidden from non-founders via the
-     messagesTabEnabled flag in siteSettings/config.
-     Users reach conversations via the Profile 💬 Message button
-     (ipcModal) which writes to the same `chats` collection.
-
-     MIGRATION PLAN (when inbox is repaired):
-       1. Set messagesTabEnabled = true in siteSettings/config.
-       2. All Profile Message conversations already live in the
-          `chats` collection and will appear automatically — no
-          data migration needed, zero message loss.
-       3. Remove the _snxInboxDisabled guard below if added.
+     Uses the `chats` Firestore collection.
+     Profile Messages use the separate `profileMessages` collection.
      ═══════════════════════════════════════════════════════════ -->
 <div class="page" id="messagesInbox">
 
@@ -8855,10 +8844,11 @@ body.arcade-fs-ios body::after { display:none !important; }
   let activeChatTypingUnsub = null;   // DM page — typing indicator cleanup fn
   let scrollLimit = 8;
   let totalUnread = 0;
-  let feedUnsubscribe      = null;    // timeline feed
-  let presenceUnsubscribe  = null;    // all-users presence strip
-  let inboxUnsubscribe     = null;    // DM inbox list
-  let userDataUnsubscribe  = null;    // current user's own doc (settings + notifs + push)
+  let feedUnsubscribe           = null;    // timeline feed
+  let presenceUnsubscribe       = null;    // all-users presence strip
+  let inboxUnsubscribe          = null;    // DM inbox list
+  let userDataUnsubscribe       = null;    // current user's own doc (settings + notifs + push)
+  let profileMsgUnsubscribe     = null;    // profile messages unread-count listener
 
   /* ACCOUNT MANAGEMENT */
 
@@ -9264,8 +9254,9 @@ body.arcade-fs-ios body::after { display:none !important; }
 
           navTo('feed');
           initTimelineStream();
-          presenceUnsubscribe = initPresenceStrip();
-          inboxUnsubscribe    = initInboxMonitor();
+          presenceUnsubscribe       = initPresenceStrip();
+          inboxUnsubscribe          = initInboxMonitor();
+          profileMsgUnsubscribe     = initProfileMsgMonitor(user.uid);
           scheduleExpiredPostCleanup();
           if (typeof window._initStorySystem === 'function') window._initStorySystem();
           // Check if user has earned the OG badge (first 100 users, 50+ days old account)
@@ -9293,11 +9284,12 @@ body.arcade-fs-ios body::after { display:none !important; }
           // Explicit logout path — tear down listeners below.
           currentUser = null; userData = null;
           // ── Tear down EVERY real-time listener so nothing fires against a null user ──
-          if (feedUnsubscribe)     { feedUnsubscribe();     feedUnsubscribe     = null; }
-          if (presenceUnsubscribe) { presenceUnsubscribe(); presenceUnsubscribe = null; }
-          if (inboxUnsubscribe)    { inboxUnsubscribe();    inboxUnsubscribe    = null; }
+          if (feedUnsubscribe)         { feedUnsubscribe();         feedUnsubscribe         = null; }
+          if (presenceUnsubscribe)     { presenceUnsubscribe();     presenceUnsubscribe     = null; }
+          if (inboxUnsubscribe)        { inboxUnsubscribe();        inboxUnsubscribe        = null; }
+          if (profileMsgUnsubscribe)   { profileMsgUnsubscribe();   profileMsgUnsubscribe   = null; }
           // notifUnsubscribe removed — notifications are now handled inside userDataUnsubscribe
-          if (userDataUnsubscribe) { userDataUnsubscribe(); userDataUnsubscribe = null; }
+          if (userDataUnsubscribe)     { userDataUnsubscribe();     userDataUnsubscribe     = null; }
           if (activeChatUnsubscribe) { activeChatUnsubscribe(); activeChatUnsubscribe = null; }
           if (activeChatStatusUnsub) { activeChatStatusUnsub(); activeChatStatusUnsub = null; }
           if (activeChatTypingUnsub) { activeChatTypingUnsub(); activeChatTypingUnsub = null; }
@@ -9342,13 +9334,10 @@ body.arcade-fs-ios body::after { display:none !important; }
           }
       }
 
-      // Messages tab visibility (live — hides/shows nav button for all users)
-      // ⚠️ INBOX DISABLED: defaults to false until the inbox is repaired.
-      // When the inbox is ready, set messagesTabEnabled = true in siteSettings/config.
-      // Cache the raw value so _snxReapplyNavVisibility() can replay it after role resolves.
-      const _msgEnabled = cfg.messagesTabEnabled === true;
+      // Messages tab — always enabled; Founder can still toggle it off via admin panel
+      const _msgEnabled = cfg.messagesTabEnabled !== false; // default TRUE
       window._snxMessagesTabEnabled = _msgEnabled;
-      window._snxCfgMessagesTabEnabled = _msgEnabled; // persisted cache
+      window._snxCfgMessagesTabEnabled = _msgEnabled;
       _syncMessagesTabUI(_msgEnabled);
   });
 
@@ -9397,7 +9386,7 @@ body.arcade-fs-ios body::after { display:none !important; }
      Called from onAuthStateChanged after _snxRole is confirmed. ── */
   window._snxReapplyNavVisibility = function() {
       // Re-apply Messages tab state (saved from siteSettings/config onSnapshot)
-      // Founders always see the tab; non-founders only see it if explicitly enabled
+      // Default is enabled; Founder can explicitly disable via the admin panel
       const _msgEnabled = window._snxCfgMessagesTabEnabled;
       if (typeof _msgEnabled === 'boolean') {
           window._snxMessagesTabEnabled = _msgEnabled;
@@ -9639,19 +9628,24 @@ body.arcade-fs-ios body::after { display:none !important; }
                   }
                   const badgeNames = (u.badges||[]).filter(b => b !== 'Founder' || u.role === 'founder').join(', ');
                   av.title = 'Message ' + u.displayName + (badgeNames ? ' · ' + badgeNames : '');
-                  // Clicking the avatar opens the profile chat modal (inbox is temporarily disabled)
+                  // Clicking the avatar opens the inbox DM chat
                   av.addEventListener('click', (e) => {
                       e.stopPropagation();
-                      if (typeof window.ipcOpen === 'function') {
-                          window.ipcOpen(u.uid);
+                      if (typeof window.establishDirectMessageChannel === 'function') {
+                          window.establishDirectMessageChannel(u.uid);
                       }
                   });
 
-                  // Name label — plain text, no click handler
+                  // Name label — also opens DM on click
                   const nm = document.createElement("div");
                   nm.className = "msg-online-avatar-name";
                   nm.textContent = (u.displayName || '').split(' ')[0];
-                  nm.style.cursor = 'default';
+                  nm.style.cursor = 'pointer';
+                  nm.addEventListener('click', () => {
+                      if (typeof window.establishDirectMessageChannel === 'function') {
+                          window.establishDirectMessageChannel(u.uid);
+                      }
+                  });
 
                   item.appendChild(av);
                   item.appendChild(nm);
@@ -12305,16 +12299,6 @@ body.arcade-fs-ios body::after { display:none !important; }
           const chatBox = document.getElementById('chatBoxContainer');
           if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
 
-          // Push message notification to the recipient (best-effort)
-          try {
-              await pushNotification(activeChatTargetUid, {
-                  type: 'message',
-                  fromUid: currentUser.uid,
-                  fromName: userData.displayName,
-                  fromAvatar: userData.avatar || ''
-              });
-          } catch(e) { /* best-effort */ }
-
           closeEmojiPicker();
       } catch(err) {
           console.error('[DM] Send error:', err.code || err.message || err);
@@ -12342,16 +12326,18 @@ body.arcade-fs-ios body::after { display:none !important; }
      Long-press or right-click a bubble to open the menu.
      Stores the current message index + channel in module-level vars.
   ─────────────────────────────────────────────────────────────────── */
-  let _ctxMsgIdx = null;
-  let _ctxIsMine = false;
-  let _ctxMsg    = null;
-  let _ctxChId   = null;
+  let _ctxMsgIdx     = null;
+  let _ctxIsMine     = false;
+  let _ctxMsg        = null;
+  let _ctxChId       = null;
+  let _ctxCollection = 'chats'; // 'chats' for inbox, 'profileMessages' for profile modal
 
-  window.openMsgCtxMenu = function(idx, isMine, msg, x, y, chId) {
-      _ctxMsgIdx = idx;
-      _ctxIsMine = isMine;
-      _ctxMsg    = msg;
-      _ctxChId   = chId;
+  window.openMsgCtxMenu = function(idx, isMine, msg, x, y, chId, collection) {
+      _ctxMsgIdx     = idx;
+      _ctxIsMine     = isMine;
+      _ctxMsg        = msg;
+      _ctxChId       = chId;
+      _ctxCollection = collection || 'chats';
 
       const menu = document.getElementById('msgCtxMenu');
       if (!menu) return;
@@ -12391,11 +12377,11 @@ body.arcade-fs-ios body::after { display:none !important; }
       if (_ctxMsgIdx === null || !_ctxChId) return;
       if (!confirm('Delete this message for you? It will still show for the other person.')) return;
       try {
-          const snap = await getDoc(doc(db, 'chats', _ctxChId));
+          const snap = await getDoc(doc(db, _ctxCollection, _ctxChId));
           if (!snap.exists()) return;
           const msgs = [...(snap.data().messages || [])];
           msgs.splice(_ctxMsgIdx, 1);
-          await updateDoc(doc(db, 'chats', _ctxChId), { messages: msgs });
+          await updateDoc(doc(db, _ctxCollection, _ctxChId), { messages: msgs });
           toastNotification('Message deleted.');
       } catch(e) { toastNotification('Could not delete: ' + e.message); }
   };
@@ -12405,7 +12391,7 @@ body.arcade-fs-ios body::after { display:none !important; }
       if (_ctxMsgIdx === null || !_ctxChId || !_ctxIsMine) return;
       if (!confirm('Delete this message for everyone? This cannot be undone.')) return;
       try {
-          const snap = await getDoc(doc(db, 'chats', _ctxChId));
+          const snap = await getDoc(doc(db, _ctxCollection, _ctxChId));
           if (!snap.exists()) return;
           const msgs = [...(snap.data().messages || [])];
           // Replace content with deleted tombstone — keep timestamp so order is preserved
@@ -12416,7 +12402,7 @@ body.arcade-fs-ios body::after { display:none !important; }
               text:      '',
               deleted:   true
           };
-          await updateDoc(doc(db, 'chats', _ctxChId), { messages: msgs });
+          await updateDoc(doc(db, _ctxCollection, _ctxChId), { messages: msgs });
           toastNotification('Message deleted for everyone.');
       } catch(e) { toastNotification('Could not delete: ' + e.message); }
   };
@@ -12607,12 +12593,73 @@ body.arcade-fs-ios body::after { display:none !important; }
           }
       }
   };
+
+  /* ═══════════════════════════════════════════════════════════
+     PROFILE MESSAGES MONITOR
+     Watches the profileMessages collection for docs that include
+     this user as a participant.  Counts unread messages and
+     fires pushNotification the first time a new message arrives
+     while the user is not actively viewing that conversation.
+     ═══════════════════════════════════════════════════════════ */
+
+  function initProfileMsgMonitor(uid) {
+      if (!uid) return null;
+      const q = query(
+          collection(db, 'profileMessages'),
+          where('participants', 'array-contains', uid)
+      );
+      // Seed seen message timestamps on first snapshot so we don't re-notify on load
+      let _seeded = false;
+      let _seenMsgTs = new Set();
+
+      return onSnapshot(q, async (snap) => {
+          let totalUnreadPm = 0;
+          snap.forEach(pmDoc => {
+              const d = pmDoc.data();
+              const unread = d[`unread_${uid}`] || 0;
+              totalUnreadPm += unread;
+
+              // Detect genuinely new incoming messages and fire in-app notification toast
+              const msgs = d.messages || [];
+              msgs.forEach(m => {
+                  if (m.sender === uid) return; // own message — skip
+                  const key = pmDoc.id + '_' + m.timestamp;
+                  if (_seeded && !_seenMsgTs.has(key)) {
+                      // New message received while app is open — show toast
+                      const fromName = m.senderName || 'Someone';
+                      toastNotification('✉️ ' + fromName + ' sent you a message');
+                  }
+                  _seenMsgTs.add(key);
+              });
+          });
+
+          // After first snapshot just seed — don't alert for historical messages
+          if (!_seeded) { _seeded = true; return; }
+
+          // Update the notification bell badge to include profile-message unread count
+          // (adds on top of the notifications array unread count already tracked by userDataUnsubscribe)
+          const _notifBadgeEl = document.getElementById('sidebarNotifBadge');
+          const _hbBadge      = document.getElementById('menuBtnNotifBadge');
+          if (totalUnreadPm > 0) {
+              const _notifBase = userData ? (userData.notifications || []).filter(n => !n.read).length : 0;
+              const _total     = _notifBase + totalUnreadPm;
+              const _label     = _total > 99 ? '99+' : String(_total);
+              if (_notifBadgeEl) { _notifBadgeEl.textContent = _label; _notifBadgeEl.classList.add('visible'); }
+              if (_hbBadge)      { _hbBadge.textContent = _label;      _hbBadge.style.display = 'inline-flex'; }
+          }
+          // (If zero unread the userDataUnsubscribe handler will clear/set the badge correctly on its next fire)
+      }, (err) => {
+          console.warn('[ProfileMsg] Listener error:', err.code || err.message || err);
+      });
+  }
+
   /* ═══════════════════════════════════════════════════════════
      PROFILE CHAT MODAL ENGINE
      Powers the #ipcModal overlay on profile pages.
      - Opens via window.ipcOpen(targetUid)
-     - Shares the same Firestore `chats` collection as the full
-       DM inbox so BOTH sides see the same conversation.
+     - Uses its OWN Firestore `profileMessages` collection,
+       completely separate from the DM inbox (`chats`).
+     - Notifications are triggered exclusively from here.
      - Messages persist across page refreshes.
      - Shows timestamps, date separators, and read receipts.
      ═══════════════════════════════════════════════════════════ */
@@ -12664,7 +12711,7 @@ body.arcade-fs-ios body::after { display:none !important; }
       // Clear typing flag in Firestore (best-effort)
       if (_m_chId && currentUser) {
           const clr = {}; clr[`typing_${currentUser.uid}`] = false;
-          try { updateDoc(doc(db, 'chats', _m_chId), clr); } catch(_) {}
+          try { updateDoc(doc(db, 'profileMessages', _m_chId), clr); } catch(_) {}
       }
 
       // Remove input event listener
@@ -12707,11 +12754,6 @@ body.arcade-fs-ios body::after { display:none !important; }
 
   // ── Expose "open in full DMs" ──
   window.ipcModalExpandToInbox = function() {
-      // If the Messages tab is hidden, silently keep the user in the modal instead of expanding
-      if (window._snxMessagesTabEnabled === false && window._snxRole !== 'founder') {
-          if (typeof toastNotification === 'function') toastNotification('📭 Full inbox is temporarily unavailable.');
-          return;
-      }
       const uid = _m_tgtUid;
       window.ipcModalClose(); // restores body scroll + tears down listeners
       if (uid && typeof window.establishDirectMessageChannel === 'function') {
@@ -12794,7 +12836,7 @@ body.arcade-fs-ios body::after { display:none !important; }
                   e.preventDefault();
                   const x = e.touches ? e.touches[0].clientX : e.clientX;
                   const y = e.touches ? e.touches[0].clientY : e.clientY;
-                  openMsgCtxMenu(idx, isMine, m, x, y, _m_chId);
+                  openMsgCtxMenu(idx, isMine, m, x, y, _m_chId, 'profileMessages');
               };
               bub.addEventListener('contextmenu', _iOpenCtx);
               bub.addEventListener('touchstart', (e) => { _ipressTimer = setTimeout(() => _iOpenCtx(e), 500); }, { passive: true });
@@ -12863,7 +12905,7 @@ body.arcade-fs-ios body::after { display:none !important; }
       if (lastMsg && lastMsg.sender === _m_tgtUid) {
           const upd = { readReceipt: true };
           upd[`unread_${currentUser.uid}`] = 0;
-          try { updateDoc(doc(db, 'chats', _m_chId), upd); } catch(_) {}
+          try { updateDoc(doc(db, 'profileMessages', _m_chId), upd); } catch(_) {}
       }
   }
 
@@ -12899,12 +12941,13 @@ body.arcade-fs-ios body::after { display:none !important; }
 
       try {
           const msg = {
-              sender:    currentUser.uid,
-              type:      'text',
+              sender:     currentUser.uid,
+              senderName: userData?.displayName || '',
+              type:       'text',
               text,
-              timestamp: Date.now()
+              timestamp:  Date.now()
           };
-          const ref = doc(db, 'chats', chIdSnapshot);
+          const ref = doc(db, 'profileMessages', chIdSnapshot);
           const upd = {
               messages:    arrayUnion(msg),
               readReceipt: false,
@@ -12971,6 +13014,13 @@ body.arcade-fs-ios body::after { display:none !important; }
           }
       } catch(_) {}
 
+      // Reset the unread counter in profileMessages for this conversation (best-effort)
+      try {
+          const pmChId = [currentUser.uid, targetUid].sort().join('_');
+          const pmUpd  = {}; pmUpd[`unread_${currentUser.uid}`] = 0;
+          updateDoc(doc(db, 'profileMessages', pmChId), pmUpd).catch(() => {});
+      } catch(_) {}
+
       const newChId = [currentUser.uid, targetUid].sort().join('_');
 
       // Already open for this exact conversation — just re-focus
@@ -13019,7 +13069,7 @@ body.arcade-fs-ios body::after { display:none !important; }
       let _initOk = false;
       for (let _attempt = 1; _attempt <= 5; _attempt++) {
           try {
-              await setDoc(doc(db, 'chats', capturedChId), {
+              await setDoc(doc(db, 'profileMessages', capturedChId), {
                   participants: [currentUser.uid, capturedTgtUid],
                   initialized:  true,
                   [`unread_${currentUser.uid}`]: 0
@@ -13112,7 +13162,7 @@ body.arcade-fs-ios body::after { display:none !important; }
       // ── Step 5: Live messages listener ──
       // Track first delivery so we always scroll to bottom on open
       let _m_firstSnap = true;
-      _m_msgUnsub = onSnapshot(doc(db, 'chats', capturedChId), cSnap => {
+      _m_msgUnsub = onSnapshot(doc(db, 'profileMessages', capturedChId), cSnap => {
           if (_m_chId !== capturedChId) return; // stale callback — ignore
           if (!cSnap.exists()) {
               // Document was just created with merge but has no messages yet
@@ -13151,13 +13201,13 @@ body.arcade-fs-ios body::after { display:none !important; }
               const isTyping = e.target.value.length > 0;
               clearTimeout(_m_typTimer);
               const upd = {}; upd[`typing_${currentUser.uid}`] = isTyping;
-              try { await updateDoc(doc(db, 'chats', capturedChId), upd); } catch(_) {}
+              try { await updateDoc(doc(db, 'profileMessages', capturedChId), upd); } catch(_) {}
               _mGrow(e.target);
               if (isTyping) {
                   _m_typTimer = setTimeout(async () => {
                       if (_m_chId !== capturedChId) return;
                       const clr = {}; clr[`typing_${currentUser.uid}`] = false;
-                      try { await updateDoc(doc(db, 'chats', capturedChId), clr); } catch(_) {}
+                      try { await updateDoc(doc(db, 'profileMessages', capturedChId), clr); } catch(_) {}
                   }, 4000);
               }
           };
@@ -14074,17 +14124,17 @@ body.arcade-fs-ios body::after { display:none !important; }
 
   /* ── snxSetMessagesTab — Founder-only toggle for the Messages tab ── */
   function _syncMessagesTabUI(enabled) {
-      // Nav button visibility (Founder always sees it)
+      // Nav button is always visible — Messages inbox is always accessible
       const navBtn = document.getElementById('navMessages');
-      if (navBtn) navBtn.style.display = (enabled || window._snxRole === 'founder') ? '' : 'none';
+      if (navBtn) navBtn.style.display = '';
       // Sync both toggle checkboxes
       const cb1 = document.getElementById('toggleMessagesTab');
       const cb2 = document.getElementById('settingsToggleMessagesTab');
       if (cb1) cb1.checked = enabled;
       if (cb2) cb2.checked = enabled;
-      // Show/hide the "expand to inbox" button in the ipcModal (only shown when inbox is available)
+      // "Expand to inbox" button in the profile chat modal — always visible
       const expandBtn = document.getElementById('ipcModalExpandBtn');
-      if (expandBtn) expandBtn.style.display = (enabled || window._snxRole === 'founder') ? '' : 'none';
+      if (expandBtn) expandBtn.style.display = '';
       // If a non-founder is currently on the messages page and it just got hidden, redirect to feed
       if (!enabled && window._snxRole !== 'founder') {
           const activePage = document.querySelector('.page.active');
@@ -15093,12 +15143,6 @@ function navTo(pageId) {
     if (pageId === 'adminPage' && window._snxRole !== 'founder') {
         if (typeof toastNotification === 'function') toastNotification('⛔ Access Denied — Founder access only.');
         show('feed');
-        return;
-    }
-
-    // ── Messages tab guard — inbox disabled; route users to Profile Message button ──
-    if (pageId === 'messagesInbox' && window._snxMessagesTabEnabled === false && window._snxRole !== 'founder') {
-        _snxShowUnavailablePage('The Messages inbox is temporarily unavailable. To message someone, visit their profile and tap the 💬 Message button — your conversations are saved and you\'ll receive notifications for replies.');
         return;
     }
 

@@ -10,6 +10,11 @@ rules_version = '2';
 //   /notifications/{uid}/items/{id} — per-user notifications (NEW subcollection)
 //   /stories/{storyId}          — stories
 //   /posts/{postId}             — feed posts (comments + likes stored inside doc)
+//                                 NEW fields: savedToAlbum (bool), savedToWall (bool)
+//   /users/{uid}/profileWall/{postId} — permanent wall posts
+//                                 NEW fields: likes, likedBy[], wallComments[], savedToAlbum
+//   /albumPhotos/{photoId}      — photo album entries
+//                                 NEW fields: feedPostId (from feed post create)
 //   /chats/{chatId}             — DM conversations (legacy — kept for existing data)
 //   /siteSettings/{doc}         — site config (maintenance mode, feature flags)
 //   /aiModerationLog/{docId}    — AI moderation events
@@ -90,11 +95,17 @@ service cloud.firestore {
       // ── Profile Wall subcollection ─────────────────────────────────────────
       // users/{uid}/profileWall/{postId}
       // Stores posts the user permanently saved from the Feed.
-      // Any signed-in user can read; only the owner (or Founder) can write.
+      // Fields: postId, uid, authorName, text, mediaUrl, mediaUrls, imageURL,
+      //         savedAt, createdAt, pinned, visibility,
+      //         likes (int), likedBy (array), wallComments (array),
+      //         savedToAlbum (bool)
+      // Any signed-in user can read; only the owner (or Founder) can write/delete.
+      // Any signed-in user can update (for likes/comments from other users).
       match /profileWall/{postId} {
-        allow read:          if isSignedIn();
-        allow create, update: if isOwner(uid);
-        allow delete:         if isOwner(uid) || isFounder();
+        allow read:   if isSignedIn();
+        allow create: if isOwner(uid);
+        allow update: if isSignedIn();   // likes + comments from any signed-in user
+        allow delete: if isOwner(uid) || isFounder();
       }
     }
 

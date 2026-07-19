@@ -794,24 +794,28 @@
                 if (saveToWall) {
                     try {
                         await setDoc(
-                            doc(db, 'users', ownerUid, 'profileWall', postRef.id),
-                            {
-                                postId:       postRef.id,
-                                uid:          ownerUid,
-                                authorName:   userData.displayName || '',
-                                authorHandle: userData.username    || '',
-                                authorAvatar: userData.avatar      || '',
-                                authorBadges: userData.badges      || [],
-                                authorRole:   userData.role        || 'member',
-                                text:         caption ? `📸 ${caption}` : '📸 Added a photo to their album',
-                                mediaUrl:     url,
-                                mediaUrls:    [url],
-                                albumPhotoId: photoId,
-                                isAlbumPost:  true,
-                                savedAt:      now,
-                                createdAt:    now
-                            }
-                        );
+                                doc(db, 'users', ownerUid, 'profileWall', postRef.id),
+                                {
+                                    postId:       postRef.id,
+                                    uid:          ownerUid,
+                                    authorName:   userData.displayName || '',
+                                    authorHandle: userData.username    || '',
+                                    authorAvatar: userData.avatar      || '',
+                                    authorBadges: userData.badges      || [],
+                                    authorRole:   userData.role        || 'member',
+                                    text:         caption ? `📸 ${caption}` : '📸 Added a photo to their album',
+                                    mediaUrl:     url,
+                                    mediaUrls:    [url],
+                                    albumPhotoId: photoId,
+                                    isAlbumPost:  true,
+                                    savedAt:      now,
+                                    createdAt:    now,
+                                    likes:        0,
+                                    likedBy:      [],
+                                    wallComments: [],
+                                    savedToAlbum: true,
+                                }
+                            );
                     } catch (we) {
                         console.warn('[Album] profileWall mirror failed:', we);
                     }

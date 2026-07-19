@@ -4459,6 +4459,89 @@ body::after {
 /* Visitor wall card spacing */
 #visitorWallCard { margin-top: 12px; }
 
+/* ── Photo post destination panel ── */
+.snx-photo-post-opts {
+    margin-top: 10px; padding: 10px 12px 8px;
+    border: 1px solid rgba(0,174,239,0.28);
+    border-radius: 11px; background: rgba(0,15,40,0.5);
+}
+.snx-photo-post-opts-title {
+    font-size: 11px; font-weight: 700; color: #3a8aaa;
+    text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px;
+}
+.snx-photo-post-opts-hint {
+    font-size: 11px; color: #4a8aaa; margin-top: 7px; min-height: 14px;
+    padding: 0 2px; transition: color 0.15s;
+}
+/* Green variant for album checkbox tick */
+.snx-wall-save-check--green {
+    border-color: rgba(57,255,20,0.45);
+}
+.snx-wall-save-label:has(input:checked) .snx-wall-save-check--green {
+    background: rgba(57,255,20,0.15);
+    border-color: #39ff14;
+}
+.snx-wall-save-label:has(input:checked) .snx-wall-save-check--green::after {
+    content: '✓'; color: #39ff14; font-size: 12px; font-weight: 800;
+    position: absolute;
+}
+
+/* ── Profile Wall social action bar ── */
+.snx-pwall-social-bar {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 10px; flex-wrap: wrap;
+}
+.snx-pwall-social-btn {
+    background: none;
+    border: 1px solid rgba(0,120,200,0.25);
+    color: #5a88aa; font-size: 12px; padding: 4px 11px;
+    border-radius: 10px; cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    display: inline-flex; align-items: center; gap: 4px;
+}
+.snx-pwall-social-btn:hover {
+    border-color: rgba(0,174,239,0.5); color: #a0d8f0;
+    background: rgba(0,80,160,0.1);
+}
+.snx-pwall-like-btn.liked { color: #ff6090; border-color: rgba(255,80,130,0.4); }
+.snx-pwall-like-btn.liked:hover { background: rgba(255,60,100,0.08); }
+
+/* ── Profile Wall comments ── */
+.snx-pwall-comments-section {
+    margin-top: 10px; padding: 8px 10px;
+    border: 1px solid rgba(0,80,160,0.18);
+    border-radius: 10px; background: rgba(0,10,30,0.3);
+}
+.snx-pwall-comments-list { margin-bottom: 8px; }
+.snx-pwall-comment {
+    display: flex; gap: 6px; align-items: baseline;
+    padding: 5px 0; border-bottom: 1px solid rgba(0,60,120,0.12);
+    font-size: 12px; flex-wrap: wrap;
+}
+.snx-pwall-comment:last-child { border-bottom: none; }
+.snx-pwall-comment-author {
+    color: #55a8d8; font-weight: 700; flex-shrink: 0;
+}
+.snx-pwall-comment-text { color: #b0cce0; flex: 1; word-break: break-word; }
+.snx-pwall-comment-ts { color: #3a5a7a; font-size: 10px; white-space: nowrap; }
+.snx-pwall-comment-input-row {
+    display: flex; gap: 6px; align-items: center;
+}
+.snx-pwall-comment-input {
+    flex: 1; background: rgba(0,15,40,0.6);
+    border: 1px solid rgba(0,100,180,0.3); border-radius: 8px;
+    color: #c0ddf0; font-size: 12px; padding: 5px 10px;
+    outline: none; transition: border-color 0.15s;
+}
+.snx-pwall-comment-input:focus { border-color: rgba(0,174,239,0.55); }
+.snx-pwall-comment-send {
+    background: rgba(0,80,160,0.3); border: 1px solid rgba(0,174,239,0.35);
+    color: #70c8ee; font-size: 11px; padding: 5px 12px; border-radius: 8px;
+    cursor: pointer; transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+.snx-pwall-comment-send:hover { background: rgba(0,120,220,0.35); color: #c0e8ff; }
+
 /* ═══════════════════════════════════════════════════════════
    SHADOW NEXUS ARCADE — Built-In Retro Arcade System
    ═══════════════════════════════════════════════════════════ */
@@ -5622,11 +5705,27 @@ body.arcade-fs-ios body::after { display:none !important; }
         <!-- Hidden: stores the final uploaded URL -->
         <input type="hidden" id="postMediaUrl" value="">
 
-        <!-- Save to Profile Wall toggle -->
-        <label class="snx-wall-save-label" id="wallSaveLabel">
-            <input type="checkbox" id="chkSaveToWall">
+        <!-- Photo post destination options (only shown when a photo/video is attached) -->
+        <div class="snx-photo-post-opts" id="snxPhotoPostOpts" style="display:none;">
+            <div class="snx-photo-post-opts-title">📍 Where should this photo appear?</div>
+            <label class="snx-wall-save-label" id="snxChkAlbumLabel">
+                <input type="checkbox" id="chkSaveToAlbum" onchange="_snxUpdatePhotoHint()">
+                <span class="snx-wall-save-check snx-wall-save-check--green"></span>
+                <span class="snx-wall-save-text">📸 Save to My Photo Album</span>
+            </label>
+            <label class="snx-wall-save-label" id="wallSaveLabel" style="margin-top:6px;">
+                <input type="checkbox" id="chkSaveToWall" onchange="_snxUpdatePhotoHint()">
+                <span class="snx-wall-save-check"></span>
+                <span class="snx-wall-save-text">📌 Post to My Profile Wall</span>
+            </label>
+            <div class="snx-photo-post-opts-hint" id="snxPhotoDestHint"></div>
+        </div>
+
+        <!-- Wall-only toggle shown when no photo is attached -->
+        <label class="snx-wall-save-label" id="wallSaveLabelStandalone">
+            <input type="checkbox" id="chkSaveToWallText">
             <span class="snx-wall-save-check"></span>
-            <span class="snx-wall-save-text">📌 Save this post to my Profile Wall</span>
+            <span class="snx-wall-save-text">📌 Post to My Profile Wall</span>
         </label>
 
         <button id="btnBroadcast" style="margin-top:10px; width:100%; border-radius:10px; padding:11px; background:linear-gradient(135deg,#003d99,#0077dd); border-color:rgba(0,174,239,0.65); color:#fff; font-size:14px; box-shadow:0 0 20px rgba(0,174,239,0.40);">⚡ Post to the Eclipse</button>
@@ -8326,7 +8425,7 @@ body.arcade-fs-ios body::after { display:none !important; }
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, browserLocalPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, getDocFromCache, updateDoc, deleteDoc, collection, addDoc, query, orderBy, limit, onSnapshot, arrayUnion, runTransaction, where, getDocs, writeBatch, increment, serverTimestamp, enableNetwork, disableNetwork } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDoc, getDocFromCache, updateDoc, deleteDoc, collection, addDoc, query, orderBy, limit, onSnapshot, arrayUnion, arrayRemove, runTransaction, where, getDocs, writeBatch, increment, serverTimestamp, enableNetwork, disableNetwork } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
   import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
 
   const firebaseConfig = {
@@ -8363,7 +8462,7 @@ body.arcade-fs-ios body::after { display:none !important; }
   window._snxFirestore = {
       db, doc, getDoc, getDocFromCache, setDoc, updateDoc, deleteDoc,
       collection, addDoc, query, orderBy, limit,
-      onSnapshot, arrayUnion, runTransaction, where, getDocs, writeBatch, increment,
+      onSnapshot, arrayUnion, arrayRemove, runTransaction, where, getDocs, writeBatch, increment,
       serverTimestamp, enableNetwork, disableNetwork,
   };
 
@@ -9954,8 +10053,13 @@ body.arcade-fs-ios body::after { display:none !important; }
       _postBusy = true;
       const btn = document.getElementById("btnBroadcast");
       btn.disabled = true; btn.textContent = "Posting…";
-      // Read the "Save to Profile Wall" checkbox
-      const saveToWall = document.getElementById("chkSaveToWall")?.checked === true;
+      // Read photo post destination checkboxes
+      // When a photo is attached the grouped panel is shown; otherwise the standalone text-wall checkbox is used
+      const hasMedia = !!document.getElementById("postMediaUrl").value.trim();
+      const saveToWall  = hasMedia
+          ? (document.getElementById("chkSaveToWall")?.checked === true)
+          : (document.getElementById("chkSaveToWallText")?.checked === true);
+      const saveToAlbum = hasMedia && document.getElementById("chkSaveToAlbum")?.checked === true;
       try {
           const now = Date.now();
           const expiresAt = now + 48 * 60 * 60 * 1000; // auto-delete after 48 hours
@@ -9975,6 +10079,7 @@ body.arcade-fs-ios body::after { display:none !important; }
               textLen: text.length,
               mediaUrls: mediaUrlsRaw,
               saveToWall,
+              saveToAlbum,
           });
 
           const postRef = await addDoc(collection(db, "posts"), {
@@ -10001,12 +10106,40 @@ body.arcade-fs-ios body::after { display:none !important; }
               comments:     [],
               repostCount:  0,
               savedToWall:  saveToWall,
+              savedToAlbum: saveToAlbum,
           });
 
           // Write the postId back so every consumer can read it without knowing the doc ref
           await updateDoc(postRef, { postId: postRef.id });
 
           console.log('[SNX Post] Feed post saved:', postRef.id, '| mediaUrls:', mediaUrlsRaw);
+
+          // ── If checked, save photo(s) to user's Photo Album ──────────────────
+          if (saveToAlbum && mediaUrlsRaw.length > 0) {
+              const albumId  = currentUser.uid + '_album';
+              for (const photoUrl of mediaUrlsRaw) {
+                  try {
+                      // De-duplicate: skip if already in album (same owner + url)
+                      const existing = await getDocs(query(collection(db, 'albumPhotos'), where('ownerUid','==',currentUser.uid), where('url','==',photoUrl)));
+                      if (existing.empty) {
+                          await addDoc(collection(db, 'albumPhotos'), {
+                              ownerUid:    currentUser.uid,
+                              url:         photoUrl,
+                              type:        'album',
+                              caption:     text.substring(0, 200),
+                              privacy:     'public',
+                              uploadedAt:  now,
+                              albumId,
+                              feedPostId:  postRef.id,
+                              savedToWall: saveToWall,
+                          });
+                      }
+                  } catch (ae) {
+                      console.warn('[SNX Post] Album save failed (non-fatal):', ae);
+                  }
+              }
+              console.log('[SNX Post] Photo(s) saved to album:', mediaUrlsRaw.length);
+          }
 
           // ── If checked, mirror post to profileWall subcollection (permanent) ──
           if (saveToWall) {
@@ -10021,10 +10154,13 @@ body.arcade-fs-ios body::after { display:none !important; }
                   text,
                   mediaUrl:     mediaUrlsRaw[0] || '',
                   mediaUrls:    mediaUrlsRaw,
-                  imageURL:     mediaUrlsRaw[0] || '',   // explicit alias for clarity
+                  imageURL:     mediaUrlsRaw[0] || '',
                   visibility:   'public',
                   savedAt:      now,
                   createdAt:    now,
+                  likes:        0,
+                  likedBy:      [],
+                  wallComments: [],
               });
               console.log('[SNX Post] Profile Wall entry saved:', postRef.id);
           }
@@ -10033,15 +10169,21 @@ body.arcade-fs-ios body::after { display:none !important; }
           detectAndNotifyMentions(text, postRef.id);
           document.getElementById("postText").value = "";
           document.getElementById("postMediaUrl").value = "";
-          const chkWall = document.getElementById("chkSaveToWall");
-          if (chkWall) chkWall.checked = false;
+          // Clear all checkboxes
+          ['chkSaveToWall','chkSaveToWallText','chkSaveToAlbum'].forEach(id => {
+              const el = document.getElementById(id); if (el) el.checked = false;
+          });
           const counter = document.getElementById("postCharCounter");
           if (counter) { counter.textContent = "500 characters left"; counter.className = "post-char-counter"; }
           // Clear media upload UI
           clearPostMedia();
-          toastNotification(saveToWall
-              ? "⚡ Post published & saved to your Profile Wall!"
-              : "⚡ Post published to the Eclipse!");
+          // Build human-readable destination message
+          let _destMsg = '⚡ Post published';
+          if (saveToWall && saveToAlbum) _destMsg += ' — saved to your Wall & Photo Album!';
+          else if (saveToWall)           _destMsg += ' & saved to your Profile Wall!';
+          else if (saveToAlbum)          _destMsg += ' — photo saved to your Album!';
+          else                           _destMsg += ' to the Eclipse!';
+          toastNotification(_destMsg);
       } catch(e) {
           console.error('[SNX Post] Failed to create post:', e);
           const msg = e?.code === 'permission-denied'
@@ -14756,12 +14898,28 @@ async function snxLoadProfileWall(uid) {
             }
 
             const ts = _ago(w.savedAt);
-            const pinLabel  = w.pinned ? '📌 Pinned' : '📌 Pin';
-            const ownerActions = isOwner ? `
+            const pinLabel = w.pinned ? '📌 Pinned' : '📌 Pin';
+            const wallDocId = w.id;
+            const curUid    = window._snxCurrentUser?.uid || '';
+
+            // Social counts
+            const likeCount    = w.likes || 0;
+            const commentCount = (w.wallComments || []).length;
+            const alreadyLiked = Array.isArray(w.likedBy) && w.likedBy.includes(curUid);
+
+            // Comments HTML
+            const commentsHTML = (w.wallComments || []).map(c => `
+                <div class="snx-pwall-comment">
+                    <span class="snx-pwall-comment-author">${_esc(c.author || 'User')}</span>
+                    <span class="snx-pwall-comment-text">${_esc(c.text || '')}</span>
+                    <span class="snx-pwall-comment-ts">${_ago(c.ts)}</span>
+                </div>`).join('');
+
+            const ownerCtrl = isOwner ? `
                 <button class="snx-pwall-pin-btn${w.pinned ? ' pinned' : ''}"
-                        onclick="snxTogglePinWallPost('${w.id}','${uid}',${!w.pinned})">${pinLabel}</button>
+                        onclick="snxTogglePinWallPost('${wallDocId}','${uid}',${!w.pinned})">${pinLabel}</button>
                 <button class="snx-pwall-del-btn"
-                        onclick="snxDeleteProfileWallPost('${w.id}','${uid}')">🗑 Remove</button>
+                        onclick="snxDeleteProfileWallPost('${wallDocId}','${uid}')">🗑 Remove</button>
             ` : '';
 
             card.innerHTML = `
@@ -14780,7 +14938,36 @@ async function snxLoadProfileWall(uid) {
                 </div>
                 ${w.text ? `<div class="snx-pwall-text">${_esc(w.text)}</div>` : ''}
                 ${mediaHTML}
-                ${ownerActions ? `<div class="snx-pwall-actions">${ownerActions}</div>` : ''}
+
+                <!-- Social bar: likes / comments / share / owner controls -->
+                <div class="snx-pwall-social-bar">
+                    <button class="snx-pwall-social-btn snx-pwall-like-btn${alreadyLiked ? ' liked' : ''}"
+                            id="snx-wlike-btn-${wallDocId}"
+                            onclick="snxWallLike('${wallDocId}','${uid}',this)">
+                        ${alreadyLiked ? '❤️' : '🤍'} <span class="snx-pwall-like-count">${likeCount}</span>
+                    </button>
+                    <button class="snx-pwall-social-btn"
+                            onclick="snxWallToggleComments('${wallDocId}')">
+                        💬 <span id="snx-wcc-${wallDocId}">${commentCount}</span>
+                    </button>
+                    <button class="snx-pwall-social-btn"
+                            onclick="snxWallShare('${wallDocId}','${uid}')">
+                        🔗 Share
+                    </button>
+                    ${ownerCtrl}
+                </div>
+
+                <!-- Collapsible comments section -->
+                <div class="snx-pwall-comments-section" id="snx-wcomments-${wallDocId}" style="display:none;">
+                    <div class="snx-pwall-comments-list" id="snx-wcomlist-${wallDocId}">${commentsHTML}</div>
+                    <div class="snx-pwall-comment-input-row">
+                        <input class="snx-pwall-comment-input" id="snx-wcomin-${wallDocId}"
+                               placeholder="Write a comment…" maxlength="300"
+                               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();snxWallComment('${wallDocId}','${uid}');}">
+                        <button class="snx-pwall-comment-send"
+                                onclick="snxWallComment('${wallDocId}','${uid}')">Send</button>
+                    </div>
+                </div>
             `;
             container.appendChild(card);
         });
@@ -14822,6 +15009,91 @@ async function snxDeleteProfileWallPost(wallDocId, uid) {
         }
     } catch(e) {
         toastNotification('Failed to remove post.');
+    }
+}
+
+/* ── Wall Like ── */
+async function snxWallLike(wallDocId, uid, btn) {
+    const _fs = window._snxFirestore;
+    if (!_fs) return;
+    const curUser = window._snxCurrentUser;
+    if (!curUser) { toastNotification('Please log in to like posts.'); return; }
+    const { db, doc, updateDoc, arrayUnion, arrayRemove, increment } = _fs;
+    const curUid = curUser.uid;
+    const wallRef = doc(db, 'users', uid, 'profileWall', wallDocId);
+    const countEl  = btn?.querySelector('.snx-pwall-like-count');
+    const liked    = btn?.classList.contains('liked');
+    try {
+        if (liked) {
+            await updateDoc(wallRef, { likes: increment(-1), likedBy: arrayRemove(curUid) });
+            if (btn)    { btn.classList.remove('liked'); btn.innerHTML = '🤍 <span class="snx-pwall-like-count">' + (Math.max(0, (parseInt(countEl?.textContent) || 1) - 1)) + '</span>'; }
+        } else {
+            await updateDoc(wallRef, { likes: increment(1), likedBy: arrayUnion(curUid) });
+            if (btn)    { btn.classList.add('liked'); btn.innerHTML = '❤️ <span class="snx-pwall-like-count">' + ((parseInt(countEl?.textContent) || 0) + 1) + '</span>'; }
+        }
+    } catch(e) {
+        toastNotification('Could not update like.');
+    }
+}
+
+/* ── Wall Comment ── */
+async function snxWallComment(wallDocId, uid) {
+    const _fs = window._snxFirestore;
+    if (!_fs) return;
+    const curUser = window._snxCurrentUser;
+    if (!curUser) { toastNotification('Please log in to comment.'); return; }
+    const inputEl = document.getElementById('snx-wcomin-' + wallDocId);
+    const text = (inputEl?.value || '').trim();
+    if (!text) return;
+    const { db, doc, updateDoc, arrayUnion } = _fs;
+    const comment = {
+        authorUid: curUser.uid,
+        author:    window._snxUserData?.displayName || curUser.displayName || 'User',
+        text,
+        ts:        Date.now(),
+    };
+    try {
+        await updateDoc(doc(db, 'users', uid, 'profileWall', wallDocId), {
+            wallComments: arrayUnion(comment),
+        });
+        // Append to DOM optimistically
+        const listEl = document.getElementById('snx-wcomlist-' + wallDocId);
+        if (listEl) {
+            const _esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+            const row = document.createElement('div');
+            row.className = 'snx-pwall-comment';
+            row.innerHTML = `<span class="snx-pwall-comment-author">${_esc(comment.author)}</span><span class="snx-pwall-comment-text">${_esc(comment.text)}</span><span class="snx-pwall-comment-ts">just now</span>`;
+            listEl.appendChild(row);
+        }
+        // Update comment count badge
+        const countEl = document.getElementById('snx-wcc-' + wallDocId);
+        if (countEl) countEl.textContent = (parseInt(countEl.textContent) || 0) + 1;
+        if (inputEl) inputEl.value = '';
+    } catch(e) {
+        toastNotification('Failed to post comment: ' + e.message);
+    }
+}
+
+/* ── Wall Comments toggle ── */
+function snxWallToggleComments(wallDocId) {
+    const sec = document.getElementById('snx-wcomments-' + wallDocId);
+    if (!sec) return;
+    const visible = sec.style.display !== 'none';
+    sec.style.display = visible ? 'none' : '';
+    if (!visible) {
+        // Focus input when opening
+        const inp = document.getElementById('snx-wcomin-' + wallDocId);
+        if (inp) setTimeout(() => inp.focus(), 80);
+    }
+}
+
+/* ── Wall Share ── */
+function snxWallShare(wallDocId, uid) {
+    const url = `${location.origin}${location.pathname}?wall=${uid}&post=${wallDocId}`;
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => toastNotification('🔗 Wall post link copied!'));
+    } else {
+        toastNotification('Share link: ' + url);
     }
 }
 
@@ -16076,6 +16348,8 @@ async function handlePostMediaPick(input) {
         document.getElementById('postMediaUrl').value = urls.join(',');
         document.getElementById('postMediaFilename').textContent = files.length === 1 ? files[0].name : `${files.length} files ready`;
         toastNotification(`✅ ${files.length === 1 ? 'File' : files.length + ' files'} uploaded!`);
+        // Show photo destination options panel now that a URL is confirmed
+        _snxShowPhotoPostOpts(true, files[0]);
     } catch(e) {
         console.error('[SNX Upload] Media upload failed:', e);
         toastNotification('❌ Upload failed: ' + e.message);
@@ -16111,6 +16385,51 @@ function clearPostMedia() {
     document.getElementById('postMediaPreviewImg').style.display = 'none';
     document.getElementById('postMediaPreviewVid').style.display = 'none';
     document.getElementById('postMediaPreviewAud').style.display = 'none';
+    // Hide photo options panel and reset checkboxes
+    _snxShowPhotoPostOpts(false);
+}
+
+/**
+ * Show or hide the grouped photo-destination options panel.
+ * @param {boolean} show
+ * @param {File=} file  — first file, used to detect if it is an image for album eligibility
+ */
+function _snxShowPhotoPostOpts(show, file) {
+    const opts       = document.getElementById('snxPhotoPostOpts');
+    const standalone = document.getElementById('wallSaveLabelStandalone');
+    const hint       = document.getElementById('snxPhotoDestHint');
+    if (!opts || !standalone) return;
+
+    if (show) {
+        opts.style.display = '';
+        standalone.style.display = 'none';
+        // Only show Album checkbox for images (not video/audio)
+        const albumLabel = document.getElementById('snxChkAlbumLabel');
+        const isImage = !file || (file.type && file.type.startsWith('image/'));
+        if (albumLabel) albumLabel.style.display = isImage ? '' : 'none';
+        // Update hint text
+        if (hint) _snxUpdatePhotoHint();
+    } else {
+        opts.style.display = 'none';
+        standalone.style.display = '';
+        // Reset checkboxes
+        ['chkSaveToAlbum','chkSaveToWall'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.checked = false;
+        });
+        if (hint) hint.textContent = '';
+    }
+}
+
+/** Update the hint line under the photo destination checkboxes. */
+function _snxUpdatePhotoHint() {
+    const hint    = document.getElementById('snxPhotoDestHint');
+    if (!hint) return;
+    const album   = document.getElementById('chkSaveToAlbum')?.checked;
+    const wall    = document.getElementById('chkSaveToWall')?.checked;
+    if (album && wall)    hint.textContent = '✅ Photo will appear in Feed, Profile Wall & Photo Album.';
+    else if (album)       hint.textContent = '📸 Photo will be saved to your Album and appear in Feed.';
+    else if (wall)        hint.textContent = '📌 Photo will appear in Feed and on your Profile Wall.';
+    else                  hint.textContent = '💡 Photo will only appear in the Feed.';
 }
 
 /* ══ Profile picture upload handlers ══ */

@@ -525,7 +525,6 @@ input:focus, textarea:focus, select:focus {
     box-shadow: 0 0 10px rgba(0,140,255,0.22), 0 0 4px rgba(0,255,136,0.1);
 }
 
-.users-strip { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; margin-bottom: 15px; scrollbar-width: none; }
 
 /* ── Feed Live Banner ── */
 .feed-live-dot-pulse {
@@ -673,19 +672,6 @@ input:focus, textarea:focus, select:focus {
 .snx-flc-watch-btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
 .snx-flc-watch-btn:active { transform: scale(0.97); }
 
-.users-strip::-webkit-scrollbar { display: none; }
-.user-chip {
-    background: rgba(0,15,40,0.85);
-    border: 1px solid rgba(0,110,220,0.3);
-    padding: 6px 14px; border-radius: 20px; cursor: pointer;
-    display: flex; align-items: center; gap: 8px; white-space: nowrap;
-    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-}
-.user-chip:hover {
-    border-color: rgba(0,255,136,0.45);
-    background: rgba(0,60,130,0.3);
-    box-shadow: 0 0 10px rgba(0,255,136,0.18), 0 0 6px rgba(0,140,255,0.15);
-}
 .indicator-dot { width: 8px; height: 8px; background: #334; border-radius: 50%; }
 .indicator-dot.online { background: #00ff88; box-shadow: 0 0 7px rgba(0,255,136,0.8); animation: greenPulse 2s infinite; }
 
@@ -3172,16 +3158,6 @@ input:focus, textarea:focus, select:focus {
     box-shadow: 0 0 10px rgba(0,174,239,0.28), 0 0 4px rgba(57,255,20,0.14);
 }
 
-/* ── User chip / active strip ── */
-.user-chip {
-    background: rgba(11,31,58,0.90);
-    border: 1px solid rgba(0,174,239,0.32);
-}
-.user-chip:hover {
-    border-color: rgba(57,255,20,0.52);
-    background: rgba(0,80,160,0.30);
-    box-shadow: 0 0 10px rgba(57,255,20,0.22), 0 0 6px rgba(0,174,239,0.18);
-}
 .indicator-dot.online { background: #39FF14; box-shadow: 0 0 7px rgba(57,255,20,0.90); }
 
 /* ── Post boxes ── */
@@ -6048,12 +6024,6 @@ body.arcade-fs-ios body::after { display:none !important; }
         <div id="feedLiveCards" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;-webkit-overflow-scrolling:touch;">
             <!-- Cards injected by JS -->
         </div>
-    </div>
-
-    <!-- Active-now strip — only shown when other members exist -->
-    <div id="activeUsersStripWrap">
-        <h4 style="color:#3a6a9a; font-size:11px; font-weight:700; margin:0 0 8px; letter-spacing:1px; text-transform:uppercase;">🟢 Online Now</h4>
-        <div id="activeUsersStrip" class="users-strip"></div>
     </div>
 
     <!-- Post composer -->
@@ -10176,11 +10146,6 @@ body.arcade-fs-ios body::after { display:none !important; }
           window._snxOnlineUids = seenUids;
           if (typeof _renderStoryBar === 'function') _renderStoryBar();
 
-          // ── Feed page "Active Now" strip ──
-          const strip     = document.getElementById("activeUsersStrip");
-          const stripWrap = document.getElementById("activeUsersStripWrap");
-          strip.innerHTML = "";
-
           // ── Messages page "Online Now" strip ──
           const onlineAvatars = document.getElementById("msgOnlineAvatars");
           const onlineCountEl = document.getElementById("msgHeaderOnlineCount");
@@ -10189,18 +10154,6 @@ body.arcade-fs-ios body::after { display:none !important; }
           const onlineCount = onlineUsers.length;
 
           onlineUsers.forEach(u => {
-              // Feed strip chip — clicking chip opens profile
-              const chip = document.createElement("div");
-              chip.className = "user-chip";
-              const initial = (u.displayName || '?')[0].toUpperCase();
-              const chipBadges = buildBadgeHtml(u.badges||[], u.role||'member');
-              chip.innerHTML = `
-                <div style="width:28px;height:28px;border-radius:50%;background:${u.avatar ? `url('${u.avatar}') center/cover no-repeat` : '#0B1F3A'};border:1.5px solid rgba(0,174,239,0.55);display:flex;align-items:center;justify-content:center;font-size:11px;color:#00AEEF;flex-shrink:0;cursor:pointer;">${u.avatar ? '' : initial}</div>
-                <div class="indicator-dot online"></div>
-                <span>${escFeed(u.displayName)}</span>${chipBadges}`;
-              chip.onclick = () => viewProfile(u.uid);
-              strip.appendChild(chip);
-
               // Messages online strip — clicking AVATAR opens DM, name is a plain label
               if (onlineAvatars) {
                   const item = document.createElement("div");
@@ -10237,13 +10190,6 @@ body.arcade-fs-ios body::after { display:none !important; }
                   onlineAvatars.appendChild(item);
               }
           });
-
-          // Feed strip empty state
-          if (strip.children.length === 0) {
-              strip.innerHTML = '<span style="font-size:12px;color:#334;font-style:italic;padding:6px 0;">No one else is online right now.</span>';
-          }
-
-          if (stripWrap) stripWrap.style.display = '';
 
           // Messages online strip empty state
           if (onlineAvatars && onlineCount === 0) {

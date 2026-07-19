@@ -1,7 +1,14 @@
 /**
  * Shadow Nexus Social — Firebase Messaging Service Worker
+ *
  * Handles background push notifications when the app is closed/locked.
- * Uses Firestore real-time listener to show OS notifications.
+ * Message flow:
+ *   Profile → Message Button → Firebase /chats → pushNotification()
+ *   → pushQueue → OS Notification → Notification Center 🔔
+ *
+ * Notification types routed here:
+ *   message | like | comment | follow | friendRequest |
+ *   mention | tag | repost | wallPost | announcement | system
  */
 
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
@@ -19,25 +26,37 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 // GitHub Pages serves this app under /ShadowNexusSocial/
-// Use absolute paths so icons resolve correctly regardless of SW scope.
 const SNX_BASE = '/ShadowNexusSocial/';
 const ICON  = SNX_BASE + 'icon-192.png';
 const BADGE = SNX_BASE + 'favicon-32x32.png';
 const APP_URL = SNX_BASE;
 
+// ── Notification type → display title ────────────────────────────────────────
 const TYPE_TITLES = {
   message:       '💬 New Message',
   like:          '❤️ Post Liked',
   comment:       '💬 New Comment',
+  reply:         '↩️ New Reply',
   follow:        '👤 New Follower',
   friendRequest: '🦋 Friend Request',
+  familyInvite:  '❤️ Family Invitation',
   mention:       '@ You were mentioned',
+  tag:           '🏷️ You were tagged',
   announcement:  '📢 Announcement',
   repost:        '🔄 Post Reposted',
   wallPost:      '📝 New Wall Post',
+  system:        '⚙️ System Alert',
 };
 
-// Background FCM messages (app closed / background)
+// ── Vibration patterns by type ────────────────────────────────────────────────
+function vibrateFor(type) {
+  if (type === 'message')       return [120, 60, 120, 60, 120]; // triple pulse for messages
+  if (type === 'system')        return [300, 100, 300];          // double long for alerts
+  if (type === 'friendRequest') return [200, 100, 200];
+  return [200, 100, 200];
+}
+
+// ── Background FCM messages (app closed / background) ─────────────────────────
 messaging.onBackgroundMessage((payload) => {
   const data    = payload.data  || {};
   const notif   = payload.notification || {};
@@ -48,19 +67,23 @@ messaging.onBackgroundMessage((payload) => {
 
   return self.registration.showNotification(title, {
     body,
-    icon:    ICON,
-    badge:   BADGE,
-    tag:     `snx-${type}-${Date.now()}`,
+    icon:     ICON,
+    badge:    BADGE,
+    tag:      `snx-${type}-${fromUid || Date.now()}`,
     renotify: true,
-    vibrate: [200, 100, 200],
-    data:    { url: APP_URL, type, fromUid },
+    vibrate:  vibrateFor(type),
+    requireInteraction: type === 'message' || type === 'system',
+    data:     { url: APP_URL, type, fromUid },
   });
 });
 
-// Notification click → for message notifications open the Profile Message modal;
-// for everything else focus the existing tab or open the app.
+// ── Notification click handler ─────────────────────────────────────────────────
+// • message  → open app + post SNX_OPEN_CHAT → ipcOpen(fromUid)
+// • system   → open Notification Center
+// • default  → focus existing tab or open app
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+
   const data    = event.notification.data || {};
   const url     = data.url || APP_URL;
   const type    = data.type    || '';
@@ -71,20 +94,33 @@ self.addEventListener('notificationclick', (event) => {
       const appTab = list.find(c => c.url.includes('/ShadowNexusSocial'));
 
       if (type === 'message' && fromUid) {
-        // Route message taps: tell the open page to call ipcOpen(fromUid)
+        // Tell the open page to call window.ipcOpen(fromUid)
         if (appTab) {
           appTab.focus();
           appTab.postMessage({ type: 'SNX_OPEN_CHAT', fromUid });
           return;
         }
-        // App not open — open it; page will handle SNX_OPEN_CHAT on next load via sessionStorage
-        return clients.openWindow(url + '?snxChat=' + encodeURIComponent(fromUid));
+        // App not open — launch with ?snxChat param; page handles it on load
+        return clients.openWindow(APP_URL + '?snxChat=' + encodeURIComponent(fromUid));
       }
 
-      // Default: focus existing tab or open app
-      if (appTab && 'focus' in appTab) return appTab.focus();
-      return clients.openWindow(url);
+      if (type === 'system') {
+        // Open / focus app and navigate to Notification Center
+        if (appTab) {
+          appTab.focus();
+          appTab.postMessage({ type: 'SNX_OPEN_NOTIFS' });
+          return;
+        }
+        return clients.openWindow(APP_URL + '?snxPage=notifications');
+      }
+
+      // All other notification types — open Notification Center
+      if (appTab) {
+        appTab.focus();
+        appTab.postMessage({ type: 'SNX_OPEN_NOTIFS' });
+        return;
+      }
+      return clients.openWindow(APP_URL + '?snxPage=notifications');
     })
   );
 });
-

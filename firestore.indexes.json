@@ -1,6 +1,23 @@
 {
   "indexes": [
     {
+      "collectionGroup": "albumPhotos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerUid",   "order": "ASCENDING"  },
+        { "fieldPath": "uploadedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "albumPhotos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerUid", "order": "ASCENDING" },
+        { "fieldPath": "url",      "order": "ASCENDING" },
+        { "fieldPath": "type",     "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "stories",
       "queryScope": "COLLECTION",
       "fields": [

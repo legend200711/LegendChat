@@ -43,6 +43,7 @@
 
 <!-- ── Shared stylesheet ── -->
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="album.css">
 
 <!-- ── Preconnect to Firebase so first load is faster ── -->
 <link rel="preconnect" href="https://www.gstatic.com">
@@ -4354,6 +4355,110 @@ body::after {
 /* ── composer @mention wrapper needs relative positioning ── */
 .post-composer-wrap { position: relative; }
 
+/* ── Save-to-Profile-Wall toggle ── */
+.snx-wall-save-label {
+    display: inline-flex; align-items: center; gap: 9px;
+    margin-top: 10px; cursor: pointer; user-select: none;
+    padding: 8px 12px 8px 10px;
+    border: 1px solid rgba(0,174,239,0.22);
+    border-radius: 10px; background: rgba(0,20,55,0.45);
+    transition: border-color 0.15s, background 0.15s;
+    width: 100%; box-sizing: border-box;
+}
+.snx-wall-save-label:hover {
+    border-color: rgba(0,174,239,0.55);
+    background: rgba(0,40,100,0.35);
+}
+.snx-wall-save-label input[type="checkbox"] { display: none; }
+.snx-wall-save-check {
+    width: 18px; height: 18px; flex-shrink: 0;
+    border: 1.5px solid rgba(0,174,239,0.5);
+    border-radius: 5px; background: rgba(0,10,30,0.8);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; transition: background 0.15s, border-color 0.15s;
+    position: relative;
+}
+.snx-wall-save-label:has(input:checked) .snx-wall-save-check {
+    background: rgba(0,174,239,0.25);
+    border-color: #00AEEF;
+}
+.snx-wall-save-label:has(input:checked) .snx-wall-save-check::after {
+    content: '✓'; color: #00AEEF; font-size: 12px; font-weight: 800;
+    position: absolute;
+}
+.snx-wall-save-label:has(input:checked) {
+    border-color: rgba(0,174,239,0.5);
+    background: rgba(0,50,120,0.2);
+}
+.snx-wall-save-text { font-size: 13px; color: #8ab0cc; line-height: 1.3; }
+.snx-wall-save-label:has(input:checked) .snx-wall-save-text { color: #c8e8ff; }
+
+/* ── Profile Wall post card ── */
+.snx-pwall-post {
+    border: 1px solid rgba(0,80,180,0.22);
+    padding: 14px 16px; margin-bottom: 12px;
+    border-radius: 12px; background: rgba(11,31,58,0.75);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    animation: postSlideIn 0.22s ease-out both;
+}
+.snx-pwall-post:hover {
+    border-color: rgba(0,160,255,0.35);
+    box-shadow: 0 0 16px rgba(0,100,255,0.08);
+}
+.snx-pwall-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px; gap: 8px; flex-wrap: wrap;
+}
+.snx-pwall-meta { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.snx-pwall-avatar {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    background: #071428; background-size: cover; background-position: center;
+    border: 1.5px solid rgba(0,160,255,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: bold; color: #00AEEF; overflow: hidden;
+}
+.snx-pwall-ts { font-size: 10px; color: #3a5a7a; white-space: nowrap; }
+.snx-pwall-text { font-size: 14px; color: #d0e8ff; line-height: 1.55; word-break: break-word; }
+.snx-pwall-media { margin-top: 8px; }
+.snx-pwall-media img, .snx-pwall-media video { max-width: 100%; border-radius: 10px; border: 1px solid rgba(0,100,200,0.25); cursor: pointer; }
+.snx-pwall-actions { display: flex; gap: 6px; margin-top: 8px; }
+.snx-pwall-del-btn {
+    background: none; border: 1px solid rgba(255,51,102,0.3);
+    color: #ff5577; font-size: 11px; padding: 3px 10px; border-radius: 10px;
+    cursor: pointer; transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.snx-pwall-del-btn:hover { border-color: #ff3366; color: #ff3366; background: rgba(255,51,102,0.08); }
+.snx-profile-wall-header { margin-bottom: 4px; }
+.snx-pwall-empty { padding: 30px 0; text-align: center; color: #334; font-size: 13px; }
+
+/* Pinned post styling */
+.snx-pwall-pinned { border-color: rgba(0,174,239,0.55) !important; background: rgba(0,40,90,0.22) !important; }
+.snx-pwall-pin-strip {
+    font-size: 11px; font-weight: 700; color: #00AEEF; letter-spacing: 0.4px;
+    padding: 3px 0 6px; border-bottom: 1px solid rgba(0,174,239,0.18); margin-bottom: 8px;
+}
+.snx-pwall-pin-btn {
+    background: none; border: 1px solid rgba(0,174,239,0.3);
+    color: #5ab8d8; font-size: 11px; padding: 3px 10px; border-radius: 10px;
+    cursor: pointer; transition: border-color 0.15s, color 0.15s;
+}
+.snx-pwall-pin-btn:hover { border-color: #00AEEF; color: #00AEEF; }
+.snx-pwall-pin-btn.pinned { border-color: rgba(0,174,239,0.6); color: #00AEEF; background: rgba(0,174,239,0.08); }
+
+/* Post type badges */
+.snx-pwall-type-badge {
+    display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 7px;
+    border-radius: 8px; margin-left: 6px; vertical-align: middle; letter-spacing: 0.2px;
+}
+.snx-pwall-type-badge.text  { background: rgba(100,120,160,0.18); color: #8ab0cc; border: 1px solid rgba(100,140,200,0.2); }
+.snx-pwall-type-badge.photo { background: rgba(0,174,239,0.12); color: #33c8ff; border: 1px solid rgba(0,174,239,0.25); }
+.snx-pwall-type-badge.video { background: rgba(90,60,200,0.14); color: #b090ff; border: 1px solid rgba(90,60,200,0.25); }
+.snx-pwall-type-badge.music { background: rgba(57,255,20,0.10); color: #5aee3a; border: 1px solid rgba(57,255,20,0.2); }
+.snx-pwall-type-badge.album { background: rgba(0,174,239,0.14); color: #33c8ff; border: 1px solid rgba(0,174,239,0.3); }
+
+/* Visitor wall card spacing */
+#visitorWallCard { margin-top: 12px; }
+
 /* ═══════════════════════════════════════════════════════════
    SHADOW NEXUS ARCADE — Built-In Retro Arcade System
    ═══════════════════════════════════════════════════════════ */
@@ -5360,7 +5465,7 @@ body.arcade-fs-ios body::after { display:none !important; }
         <button class="nav-item" id="navSearch" onclick="navTo('searchPage')">
             <span class="nav-icon">🔍</span> Search
         </button>
-        <button class="nav-item" id="navNotifs" onclick="navTo('notificationsPage')">
+        <button class="nav-item" id="navNotifs" onclick="navTo('notificationsPage')" title="Notification Center — messages, likes, followers, system alerts">
             <span class="nav-icon">🔔</span> Notifications
             <span class="nav-badge" id="sidebarNotifBadge"></span>
         </button>
@@ -5516,6 +5621,13 @@ body.arcade-fs-ios body::after { display:none !important; }
         <audio  id="postMediaPreviewAud"   class="snx-upload-preview audio-preview" controls></audio>
         <!-- Hidden: stores the final uploaded URL -->
         <input type="hidden" id="postMediaUrl" value="">
+
+        <!-- Save to Profile Wall toggle -->
+        <label class="snx-wall-save-label" id="wallSaveLabel">
+            <input type="checkbox" id="chkSaveToWall">
+            <span class="snx-wall-save-check"></span>
+            <span class="snx-wall-save-text">📌 Save this post to my Profile Wall</span>
+        </label>
 
         <button id="btnBroadcast" style="margin-top:10px; width:100%; border-radius:10px; padding:11px; background:linear-gradient(135deg,#003d99,#0077dd); border-color:rgba(0,174,239,0.65); color:#fff; font-size:14px; box-shadow:0 0 20px rgba(0,174,239,0.40);">⚡ Post to the Eclipse</button>
     </div>
@@ -5946,18 +6058,35 @@ body.arcade-fs-ios body::after { display:none !important; }
         <button class="tab-btn" id="tabFamilyLink" onclick="switchProfileTab('family')">❤️ Family</button>
         <button class="tab-btn" id="tabFriendsLink" onclick="switchProfileTab('friends')">👥 Friends</button>
         <button class="tab-btn" id="tabMessagesLink" onclick="switchProfileTab('messages')" style="display:none;">💬 Message</button>
+        <button class="tab-btn" id="tabAlbumLink" onclick="switchProfileTab('album')">📸 Photo Album</button>
     </div>
 
-    <!-- Wall tab -->
+    <!-- Wall tab — unified: permanent Profile Wall posts + visitor wall messages -->
     <div id="tabContentWall">
-        <div class="section-card">
+
+        <!-- ── Section 1: Profile Wall (permanent saved posts) ── -->
+        <div class="section-card" id="profileWallCard">
+            <div class="snx-profile-wall-header">
+                <h3 style="margin:0;font-size:14px;color:#00AEEF;text-shadow:0 0 8px rgba(0,174,239,0.35);">📌 Profile Wall</h3>
+                <span style="font-size:11px;color:#4a6a8a;margin-top:2px;display:block;">Posts permanently saved to this profile.</span>
+            </div>
+            <div id="profileWallPosts" style="margin-top:14px;"></div>
+        </div>
+
+        <!-- ── Section 2: Visitor wall messages ── -->
+        <div class="section-card" id="visitorWallCard">
+            <h3 style="margin:0 0 10px;font-size:14px;color:#00AEEF;text-shadow:0 0 8px rgba(0,174,239,0.35);">💬 Visitor Wall</h3>
             <div id="wallPosts"></div>
             <div id="wallInputRow" style="display:flex;gap:8px;margin-top:10px;align-items:center;">
                 <input id="wallInput" placeholder="Write on this wall…" style="flex:1;margin:0;" maxlength="300">
                 <button id="btnWallSubmit" style="flex-shrink:0;">Post</button>
             </div>
         </div>
+
     </div>
+
+    <!-- tabContentProfileWall kept as hidden alias so existing code references don't break -->
+    <div id="tabContentProfileWall" style="display:none;"></div>
 
     <!-- Family tab -->
     <div id="tabContentFamily" style="display:none;">
@@ -5988,6 +6117,9 @@ body.arcade-fs-ios body::after { display:none !important; }
 
     <!-- Messages tab placeholder (hidden by CSS — chat is now in the modal) -->
     <div id="tabContentMessages" style="display:none;"></div>
+
+    <!-- Photo Album tab — content injected by album.js -->
+    <div id="tabContentAlbum" style="display:none;"></div>
 
 </div>
 
@@ -6195,33 +6327,40 @@ body.arcade-fs-ios body::after { display:none !important; }
     </div>
 </div>
 
-<!-- ═══════════ NOTIFICATIONS PAGE ═══════════ -->
+<!-- ═══════════ NOTIFICATIONS PAGE (Notification Center 🔔) ═══════════ -->
 <div class="page" id="notificationsPage">
-    <h2 class="eclipse-title">🔔 Nexus Activity</h2>
+    <h2 class="eclipse-title">🔔 Notification Center</h2>
     <div class="section-card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-            <span style="font-size:13px;color:#3a6a9a;font-weight:600;">Your notifications</span>
+            <span style="font-size:13px;color:#3a6a9a;font-weight:600;">All your notifications — messages, activity &amp; alerts</span>
             <div style="display:flex;gap:8px;">
                 <button class="notif-mark-all" onclick="markAllNotifsRead()">✓ Mark all read</button>
                 <button class="notif-mark-all" onclick="clearAllNotifs()" style="border-color:rgba(255,51,102,0.3);color:#ff5577;">🗑 Clear all</button>
             </div>
         </div>
-        <!-- Filter tabs -->
+        <!-- Filter tabs — Messages / Activity / Social / System -->
         <div class="notif-filter-tabs" id="notifFilterTabs">
             <button class="notif-filter-tab active" data-filter="all" onclick="setNotifFilter('all',this)">
-                All <span class="notif-filter-badge" id="notifBadgeAll" style="display:none;"></span>
+                🔔 All <span class="notif-filter-badge" id="notifBadgeAll" style="display:none;"></span>
             </button>
             <button class="notif-filter-tab" data-filter="message" onclick="setNotifFilter('message',this)">
                 💬 Messages <span class="notif-filter-badge" id="notifBadgeMsg" style="display:none;"></span>
             </button>
             <button class="notif-filter-tab" data-filter="activity" onclick="setNotifFilter('activity',this)">
-                ❤️ Activity
+                ❤️ Likes &amp; Comments
             </button>
             <button class="notif-filter-tab" data-filter="social" onclick="setNotifFilter('social',this)">
-                👤 Social
+                👤 Followers
+            </button>
+            <button class="notif-filter-tab" data-filter="system" onclick="setNotifFilter('system',this)">
+                ⚙️ System
             </button>
         </div>
-        <div id="notifList"><div class="empty-state">No notifications yet.</div></div>
+        <!-- Notification list — populated in real-time by renderNotifications() -->
+        <div id="notifList"><div class="empty-state">
+            <div style="font-size:28px;margin-bottom:10px;">🔔</div>
+            No notifications yet.
+        </div></div>
     </div>
 </div>
 
@@ -6999,8 +7138,7 @@ body.arcade-fs-ios body::after { display:none !important; }
     <button class="admin-tab" onclick="switchAdminTab('appeals')">📩 Appeals</button>
     <button class="admin-tab" onclick="switchAdminTab('aisafety')">🤖 AI Safety</button>
     <button class="admin-tab" onclick="switchAdminTab('shadowbot')">🤖 Shadow Bot</button>
-    <button class="admin-tab" onclick="switchAdminTab('pages')">👁 Pages</button>
-    <button class="admin-tab" onclick="switchAdminTab('emergency')">🚨 Emergency</button>
+    <button class="admin-tab" onclick="switchAdminTab('pages')">👁 Pages &amp; Controls</button>
 </div>
 
 <!-- ══════════════════════════════════
@@ -7781,18 +7919,13 @@ body.arcade-fs-ios body::after { display:none !important; }
     </div>
 
     <!-- Page Visibility Change Log -->
-    <div class="section-card">
+    <div class="section-card" style="margin-bottom:16px;">
         <h3 style="margin:0 0 10px;font-size:13px;color:#6a90b8;text-transform:uppercase;letter-spacing:0.8px;">📋 Visibility Change Log</h3>
         <div id="pvChangeLog"><div class="empty-state">No visibility changes recorded yet.</div></div>
         <button onclick="pvLoadChangeLog()" style="margin-top:10px;font-size:12px;padding:6px 16px;border-radius:8px;">🔄 Refresh Log</button>
     </div>
 
-</div><!-- end adminTab-pages -->
-
-<!-- ══════════════════════════════════
-     TAB: EMERGENCY CONTROLS
-══════════════════════════════════ -->
-<div class="admin-tab-content" id="adminTab-emergency">
+    <!-- ══ EMERGENCY SECTION (fused) ══════════════════════════════════════ -->
 
     <!-- Warning banner -->
     <div class="section-card" style="margin-bottom:16px;border-color:rgba(255,51,51,0.55);background:linear-gradient(135deg,rgba(80,5,5,0.45),rgba(11,31,58,0.92));">
@@ -7800,20 +7933,17 @@ body.arcade-fs-ios body::after { display:none !important; }
         <p style="font-size:12px;color:#c8a0a8;margin:0;line-height:1.7;">Use these controls when something is broken or needs immediate action. All switches are applied site-wide in real time. <strong style="color:#ff8899;">No code deployment required.</strong></p>
     </div>
 
-    <!-- ── Quick Status Overview ── -->
+    <!-- Quick Status Overview -->
     <div class="section-card" style="margin-bottom:16px;">
         <h3 style="margin:0 0 12px;font-size:13px;color:#00d4ff;text-transform:uppercase;letter-spacing:0.8px;">🟢 Live System Status</h3>
-        <div id="emergencyStatusGrid" style="display:flex;flex-wrap:wrap;gap:8px;">
-            <!-- Populated by JS -->
-        </div>
+        <div id="emergencyStatusGrid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
         <button onclick="emergencyRefreshStatus()" style="margin-top:10px;font-size:12px;padding:6px 16px;border-radius:8px;">🔄 Refresh Status</button>
     </div>
 
-    <!-- ── Master Kill Switches ── -->
+    <!-- Feature Kill Switches -->
     <div class="section-card" style="margin-bottom:16px;border-color:rgba(255,100,0,0.4);">
         <h3 style="margin:0 0 12px;font-size:13px;color:#ffaa44;text-transform:uppercase;letter-spacing:0.8px;">⚡ Feature Kill Switches</h3>
         <p style="font-size:12px;color:#9bbdd8;margin:0 0 14px;line-height:1.6;">Instantly enable or disable major site features without touching code.</p>
-
         <div class="settings-row">
             <div class="settings-label">🏠 Home Feed<small>Allow users to post &amp; view feed</small></div>
             <label class="notif-toggle-wrap"><input type="checkbox" id="esFeed" class="notif-toggle-cb" checked onchange="emergencyToggle('postsEnabled',this.checked,'Feed')"><span class="notif-toggle-slider"></span></label>
@@ -7844,7 +7974,7 @@ body.arcade-fs-ios body::after { display:none !important; }
         </div>
     </div>
 
-    <!-- ── Welcome Popup Control ── -->
+    <!-- Welcome Popup Control -->
     <div class="section-card" style="margin-bottom:16px;border-color:rgba(0,174,239,0.35);">
         <h3 style="margin:0 0 12px;font-size:13px;color:#00d4ff;text-transform:uppercase;letter-spacing:0.8px;">🎉 Welcome Pop-up Control</h3>
         <div class="settings-row">
@@ -7857,7 +7987,7 @@ body.arcade-fs-ios body::after { display:none !important; }
         </div>
     </div>
 
-    <!-- ── Maintenance Mode ── -->
+    <!-- Maintenance Mode -->
     <div class="section-card" style="margin-bottom:16px;border-color:rgba(255,60,60,0.4);">
         <h3 style="margin:0 0 12px;font-size:13px;color:#ff5566;text-transform:uppercase;letter-spacing:0.8px;">🔧 Maintenance Mode</h3>
         <p style="font-size:12px;color:#9bbdd8;margin:0 0 12px;line-height:1.6;">Redirects all non-Founder users to the maintenance page. You always keep access.</p>
@@ -7873,7 +8003,7 @@ body.arcade-fs-ios body::after { display:none !important; }
         </div>
     </div>
 
-    <!-- ── System Announcement Quick-Fire ── -->
+    <!-- Quick System Announcement -->
     <div class="section-card" style="margin-bottom:16px;">
         <h3 style="margin:0 0 12px;font-size:13px;color:#ff9900;text-transform:uppercase;letter-spacing:0.8px;">📢 Quick System Announcement</h3>
         <p style="font-size:12px;color:#9bbdd8;margin:0 0 12px;line-height:1.6;">Send an urgent alert to every member instantly without leaving this tab.</p>
@@ -7881,12 +8011,16 @@ body.arcade-fs-ios body::after { display:none !important; }
             <option value="emergency">🚨 Emergency Alert</option>
             <option value="maintenance">🔧 Maintenance Notice</option>
             <option value="announcement">📢 General Announcement</option>
+            <option value="system">⚙️ System Alert (shows in Notification Center)</option>
         </select>
         <textarea id="emergencyAnnounceText" rows="3" placeholder="Type your urgent message…" style="resize:vertical;margin-bottom:10px;"></textarea>
         <button onclick="emergencySendAnnouncement()" style="width:100%;padding:10px;border-radius:10px;background:linear-gradient(135deg,#660000,#cc0000);border-color:rgba(255,51,51,0.7);color:#fff;font-size:14px;font-weight:700;box-shadow:0 0 14px rgba(255,30,30,0.3);">🚨 Send Emergency Announcement</button>
     </div>
 
-</div><!-- end adminTab-emergency -->
+</div><!-- end adminTab-pages (fused with emergency) -->
+
+<!-- adminTab-emergency kept as empty alias so any direct JS reference doesn't crash -->
+<div class="admin-tab-content" id="adminTab-emergency" style="display:none;"></div>
 
 <!-- ── Edit Message Modal ── -->
 <div id="scbEditModal">
@@ -8511,47 +8645,74 @@ body.arcade-fs-ios body::after { display:none !important; }
       }
   });
 
-  /* ── SW postMessage: open Profile Message modal when notification is tapped ──
-     Handles SNX_OPEN_CHAT sent by firebase-messaging-sw.js notificationclick.
-     Also handles ?snxChat=<uid> query param for cold-start (app was closed). ── */
+  /* ── SW postMessage handler ─────────────────────────────────────────────────
+     SNX_OPEN_CHAT  — tapped a 💬 message notification → open ipcModal
+     SNX_OPEN_NOTIFS — tapped any other notification → open Notification Center
+     Also handles cold-start query params (?snxChat= / ?snxPage=).            ── */
   if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('message', (event) => {
-          if (!event.data || event.data.type !== 'SNX_OPEN_CHAT') return;
-          const uid = event.data.fromUid;
-          if (!uid) return;
-          // Wait until auth resolves (currentUser set) before opening
-          if (currentUser && typeof window.ipcOpen === 'function') {
-              window.ipcOpen(uid);
-          } else {
-              // Auth not ready yet — queue for after login
-              window._snxPendingChatUid = uid;
+          if (!event.data) return;
+
+          if (event.data.type === 'SNX_OPEN_CHAT') {
+              const uid = event.data.fromUid;
+              if (!uid) return;
+              // Wait until auth resolves (currentUser set) before opening
+              if (currentUser && typeof window.ipcOpen === 'function') {
+                  window.ipcOpen(uid);
+              } else {
+                  window._snxPendingChatUid = uid;
+              }
+              return;
+          }
+
+          if (event.data.type === 'SNX_OPEN_NOTIFS') {
+              // Navigate to Notification Center when tapping any non-message notification
+              if (currentUser && typeof navTo === 'function') {
+                  navTo('notificationsPage');
+              } else {
+                  window._snxPendingPage = 'notificationsPage';
+              }
           }
       });
   }
 
-  // Handle cold-start ?snxChat= query param (app was closed when notification was tapped)
+  // Handle cold-start query params (app was closed when notification was tapped)
   (function() {
-      const _params = new URLSearchParams(window.location.search);
+      const _params  = new URLSearchParams(window.location.search);
       const _chatUid = _params.get('snxChat');
+      const _page    = _params.get('snxPage');
       if (_chatUid) {
-          // Store and clear the param from the URL without a reload
           window._snxPendingChatUid = _chatUid;
-          const _clean = window.location.pathname + window.location.hash;
-          history.replaceState(null, '', _clean);
+      }
+      if (_page) {
+          window._snxPendingPage = _page === 'notifications' ? 'notificationsPage' : _page;
+      }
+      if (_chatUid || _page) {
+          // Strip params from URL bar without reload
+          history.replaceState(null, '', window.location.pathname + window.location.hash);
       }
   })();
 
-  // ── visualViewport: shrink the ipcModal card when the mobile keyboard appears ──
+  // ── visualViewport: resize ipcModal when mobile keyboard appears/disappears ──
+  // Keeps the send button visible above the software keyboard on all phones.
   if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', () => {
-          const vvh = window.visualViewport.height;
-          // Profile chat modal — shrink card to visible viewport height
-          const modal = document.getElementById('ipcModal');
-          const card  = document.querySelector('.ipc-modal-card');
-          if (card && modal && modal.classList.contains('open')) {
-              card.style.maxHeight = vvh + 'px';
-          }
-      });
+      const _vvHandler = () => {
+          const vvh    = window.visualViewport.height;
+          const vvTop  = window.visualViewport.offsetTop;
+          const modal  = document.getElementById('ipcModal');
+          const card   = document.querySelector('.ipc-modal-card');
+          if (!card || !modal || !modal.classList.contains('open')) return;
+          // Shrink card height to exactly the visible viewport
+          card.style.maxHeight = vvh + 'px';
+          // Shift the modal wrapper to track the visible viewport (handles iOS Safari)
+          modal.style.top    = vvTop + 'px';
+          modal.style.height = vvh + 'px';
+          // Scroll the messages area to keep newest message above keyboard
+          const msgBox = document.getElementById('ipcModalMessages');
+          if (msgBox) setTimeout(() => { msgBox.scrollTop = msgBox.scrollHeight; }, 60);
+      };
+      window.visualViewport.addEventListener('resize', _vvHandler);
+      window.visualViewport.addEventListener('scroll', _vvHandler);
   }
 
   onAuthStateChanged(auth, async (user) => {
@@ -8588,7 +8749,10 @@ body.arcade-fs-ios body::after { display:none !important; }
 
           // Expose current user for non-module scripts (notification settings)
           window._snxCurrentUser = user;
-          window._snxUserData    = userData;
+          // Do NOT overwrite _snxUserData with null here — userData is only
+          // populated once the onSnapshot listener below fires. We only assign
+          // it if the snapshot has already returned real data from a prior run.
+          if (userData) window._snxUserData = userData;
           // Flush any auth-ready callbacks registered before auth resolved
           if (Array.isArray(window._snxAuthReadyQueue)) {
             window._snxAuthReadyQueue.forEach(fn => { try { fn(); } catch(e){} });
@@ -8771,6 +8935,12 @@ body.arcade-fs-ios body::after { display:none !important; }
               const _pendUid = window._snxPendingChatUid;
               window._snxPendingChatUid = null;
               setTimeout(() => window.ipcOpen(_pendUid), 600);
+          }
+          // ── Flush pending page navigation (from ?snxPage= or SNX_OPEN_NOTIFS) ──
+          if (window._snxPendingPage && typeof navTo === 'function') {
+              const _pendPage = window._snxPendingPage;
+              window._snxPendingPage = null;
+              setTimeout(() => navTo(_pendPage), 700);
           }
           if (typeof window._initStorySystem === 'function') window._initStorySystem();
           // Check if user has earned the OG badge (first 100 users, 50+ days old account)
@@ -9427,6 +9597,8 @@ body.arcade-fs-ios body::after { display:none !important; }
                             ${ageLabel}
                         </div>
                     </div>
+                    ${post.isAlbumPost && post.albumPhotoId ? `<span class="post-album-badge" onclick="viewProfile('${authorUid}');setTimeout(()=>window.switchProfileTab&&window.switchProfileTab('album'),400)" title="View in Photo Album">📸 Photo Album</span>` : ''}
+                    ${post.savedToWall ? `<span class="post-album-badge" style="background:rgba(0,174,239,0.08);border:1px solid rgba(0,174,239,0.3);color:#00AEEF;cursor:pointer;" onclick="viewProfile('${authorUid}');setTimeout(()=>window.switchProfileTab&&window.switchProfileTab('profile-wall'),400)" title="Saved to Profile Wall">📌 Profile Wall</span>` : ''}
                     <p style="margin:8px 0;">${renderPostText(post.text)}</p>
                     ${mediaHTML}
                     ${buildTaggedStrip(post.taggedUsers || [], pDoc.id, post.uid)}
@@ -9746,29 +9918,69 @@ body.arcade-fs-ios body::after { display:none !important; }
   // ── Character counter for post composer is now inside autocomplete block above ──
 
   let _postBusy = false;
+  // Track whether a media upload is still in progress (shared via window for non-module access)
+  window._postUploadInProgress = false;
+
   document.getElementById("btnBroadcast").onclick = async () => {
       if (_postBusy) return;
+
+      // ── Guard: block post if upload is still running ──
+      if (window._postUploadInProgress) {
+          toastNotification("⏳ Please wait — your media is still uploading…");
+          return;
+      }
+
       const text = document.getElementById("postText").value.trim();
       const mediaUrl = document.getElementById("postMediaUrl").value.trim();
+
       if (!text && !mediaUrl) { toastNotification("Write something first!"); return; }
       if (text.length > 500) { toastNotification("Post is too long — max 500 characters."); return; }
+
+      // ── Guard: a file was picked but URL is blank (upload failed/cleared) ──
+      const mediaFileInput = document.getElementById("postMediaFile");
+      if (mediaFileInput && mediaFileInput.files && mediaFileInput.files.length > 0 && !mediaUrl) {
+          toastNotification("⚠️ Image upload didn't complete. Please re-select your photo.");
+          return;
+      }
+
       // ── AI Safety scan ──
       if (text && typeof window.snxAIScan === 'function') {
           const _blocked = await window.snxAIScan(text, 'post');
           if (_blocked) return;
       }
+
+      if (!currentUser) { toastNotification("You must be logged in to post."); return; }
+
       _postBusy = true;
       const btn = document.getElementById("btnBroadcast");
       btn.disabled = true; btn.textContent = "Posting…";
+      // Read the "Save to Profile Wall" checkbox
+      const saveToWall = document.getElementById("chkSaveToWall")?.checked === true;
       try {
           const now = Date.now();
           const expiresAt = now + 48 * 60 * 60 * 1000; // auto-delete after 48 hours
           const mediaUrlsRaw = mediaUrl.split(',').map(u => u.trim()).filter(Boolean);
           // Extract tagged usernames from @mentions
           const taggedHandles = [...new Set((text.match(/@([a-zA-Z0-9_]+)/g) || []).map(m => m.slice(1).toLowerCase()))];
-          const postRef = await addDoc(collection(db, "posts"), {
+
+          // ── Validate: log and abort if imageURL is unexpectedly blank after media pick ──
+          if (mediaFileInput && mediaFileInput.files && mediaFileInput.files.length > 0 && mediaUrlsRaw.length === 0) {
+              console.warn('[SNX Post] File was selected but imageURL is empty — aborting post to prevent blank-media record.');
+              toastNotification("⚠️ Media URL missing. Please re-upload your photo.");
+              return;
+          }
+
+          console.log('[SNX Post] Creating post:', {
               uid: currentUser.uid,
-              authorName: userData.displayName,
+              textLen: text.length,
+              mediaUrls: mediaUrlsRaw,
+              saveToWall,
+          });
+
+          const postRef = await addDoc(collection(db, "posts"), {
+              postId:       '', // placeholder — updated below with setDoc or kept as ref ID
+              uid:          currentUser.uid,
+              authorName:   userData.displayName,
               authorHandle: userData.username,
               authorAvatar: userData.avatar || '',
               authorBadges: userData.badges || [],
@@ -9776,28 +9988,68 @@ body.arcade-fs-ios body::after { display:none !important; }
               authorMoodType:  (userData.profileCustom?.moodType  || userData.moodType  || ''),
               authorMoodValue: (userData.profileCustom?.moodValue || userData.moodValue || ''),
               text,
-              taggedUsers: [], // filled by detectAndNotifyMentions
-              mediaUrl: mediaUrlsRaw[0] || '',
-              mediaUrls: mediaUrlsRaw,
-              timestamp: now,
-              createdAt: now,
+              taggedUsers:  [], // filled by detectAndNotifyMentions
+              mediaUrl:     mediaUrlsRaw[0] || '',
+              mediaUrls:    mediaUrlsRaw,
+              imageURL:     mediaUrlsRaw[0] || '',   // explicit alias for clarity
+              timestamp:    now,
+              createdAt:    now,
               expiresAt,
-              likes: 0,
-              likedBy: [],
-              comments: [],
-              repostCount: 0
+              visibility:   'public',
+              likes:        0,
+              likedBy:      [],
+              comments:     [],
+              repostCount:  0,
+              savedToWall:  saveToWall,
           });
+
+          // Write the postId back so every consumer can read it without knowing the doc ref
+          await updateDoc(postRef, { postId: postRef.id });
+
+          console.log('[SNX Post] Feed post saved:', postRef.id, '| mediaUrls:', mediaUrlsRaw);
+
+          // ── If checked, mirror post to profileWall subcollection (permanent) ──
+          if (saveToWall) {
+              await setDoc(doc(db, "users", currentUser.uid, "profileWall", postRef.id), {
+                  postId:       postRef.id,
+                  uid:          currentUser.uid,
+                  authorName:   userData.displayName,
+                  authorHandle: userData.username,
+                  authorAvatar: userData.avatar || '',
+                  authorBadges: userData.badges || [],
+                  authorRole:   userData.role   || 'member',
+                  text,
+                  mediaUrl:     mediaUrlsRaw[0] || '',
+                  mediaUrls:    mediaUrlsRaw,
+                  imageURL:     mediaUrlsRaw[0] || '',   // explicit alias for clarity
+                  visibility:   'public',
+                  savedAt:      now,
+                  createdAt:    now,
+              });
+              console.log('[SNX Post] Profile Wall entry saved:', postRef.id);
+          }
+
           // Detect @mentions / tags and notify
           detectAndNotifyMentions(text, postRef.id);
           document.getElementById("postText").value = "";
           document.getElementById("postMediaUrl").value = "";
+          const chkWall = document.getElementById("chkSaveToWall");
+          if (chkWall) chkWall.checked = false;
           const counter = document.getElementById("postCharCounter");
           if (counter) { counter.textContent = "500 characters left"; counter.className = "post-char-counter"; }
           // Clear media upload UI
           clearPostMedia();
-          toastNotification("⚡ Post published to the Eclipse!");
+          toastNotification(saveToWall
+              ? "⚡ Post published & saved to your Profile Wall!"
+              : "⚡ Post published to the Eclipse!");
       } catch(e) {
-          toastNotification("Failed to post — please try again.");
+          console.error('[SNX Post] Failed to create post:', e);
+          const msg = e?.code === 'permission-denied'
+              ? "Permission denied — please log out and back in."
+              : e?.message
+                  ? "Failed to post: " + e.message
+                  : "Failed to post — please try again.";
+          toastNotification("❌ " + msg);
       } finally {
           _postBusy = false;
           btn.disabled = false; btn.textContent = "⚡ Post to the Eclipse";
@@ -9824,9 +10076,10 @@ body.arcade-fs-ios body::after { display:none !important; }
           message: '💬 New Message', like: '❤️ Post Liked',
           comment: '💬 New Comment', reply: '↩️ New Reply',
           follow: '👤 New Follower', friendRequest: '🦋 Friend Request',
+          familyInvite: '❤️ Family Invitation',
           mention: '@ You were mentioned', repost: '🔄 Post Reposted',
           wallPost: '📝 New Wall Post', announcement: '📢 Announcement',
-          tag: '🏷️ You were tagged',
+          tag: '🏷️ You were tagged', system: '⚙️ System Alert',
       };
       const pushBodies = {
           message:       notif.preview
@@ -9837,11 +10090,13 @@ body.arcade-fs-ios body::after { display:none !important; }
           reply:         `${notif.fromName || 'Someone'} replied to your comment`,
           follow:        `${notif.fromName || 'Someone'} started following you`,
           friendRequest: `${notif.fromName || 'Someone'} sent you a friend request`,
+          familyInvite:  `${notif.fromName || 'Someone'} sent you a Family request`,
           mention:       `${notif.fromName || 'Someone'} mentioned you`,
           repost:        `${notif.fromName || 'Someone'} reposted your post`,
           wallPost:      `${notif.fromName || 'Someone'} posted on your wall`,
           announcement:  notif.body || 'New announcement from admin',
           tag:           `${notif.fromName || 'Someone'} tagged you in a post`,
+          system:        notif.body || 'System notification from Shadow Nexus Social',
       };
       sendPushToUser(targetUid, {
           title:   pushTitles[notif.type] || '🔔 Shadow Nexus Social',
@@ -10713,19 +10968,22 @@ body.arcade-fs-ios body::after { display:none !important; }
       // Apply filter
       const _activityTypes = new Set(['like','comment','repost','mention','tag','wallPost','announcement']);
       const _socialTypes   = new Set(['friendRequest','friendAccepted','familyInvite','familyAccepted','familyDeclined','follow','game_challenge']);
+      const _systemTypes   = new Set(['system']);
       const filtered = list.filter(n => {
           if (_notifFilter === 'all')      return true;
           if (_notifFilter === 'message')  return n.type === 'message';
           if (_notifFilter === 'activity') return _activityTypes.has(n.type);
           if (_notifFilter === 'social')   return _socialTypes.has(n.type);
+          if (_notifFilter === 'system')   return _systemTypes.has(n.type);
           return true;
       });
 
       const box = document.getElementById("notifList");
       if (!filtered.length) {
-          const emptyMsg = _notifFilter === 'message' ? 'No messages yet.<br><span style="font-size:12px;color:#3a5a7a;">Messages sent from profiles appear here.</span>'
+          const emptyMsg = _notifFilter === 'message'  ? 'No messages yet.<br><span style="font-size:12px;color:#3a5a7a;">Messages sent from profiles appear here.</span>'
               : _notifFilter === 'activity' ? 'No activity notifications yet.'
               : _notifFilter === 'social'   ? 'No social notifications yet.'
+              : _notifFilter === 'system'   ? 'No system alerts.'
               : 'You have no notifications yet.';
           box.innerHTML = `<div class="empty-state">
               <div style="font-size:28px;margin-bottom:10px;">${_notifFilter === 'message' ? '💬' : '🔔'}</div>
@@ -10827,6 +11085,10 @@ body.arcade-fs-ios body::after { display:none !important; }
           } else if (n.type === 'announcement') {
               icon = '📢';
               text = `<b>Admin</b>: ${escFeed(n.body || 'New announcement')}`;
+              navFn = `navTo('notificationsPage')`;
+          } else if (n.type === 'system') {
+              icon = '⚙️';
+              text = escFeed(n.body || n.text || 'System alert from Shadow Nexus Social');
               navFn = `navTo('notificationsPage')`;
           }
 
@@ -11732,9 +11994,15 @@ body.arcade-fs-ios body::after { display:none !important; }
   }
 
   // ── Expose close to inline HTML onclick ──
-  // Wraps _mClose to also restore body scroll (locked on modal open).
+  // Wraps _mClose, restores body scroll, and resets visualViewport offsets
+  // so the modal isn't incorrectly positioned the next time it opens.
   window.ipcModalClose = function() {
       document.body.style.overflow = '';
+      // Reset any styles applied by the visualViewport keyboard handler
+      const _modal = document.getElementById('ipcModal');
+      if (_modal) { _modal.style.top = ''; _modal.style.height = ''; }
+      const _card = document.querySelector('.ipc-modal-card');
+      if (_card) _card.style.maxHeight = '';
       _mClose();
   };
 
@@ -12327,10 +12595,12 @@ body.arcade-fs-ios body::after { display:none !important; }
       return true;
   }
   window.switchAdminTab = function(tab) {
+      // 'emergency' is now fused into 'pages' — treat it as an alias
+      const _tab = (tab === 'emergency') ? 'pages' : tab;
       document.querySelectorAll('#adminTabBar .admin-tab').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('#adminPage .admin-tab-content').forEach(c => c.classList.remove('active'));
-      const tabEl = document.querySelector(`#adminTabBar .admin-tab[onclick*="'${tab}'"]`);
-      const contentEl = document.getElementById(`adminTab-${tab}`);
+      const tabEl = document.querySelector(`#adminTabBar .admin-tab[onclick*="'${_tab}'"]`);
+      const contentEl = document.getElementById(`adminTab-${_tab}`);
       if (tabEl) tabEl.classList.add('active');
       if (contentEl) contentEl.classList.add('active');
       if (tab==='dashboard'||tab==='users') renderAdminPanel();
@@ -12342,8 +12612,7 @@ body.arcade-fs-ios body::after { display:none !important; }
       if (tab==='roles')       roleAssignSearch();
       if (tab==='appeals')     adminLoadAppeals('pending');
       if (tab==='aisafety')    adminLoadAISafetyLog();
-      if (tab==='pages')       pvLoadTabData();
-      if (tab==='emergency')   emergencyLoadTabData();
+      if (tab==='pages' || tab==='emergency') { pvLoadTabData(); emergencyLoadTabData(); }
       if (tab==='messages')    adminLoadAllConversations();
   };
 
@@ -13553,6 +13822,7 @@ body.arcade-fs-ios body::after { display:none !important; }
       const text = textEl ? textEl.value.trim() : '';
       if (!text) { toastNotification('Please type an announcement message first.'); return; }
       try {
+          // 1. Write to /announcements (existing feed banner mechanism)
           await addDoc(collection(db, 'announcements'), {
               type,
               message: text,
@@ -13562,7 +13832,31 @@ body.arcade-fs-ios body::after { display:none !important; }
               ts: Date.now()
           });
           await adminAuditLog('EMERGENCY_ANNOUNCEMENT', `[${type.toUpperCase()}] ${text.slice(0, 80)}`);
-          toastNotification('🚨 Emergency announcement sent!');
+
+          // 2. Push a 'system' notification into every user's notifications array
+          //    so it shows up in the Notification Center 🔔 → ⚙️ System tab
+          try {
+              const _allUsers = await getDocs(collection(db, 'users'));
+              const _notifPayload = {
+                  id:       `system-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+                  type:     'system',
+                  body:     text,
+                  fromName: userData.displayName,
+                  fromUid:  userData.uid,
+                  ts:       Date.now(),
+                  read:     false
+              };
+              const _batch = writeBatch(db);
+              _allUsers.forEach(uDoc => {
+                  if (uDoc.id === userData.uid) return; // skip self
+                  _batch.update(doc(db, 'users', uDoc.id), {
+                      notifications: arrayUnion(_notifPayload)
+                  });
+              });
+              await _batch.commit();
+          } catch(_) { /* best-effort — announcement was still saved */ }
+
+          toastNotification('🚨 Emergency announcement sent to all users!');
           if (textEl) textEl.value = '';
       } catch(e) {
           toastNotification('Error sending announcement: ' + e.message);
@@ -14251,6 +14545,11 @@ function navTo(pageId) {
     }
     // Init community hub on first visit
     if (pageId === 'communityPage') commInitPage();
+    // When Notification Center opens, reset filter to "all" so users see everything
+    if (pageId === 'notificationsPage') {
+        const _allTab = document.querySelector('.notif-filter-tab[data-filter="all"]');
+        if (_allTab && typeof setNotifFilter === 'function') setNotifFilter('all', _allTab);
+    }
     // Auto-close sidebar on mobile after navigation
     closeSidebar();
 }
@@ -14316,14 +14615,17 @@ function toastNotification(msg) {
 }
 function switchProfileTab(t) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    ['tabContentWall','tabContentFamily','tabContentFriendsList','tabContentMessages'].forEach(id => {
+    ['tabContentWall','tabContentFamily','tabContentFriendsList','tabContentMessages','tabContentAlbum'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
-    if (t === 'wall') {
+    if (t === 'wall' || t === 'profile-wall') {
+        // 'profile-wall' is kept as an alias so any existing call still works
         const tl = document.getElementById('tabWallLink');
         if (tl) tl.classList.add('active');
         document.getElementById('tabContentWall').style.display = 'block';
+        // Always load the permanent Profile Wall when the tab opens
+        if (window.activeProfileUid) snxLoadProfileWall(window.activeProfileUid);
     } else if (t === 'family') {
         const tl = document.getElementById('tabFamilyLink');
         if (tl) tl.classList.add('active');
@@ -14347,6 +14649,179 @@ function switchProfileTab(t) {
             const inp = document.getElementById('ipcModalInput');
             if (inp && !inp.disabled) inp.focus();
         }, 150);
+    } else if (t === 'album') {
+        const tl = document.getElementById('tabAlbumLink');
+        if (tl) tl.classList.add('active');
+        const el = document.getElementById('tabContentAlbum');
+        if (el) el.style.display = 'block';
+        if (window.activeProfileUid && typeof window.snxAlbum?.loadAlbumTab === 'function') {
+            window.snxAlbum.loadAlbumTab(window.activeProfileUid);
+        }
+    }
+}
+
+/* ══════════════════════════════════════════════════════════
+   PROFILE WALL — Load & render permanent saved posts
+   ══════════════════════════════════════════════════════════ */
+async function snxLoadProfileWall(uid) {
+    const container = document.getElementById('profileWallPosts');
+    if (!container) return;
+    container.innerHTML = '<div class="snx-pwall-empty" style="color:#4a7aaa;">Loading…</div>';
+    const _fs = window._snxFirestore;
+    if (!_fs) { container.innerHTML = '<div class="snx-pwall-empty" style="color:#ff5577;">Not ready.</div>'; return; }
+    const { db, collection, query, orderBy, getDocs, doc, updateDoc } = _fs;
+    try {
+        // Pinned posts first, then newest-first within each group
+        const snap = await getDocs(
+            query(collection(db, "users", uid, "profileWall"), orderBy("savedAt", "desc"))
+        );
+        if (snap.empty) {
+            container.innerHTML = '<div class="snx-pwall-empty">No posts saved to this wall yet.<br><small style="color:#3a5a7a;">Check ☑ Save to My Profile Wall when posting.</small></div>';
+            return;
+        }
+        container.innerHTML = '';
+        const isOwner = (window._snxCurrentUser && window._snxCurrentUser.uid === uid);
+
+        const _esc = typeof window._snxEscFeed === 'function'
+            ? window._snxEscFeed
+            : s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+
+        const _ago = (ts) => {
+            if (!ts) return '';
+            const d = new Date(ts);
+            const diff = Math.floor((Date.now() - d) / 1000);
+            if (diff < 60)   return diff + 's ago';
+            if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+            if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        };
+
+        // Sort: pinned first, then by savedAt desc
+        const docs = [];
+        snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+        docs.sort((a, b) => {
+            if (a.pinned && !b.pinned) return -1;
+            if (!a.pinned && b.pinned) return  1;
+            return (b.savedAt || 0) - (a.savedAt || 0);
+        });
+
+        // Detect post type for badge
+        const _typeBadge = (w) => {
+            const mu = (w.mediaUrls && w.mediaUrls[0]) || w.mediaUrl || '';
+            const ext = mu.split('?')[0].split('.').pop().toLowerCase();
+            const audioExts = ['mp3','ogg','wav','aac','flac','m4a','opus'];
+            const videoExts = ['mp4','webm','mov','avi','mkv','m4v'];
+            if (w.isAlbumPost || w.albumPhotoId) return '<span class="snx-pwall-type-badge album">📸 Album</span>';
+            if (mu && audioExts.includes(ext)) return '<span class="snx-pwall-type-badge music">🎵 Music</span>';
+            if (mu && videoExts.includes(ext)) return '<span class="snx-pwall-type-badge video">🎬 Video</span>';
+            if (mu) return '<span class="snx-pwall-type-badge photo">🖼 Photo</span>';
+            return '<span class="snx-pwall-type-badge text">📝 Text</span>';
+        };
+
+        docs.forEach(w => {
+            const card = document.createElement('div');
+            card.className = 'snx-pwall-post' + (w.pinned ? ' snx-pwall-pinned' : '');
+            card.id = 'pwallpost-' + w.id;
+
+            const avStyle = w.authorAvatar
+                ? `background-image:url('${w.authorAvatar}');background-size:cover;background-position:center;`
+                : '';
+            const avLetter = w.authorAvatar ? '' : (w.authorName || '?')[0].toUpperCase();
+
+            // ── Media ──
+            let mediaHTML = '';
+            if (w.mediaUrls && w.mediaUrls.length > 1) {
+                const items = w.mediaUrls.map(mu => {
+                    const ext = mu.split('?')[0].split('.').pop().toLowerCase();
+                    const videoExts = ['mp4','webm','mov','avi','mkv'];
+                    if (videoExts.includes(ext)) {
+                        return `<video src="${mu}" controls playsinline style="max-height:220px;border-radius:10px;"></video>`;
+                    }
+                    return `<img src="${mu}" alt="media" onclick="openMediaViewer('image','${_esc(mu)}')" style="max-height:220px;cursor:pointer;">`;
+                }).join('');
+                mediaHTML = `<div class="post-media-carousel" style="margin-top:8px;">${items}</div>`;
+            } else if (w.mediaUrl) {
+                const mu = w.mediaUrl;
+                const ext = mu.split('?')[0].split('.').pop().toLowerCase();
+                const audioExts = ['mp3','ogg','wav','aac','flac','m4a','opus'];
+                const videoExts = ['mp4','webm','mov','avi','mkv','m4v'];
+                if (audioExts.includes(ext) || mu.includes('/audio/')) {
+                    const fname = decodeURIComponent(mu.split('/').pop().split('?')[0]);
+                    mediaHTML = `<div class="post-music-card"><div class="post-music-icon">🎵</div><div class="post-music-info"><div class="post-music-title">${_esc(fname)}</div><audio class="post-music-audio" src="${mu}" controls preload="metadata"></audio></div></div>`;
+                } else if (videoExts.includes(ext) || mu.includes('/video/')) {
+                    mediaHTML = `<div class="post-video-card"><video class="post-media-video" src="${mu}" controls playsinline preload="metadata"></video></div>`;
+                } else {
+                    mediaHTML = `<img class="post-media-preview" src="${mu}" alt="photo" onclick="openMediaViewer('image','${_esc(mu)}')" style="margin-top:8px;cursor:pointer;">`;
+                }
+            }
+
+            const ts = _ago(w.savedAt);
+            const pinLabel  = w.pinned ? '📌 Pinned' : '📌 Pin';
+            const ownerActions = isOwner ? `
+                <button class="snx-pwall-pin-btn${w.pinned ? ' pinned' : ''}"
+                        onclick="snxTogglePinWallPost('${w.id}','${uid}',${!w.pinned})">${pinLabel}</button>
+                <button class="snx-pwall-del-btn"
+                        onclick="snxDeleteProfileWallPost('${w.id}','${uid}')">🗑 Remove</button>
+            ` : '';
+
+            card.innerHTML = `
+                ${w.pinned ? '<div class="snx-pwall-pin-strip">📌 Pinned Post</div>' : ''}
+                <div class="snx-pwall-header">
+                    <div class="snx-pwall-meta">
+                        <div class="snx-pwall-avatar" style="${avStyle}">${avLetter}</div>
+                        <div>
+                            <b style="color:#00aaff;font-size:13px;cursor:pointer;"
+                               onclick="viewProfile('${_esc(uid)}')">${_esc(w.authorName || '')}</b>
+                            ${w.authorHandle ? `<span style="font-size:11px;color:#4a6a8a;margin-left:4px;">@${_esc(w.authorHandle)}</span>` : ''}
+                            ${_typeBadge(w)}
+                        </div>
+                    </div>
+                    ${ts ? `<span class="snx-pwall-ts">${ts}</span>` : ''}
+                </div>
+                ${w.text ? `<div class="snx-pwall-text">${_esc(w.text)}</div>` : ''}
+                ${mediaHTML}
+                ${ownerActions ? `<div class="snx-pwall-actions">${ownerActions}</div>` : ''}
+            `;
+            container.appendChild(card);
+        });
+    } catch(e) {
+        console.error('[ProfileWall] load error:', e);
+        container.innerHTML = '<div class="snx-pwall-empty" style="color:#ff5577;">Failed to load Profile Wall.</div>';
+    }
+}
+
+async function snxTogglePinWallPost(wallDocId, uid, pin) {
+    if (!window._snxCurrentUser || window._snxCurrentUser.uid !== uid) return;
+    const _fs = window._snxFirestore;
+    if (!_fs) return;
+    const { db, doc, updateDoc } = _fs;
+    try {
+        await updateDoc(doc(db, "users", uid, "profileWall", wallDocId), { pinned: pin });
+        // Reload so sort order (pinned-first) updates immediately
+        snxLoadProfileWall(uid);
+        toastNotification(pin ? '📌 Post pinned to your wall!' : 'Post unpinned.');
+    } catch(e) {
+        toastNotification('Failed: ' + e.message);
+    }
+}
+
+async function snxDeleteProfileWallPost(wallDocId, uid) {
+    if (!window._snxCurrentUser || window._snxCurrentUser.uid !== uid) return;
+    if (!confirm('Remove this post from your Profile Wall?')) return;
+    const _fs = window._snxFirestore;
+    if (!_fs) return;
+    const { db, doc, deleteDoc } = _fs;
+    try {
+        await deleteDoc(doc(db, "users", uid, "profileWall", wallDocId));
+        const card = document.getElementById('pwallpost-' + wallDocId);
+        if (card) card.remove();
+        toastNotification('Removed from Profile Wall.');
+        const container = document.getElementById('profileWallPosts');
+        if (container && !container.querySelector('.snx-pwall-post')) {
+            container.innerHTML = '<div class="snx-pwall-empty">No posts saved to this wall yet.<br><small style="color:#3a5a7a;">Check ☑ Save to My Profile Wall when posting.</small></div>';
+        }
+    } catch(e) {
+        toastNotification('Failed to remove post.');
     }
 }
 
@@ -15559,6 +16034,11 @@ async function handlePostMediaPick(input) {
     document.getElementById('postMediaClear').style.display = '';
     document.getElementById('postMediaRow').classList.remove('drag-over');
 
+    // ── Block the Post button while upload is running ──
+    window._postUploadInProgress = true;
+    const broadcastBtn = document.getElementById('btnBroadcast');
+    if (broadcastBtn) { broadcastBtn.disabled = true; broadcastBtn.textContent = '⏳ Uploading media…'; }
+
     // Show previews for all files
     const previewImg = document.getElementById('postMediaPreviewImg');
     const previewVid = document.getElementById('postMediaPreviewVid');
@@ -15586,6 +16066,8 @@ async function handlePostMediaPick(input) {
         for (let i = 0; i < files.length; i++) {
             document.getElementById('postMediaFilename').textContent = `Uploading ${i+1}/${files.length}…`;
             const url = await uploadToR2(files[i], 'postMediaProgressBar', 'postMediaProgress');
+            if (!url) throw new Error('Cloudflare returned an empty URL for file ' + files[i].name);
+            console.log('[SNX Upload] File', i+1, '/', files.length, '→', url);
             urls.push(url);
         }
         _postMediaUploadedUrls = urls;
@@ -15595,12 +16077,16 @@ async function handlePostMediaPick(input) {
         document.getElementById('postMediaFilename').textContent = files.length === 1 ? files[0].name : `${files.length} files ready`;
         toastNotification(`✅ ${files.length === 1 ? 'File' : files.length + ' files'} uploaded!`);
     } catch(e) {
+        console.error('[SNX Upload] Media upload failed:', e);
         toastNotification('❌ Upload failed: ' + e.message);
         clearPostMedia();
     } finally {
         document.getElementById('postMediaUploadBtn').disabled = false;
         const uploadBtn2 = document.getElementById('postMediaUploadBtn');
         if (uploadBtn2) uploadBtn2.classList.remove('uploading');
+        // Re-enable Post button and clear upload-in-progress flag
+        window._postUploadInProgress = false;
+        if (broadcastBtn) { broadcastBtn.disabled = false; broadcastBtn.textContent = '⚡ Post to the Eclipse'; }
     }
 }
 
@@ -15616,7 +16102,8 @@ function handlePostMediaDrop(event) {
 }
 
 function clearPostMedia() {
-    _postMediaUploadedUrl = '';
+    _postMediaUploadedUrl  = '';
+    _postMediaUploadedUrls = [];
     document.getElementById('postMediaUrl').value = '';
     document.getElementById('postMediaFile').value = '';
     document.getElementById('postMediaFilename').textContent = '';
@@ -20233,7 +20720,7 @@ window._arcadeRenderProfileSection = async function(targetUid, containerEl) {
   if (_origSwitchProfileTab) {
     window.switchProfileTab = function(tab) {
       _origSwitchProfileTab(tab);
-      if (tab === 'wall') {
+      if (tab === 'wall' || tab === 'profile-wall') {
         // Inject arcade section below wall if not already there
         setTimeout(() => {
           const wallContent = document.getElementById('tabContentWall');
@@ -22082,6 +22569,9 @@ window.switchAdminTab = function(tab) {
 
 })(); // end IIFE
 </script>
+
+<!-- ── Profile Photo Album module (must load after the main IIFE) ── -->
+<script src="album.js"></script>
 
 </body>
 </html>

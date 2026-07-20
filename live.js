@@ -331,6 +331,8 @@ document.addEventListener('DOMContentLoaded', () => {
     _user = user;
     _loadUserData().then(() => {
       if (D.goLiveBtn) { D.goLiveBtn.disabled = false; }
+      // ── Expose uid to gift system module ──
+      window._snxGiftUserId = user.uid;
       _resolveMode();
       // ── One-time update check per session ──
       _checkForUpdate();
@@ -599,11 +601,31 @@ async function startLive() {
 
   toast('🔴 You are LIVE!');
 
+  // ── Inform gift system of live context (creator) ──
+  if (typeof window._snxGiftSetContext === 'function') {
+    window._snxGiftSetContext(
+      _roomId,
+      _user.uid,
+      _userData.displayName || _user.email?.split('@')[0] || 'Creator'
+    );
+  }
+
+  // ── Read feature flags (co-host enable/disable) ──
+  try {
+    const cfgSnap = await getDoc(doc(_db, 'siteSettings', 'config'));
+    window._snxCoHostEnabled = cfgSnap.exists()
+      ? cfgSnap.data().coHostEnabled !== false
+      : true;
+  } catch (_) {
+    window._snxCoHostEnabled = true; // default ON if unavailable
+  }
+
   // ── Notify add-on modules (co-host, etc.) that live has started ──
   window.dispatchEvent(new CustomEvent('snxLiveReady', { detail: {
     db: _db, liveDB: _liveDB, auth: _auth,
     user: _user, userData: _userData,
     roomId: _roomId, isHost: true,
+    coHostEnabled: window._snxCoHostEnabled,
   }}));
 
   // ── Start optional systems (respects their individual ON/OFF state) ──
@@ -1034,11 +1056,33 @@ async function _startViewer() {
   _setupViewerControls(roomData);
   _subscribeChat();
 
+  // ── Inform gift system of live context (viewer) ──
+  if (typeof window._snxGiftSetContext === 'function') {
+    window._snxGiftSetContext(
+      _roomId,
+      roomData.hostId,
+      roomData.hostName || ''
+    );
+  }
+
+  // ── Read feature flags for add-on modules (viewer path) ──
+  try {
+    if (window._snxCoHostEnabled === undefined) {
+      const cfgSnap = await getDoc(doc(_db, 'siteSettings', 'config'));
+      window._snxCoHostEnabled = cfgSnap.exists()
+        ? cfgSnap.data().coHostEnabled !== false
+        : true;
+    }
+  } catch (_) {
+    window._snxCoHostEnabled = true;
+  }
+
   // ── Notify add-on modules that viewer has joined ──
   window.dispatchEvent(new CustomEvent('snxLiveReady', { detail: {
     db: _db, liveDB: _liveDB, auth: _auth,
     user: _user, userData: _userData,
     roomId: _roomId, isHost: false,
+    coHostEnabled: window._snxCoHostEnabled,
   }}));
 
   /* ── Subscribe to live guest presence (shows guest boxes to viewers) ── */
@@ -1642,10 +1686,25 @@ function _buildChatMsgEl(data) {
   const hostUid  = _roomId ? _roomId.split('_')[0] : null;
   const isHost   = !!(hostUid && data.userId === hostUid);
   const isSystem = data.type === 'system';
+  const isGift   = data.type === 'gift';
 
   const el = document.createElement('div');
-  el.className = 'live-chat-msg' + (isSystem ? ' system' : '');
-  if (!isSystem) {
+  el.className = 'live-chat-msg' + (isSystem ? ' system' : '') + (isGift ? ' gift-msg' : '');
+
+  if (isGift) {
+    const author = document.createElement('span');
+    author.className = 'live-chat-author';
+    author.textContent = data.userName || 'Guest';
+    const text = document.createElement('span');
+    text.className = 'live-chat-text';
+    text.textContent = `${data.giftEmoji || '🎁'} sent ${data.giftName || 'a gift'}!`;
+    el.appendChild(author);
+    el.appendChild(text);
+    // Show burst animation for all viewers (not just the sender)
+    if (typeof window._snxRenderGiftEvent === 'function') {
+      window._snxRenderGiftEvent(data.giftId, data.userName || 'Guest');
+    }
+  } else if (!isSystem) {
     const author = document.createElement('span');
     author.className = 'live-chat-author' + (isHost ? ' is-host' : '');
     author.textContent = data.userName || 'Guest';

@@ -177,6 +177,17 @@
     </div>
 
     <!-- ═══════════════════════════════════
+         GUEST VIDEO GRID — host video + guest boxes
+         Shown on top of (or replacing) the main video
+         ═══════════════════════════════════ -->
+    <div id="guestGrid" class="guest-grid"></div>
+
+    <!-- ═══════════════════════════════════
+         HOST: incoming request notifications
+         ═══════════════════════════════════ -->
+    <div id="guestRequestQueue" class="guest-request-queue"></div>
+
+    <!-- ═══════════════════════════════════
          CREATOR CONTROLS (bottom bar)
          Hidden for viewers via CSS
          ═══════════════════════════════════ -->
@@ -187,29 +198,98 @@
       <button id="btnFlipCam"   class="live-ctrl-btn" aria-label="Flip camera" title="Flip">🔄</button>
       <button id="btnFullscreen" class="live-ctrl-btn" aria-label="Fullscreen" title="Fullscreen">⛶</button>
       <button id="btnShareLiveCreator" class="live-ctrl-btn" aria-label="Share live stream" title="Share">📤</button>
+
+      <!-- Layout button (host only) — one button that opens all layout settings -->
+      <button id="btnLayoutSettings" class="live-ctrl-btn guest-layout-btn" aria-label="Layout settings" title="Layout">⊞</button>
+
       <button id="btnEndLive"   class="live-ctrl-btn" aria-label="End live stream">END LIVE</button>
 
     </div>
 
     <!-- ═══════════════════════════════════
-         VIEWER ACTIONS (bottom-right)
+         LAYOUT SETTINGS PANEL (host only)
+         ═══════════════════════════════════ -->
+    <div id="layoutSettingsPanel" class="layout-settings-panel" style="display:none;">
+      <div class="layout-panel-title">Layout Settings</div>
+      <div class="layout-panel-grid">
+        <button class="layout-option-btn active" data-layout="auto" title="Auto">
+          <span class="layout-icon">✦</span>
+          <span>Auto</span>
+        </button>
+        <button class="layout-option-btn" data-layout="host-full" title="Host Full">
+          <span class="layout-icon">⬛</span>
+          <span>Host Full</span>
+        </button>
+        <button class="layout-option-btn" data-layout="split" title="Split">
+          <span class="layout-icon">⬜⬜</span>
+          <span>Split</span>
+        </button>
+        <button class="layout-option-btn" data-layout="host-big" title="Host Big">
+          <span class="layout-icon">▬▪</span>
+          <span>Host Big</span>
+        </button>
+        <button class="layout-option-btn" data-layout="grid" title="Grid">
+          <span class="layout-icon">▦</span>
+          <span>Grid</span>
+        </button>
+        <button class="layout-option-btn" data-layout="float" title="Floating">
+          <span class="layout-icon">◈</span>
+          <span>Float</span>
+        </button>
+      </div>
+      <div class="layout-panel-section">Box Size</div>
+      <div class="layout-size-row">
+        <button class="layout-size-btn active" data-size="sm">S</button>
+        <button class="layout-size-btn" data-size="md">M</button>
+        <button class="layout-size-btn" data-size="lg">L</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════
+         VIEWER ACTIONS — right side column
+         TikTok-style circular buttons
          Hidden for creator via CSS
          ═══════════════════════════════════ -->
     <div class="live-viewer-actions">
 
-      <button id="btnCreatorProfile" class="live-profile-btn" aria-label="View creator profile">
-        <span class="live-profile-icon">👤</span>
-        Profile
+      <!-- Like ❤️ -->
+      <button id="btnLike" class="live-like-btn" aria-label="Like stream">
+        <span class="live-like-icon">❤️</span>
+        <span id="likeBtnCount" style="display:none;">Like</span>
       </button>
 
+      <!-- Request a Box 📺 -->
+      <button id="btnRequestBox" class="live-request-box-btn" aria-label="Request a guest box">
+        <span>📺</span>
+        <span id="btnRequestBoxLabel">Request a Box</span>
+      </button>
+
+      <!-- Share 📤 -->
       <button id="btnShareLive" class="live-share-btn" aria-label="Share live stream">
         <span class="live-share-icon">📤</span>
         Share
       </button>
 
-      <button id="btnLike" class="live-like-btn" aria-label="Like stream">
-        <span class="live-like-icon">❤️</span>
-        <span id="likeBtnCount">Like</span>
+      <!-- Profile 👤 (sits below share) -->
+      <button id="btnCreatorProfile" class="live-profile-btn" aria-label="View creator profile">
+        <span class="live-profile-icon">👤</span>
+        Profile
+      </button>
+
+      <!-- Guest cam/mic controls (shown only when viewer is in a guest box) -->
+      <button id="btnGuestCam" class="live-request-box-btn" aria-label="Toggle guest camera" style="display:none;">
+        <span>📷</span>
+        <span id="btnGuestCamLabel">Cam</span>
+      </button>
+      <button id="btnGuestMic" class="live-request-box-btn" aria-label="Toggle guest microphone" style="display:none;">
+        <span>🎤</span>
+        <span id="btnGuestMicLabel">Mic</span>
+      </button>
+
+      <!-- Leave Box button (shown only when viewer is in a guest box) -->
+      <button id="btnLeaveBox" class="live-leave-box-btn" aria-label="Leave guest box" style="display:none;">
+        <span>🚪</span>
+        <span>Leave Box</span>
       </button>
 
     </div>

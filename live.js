@@ -104,6 +104,21 @@ let _toastTimer       = null;
 let _viewerLeftFlag   = false;  // guard: prevent double-decrement on mobile
 let _creatorEndedFlag = false;  // guard: prevent beforeunload re-running endLive cleanup
 
+/* ── Guest Box State ── */
+let _guestLayout       = 'auto';   // current layout preference
+let _guestBoxSize      = 'sm';     // 'sm' | 'md' | 'lg'
+let _guestPeers        = {};       // uid → { pc, stream, cell, name }
+let _guestReqUnsub     = null;     // RTDB listener for incoming requests (host)
+let _guestStatusUnsub  = null;     // RTDB listener for request status (viewer)
+let _layoutPanelOpen   = false;
+let _guestStream       = null;     // viewer's own guest media stream
+let _guestCamOn        = true;     // viewer's guest cam state
+let _guestMicOn        = true;     // viewer's guest mic state
+let _shownReqUids      = new Set(); // host: tracks UIDs already shown in request queue
+let _viewerGuestUnsub  = null;     // viewer: RTDB listener for liveGuests presence
+let _layoutSyncUnsub   = null;     // viewer/guest: RTDB listener for layout sync
+let _guestPc           = null;     // viewer-in-box: their own guest RTCPeerConnection (for disconnect cleanup)
+
 /* ── DOM refs (resolved after DOMContentLoaded) ── */
 let D = {};
 
@@ -162,6 +177,19 @@ document.addEventListener('DOMContentLoaded', () => {
     endedTitle:      document.getElementById('endedTitle'),
     endedSub:        document.getElementById('endedSub'),
     endedBackBtn:    document.getElementById('endedBackBtn'),
+
+    // Guest box system
+    guestGrid:           document.getElementById('guestGrid'),
+    guestRequestQueue:   document.getElementById('guestRequestQueue'),
+    btnRequestBox:       document.getElementById('btnRequestBox'),
+    btnRequestBoxLabel:  document.getElementById('btnRequestBoxLabel'),
+    btnGuestCam:         document.getElementById('btnGuestCam'),
+    btnGuestCamLabel:    document.getElementById('btnGuestCamLabel'),
+    btnGuestMic:         document.getElementById('btnGuestMic'),
+    btnGuestMicLabel:    document.getElementById('btnGuestMicLabel'),
+    btnLeaveBox:         document.getElementById('btnLeaveBox'),
+    btnLayoutSettings:   document.getElementById('btnLayoutSettings'),
+    layoutSettingsPanel: document.getElementById('layoutSettingsPanel'),
   };
 
   // Disable Go Live until Firebase auth resolves
@@ -194,11 +222,45 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('liveCloseBtn') &&
     document.getElementById('liveCloseBtn').addEventListener('click', onCloseBtn);
 
+  // Guest box button wiring
+  D.btnRequestBox     && D.btnRequestBox.addEventListener('click', _viewerRequestBox);
+  D.btnGuestCam       && D.btnGuestCam.addEventListener('click', _toggleGuestCam);
+  D.btnGuestMic       && D.btnGuestMic.addEventListener('click', _toggleGuestMic);
+  D.btnLeaveBox       && D.btnLeaveBox.addEventListener('click', _guestLeaveBox);
+  D.btnLayoutSettings && D.btnLayoutSettings.addEventListener('click', _toggleLayoutPanel);
+
+  // Layout option buttons
+  document.querySelectorAll('.layout-option-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.layout-option-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _guestLayout = btn.dataset.layout;
+      _applyGuestLayout();
+      // Broadcast layout change to all viewers and guests
+      _broadcastLayout();
+    });
+  });
+
+  // Box size buttons
+  document.querySelectorAll('.layout-size-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.layout-size-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _guestBoxSize = btn.dataset.size;
+      _applyGuestLayout();
+      // Broadcast size change to all viewers and guests
+      _broadcastLayout();
+    });
+  });
+
   D.stage && D.stage.addEventListener('click', e => {
     if (_mode !== 'creator') return;
     const ignore = ['.live-ctrl-btn','#btnEndLive','.live-chat-input','.live-chat-send',
-                    '.live-close-btn','.live-creator-pill','.live-badge'];
+                    '.live-close-btn','.live-creator-pill','.live-badge',
+                    '.layout-settings-panel','.layout-option-btn','.layout-size-btn'];
     if (ignore.some(s => e.target.closest(s))) return;
+    // Close layout panel on tap-away
+    if (_layoutPanelOpen) { _closeLayoutPanel(); return; }
     D.stage.classList.toggle('live-controls-hidden');
   });
 
@@ -445,6 +507,22 @@ async function startLive() {
   _subscribeViewerCount();
   _showCreatorShareBar();
 
+  // ── Start listening for guest box requests ──
+  _hostListenForGuestRequests();
+
+  // ── Publish host's own presence to liveGuests (viewers see cam/mic status) ──
+  try {
+    await set(ref(_liveDB, `liveGuests/${_roomId}/_host_`), {
+      uid:      _user.uid,
+      name:     creatorData.hostName,
+      avatar:   creatorData.hostAvatar,
+      isHost:   true,
+      camOn:    _camOn,
+      micOn:    _micOn,
+      joinedAt: Date.now(),
+    });
+  } catch (_) {}
+
   toast('🔴 You are LIVE!');
 
   // ── Non-critical side-work ──
@@ -565,6 +643,8 @@ function toggleLiveCam() {
   if (_localStream) _localStream.getVideoTracks().forEach(t => t.enabled = _camOn);
   if (D.btnCam) { D.btnCam.textContent = _camOn ? '📷' : '🚫'; D.btnCam.classList.toggle('off', !_camOn); }
   if (D.camOffOverlay) D.camOffOverlay.classList.toggle('visible', !_camOn);
+  // Broadcast host cam state to viewers
+  if (_roomId) try { update(ref(_liveDB, `liveGuests/${_roomId}/_host_`), { camOn: _camOn }); } catch(_) {}
 }
 
 function toggleLiveMic() {
@@ -572,6 +652,8 @@ function toggleLiveMic() {
   if (_localStream) _localStream.getAudioTracks().forEach(t => t.enabled = _micOn);
   if (D.btnMic) { D.btnMic.textContent = _micOn ? '🎤' : '🔇'; D.btnMic.classList.toggle('off', !_micOn); }
   toast(_micOn ? 'Mic on' : 'Mic muted');
+  // Broadcast host mic state to viewers
+  if (_roomId) try { update(ref(_liveDB, `liveGuests/${_roomId}/_host_`), { micOn: _micOn }); } catch(_) {}
 }
 
 async function flipLiveCamera() {
@@ -625,6 +707,10 @@ async function endLive() {
 
   window.removeEventListener('beforeunload', _creatorBeforeUnload);
   window.removeEventListener('pagehide',     _creatorBeforeUnload);
+
+  // Close all guest peer connections
+  _teardownAllGuestPeers();
+  if (_guestReqUnsub) { try { _guestReqUnsub(); } catch(_){} _guestReqUnsub = null; }
 
   if (_rtcPc)  { try { _rtcPc.close(); } catch (_) {} _rtcPc = null; }
   if (_rtcSignalRef && _rtcSignalUnsub) { off(_rtcSignalRef); _rtcSignalRef = null; _rtcSignalUnsub = null; }
@@ -829,6 +915,12 @@ async function _startViewer() {
   _setupViewerControls(roomData);
   _subscribeChat();
 
+  /* ── Subscribe to live guest presence (shows guest boxes to viewers) ── */
+  _startViewerGuestGrid();
+
+  /* ── Subscribe to host layout changes so everyone sees the same layout ── */
+  _startLayoutSync();
+
   /* ── Increment viewer count in LIVE RTDB ── */
   try {
     const viewersRef = ref(_liveDB, `liveRooms/${_roomId}/viewers`);
@@ -861,6 +953,37 @@ async function _startViewer() {
 async function _viewerLeave() {
   if (_viewerLeftFlag || !_roomId) return;
   _viewerLeftFlag = true;
+
+  // If viewer was in a guest box, clean up that state first
+  if (_guestStream || _guestPc) {
+    // Direct cleanup without confirmation (page is unloading)
+    if (_guestPc) { try { _guestPc.close(); } catch(_){} _guestPc = null; }
+    if (_user && _roomId) {
+      try { remove(ref(_liveDB, `liveGuests/${_roomId}/${_user.uid}`)); }      catch(_) {}
+      try { remove(ref(_liveDB, `guestSignaling/${_roomId}/${_user.uid}`)); }  catch(_) {}
+    }
+    if (_guestStream) { try { _guestStream.getTracks().forEach(t => t.stop()); } catch(_){} _guestStream = null; }
+  }
+
+  // Tear down viewer guest grid listener
+  if (_viewerGuestUnsub) {
+    try { off(ref(_liveDB, `liveGuests/${_roomId}`)); } catch(_) {}
+    _viewerGuestUnsub = null;
+  }
+
+  // Tear down layout sync listener
+  if (_layoutSyncUnsub) {
+    try { _layoutSyncUnsub(); } catch(_) {}
+    _layoutSyncUnsub = null;
+  }
+
+  // Clean up any pending box request (RTDB + Firestore)
+  if (_user && _roomId) {
+    try { await remove(ref(_liveDB, `guestRequests/${_roomId}/${_user.uid}`)); } catch(_) {}
+    const requestId = `${_roomId}_${_user.uid}`;
+    try { await deleteDoc(doc(_db, 'boxRequests', requestId)); } catch(_) {}
+  }
+  if (_guestStatusUnsub) { try { _guestStatusUnsub(); } catch(_){} _guestStatusUnsub = null; }
 
   if (_rtcPc)  { try { _rtcPc.close(); } catch (_) {} _rtcPc = null; }
   if (_rtcSignalRef && _rtcSignalUnsub) { off(_rtcSignalRef); _rtcSignalRef = null; _rtcSignalUnsub = null; }
@@ -1038,12 +1161,18 @@ async function _startViewerWebRTC(roomData) {
     D.liveVideo.play().catch(() => {});
     _showUnmutePrompt();
     _hideConnBanner();
+    // Safety: hide banner once video actually starts playing
+    D.liveVideo.addEventListener('playing', _hideConnBanner, { once: true });
+    // ── If the guest grid is already showing a host cell, attach the stream now ──
+    const hostCell = D.guestGrid?.querySelector('.vgc-cell.host-cell');
+    if (hostCell && !hostCell.querySelector('video')) {
+      _attachHostVideoToCell(hostCell);
+    }
   };
 
   _rtcPc.onconnectionstatechange = () => {
     if (_rtcPc.connectionState === 'connected') {
       _hideConnBanner();
-      // connected — banner already hidden by ontrack
     } else if (_rtcPc.connectionState === 'disconnected' || _rtcPc.connectionState === 'failed') {
       _showConnBanner('Waiting for stream…', '');
     }
@@ -1118,6 +1247,14 @@ async function _startViewerWebRTC(roomData) {
   });
 
   _showConnBanner('Waiting for stream…', '');
+
+  // ── 3-second safety timeout: if video is already playing, remove banner ──
+  setTimeout(() => {
+    const v = D.liveVideo;
+    if (v && v.srcObject && !v.paused && v.readyState >= 2) {
+      _hideConnBanner();
+    }
+  }, 3000);
 }
 
 /* ═══════════════════════════════════════════════════
@@ -1284,6 +1421,9 @@ function _showStage() {
 
 function _showConnBanner(title, sub) {
   if (!D.connBanner) return;
+  // Don't show the banner if the video is already playing
+  const v = D.liveVideo;
+  if (v && v.srcObject && !v.paused && v.readyState >= 2) return;
   if (D.connTitle) D.connTitle.textContent = title;
   if (D.connSub)   D.connSub.textContent   = sub;
   D.connBanner.classList.add('visible');
@@ -1459,4 +1599,1190 @@ function toast(msg) {
 
 function _esc(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* ── Confirmation dialog — Promise-based modal ──
+   _snxConfirm({ icon, title, sub, okLabel, okClass })
+   Resolves true (confirmed) or false (cancelled). */
+function _snxConfirm({ icon = '❓', title = 'Are you sure?', sub = '', okLabel = 'Confirm', okClass = '' } = {}) {
+  return new Promise(resolve => {
+    // Remove any stale overlay
+    document.getElementById('_snxConfirmOverlay')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = '_snxConfirmOverlay';
+    overlay.className = 'snx-confirm-overlay';
+    overlay.innerHTML = `
+      <div class="snx-confirm-box">
+        <div class="snx-confirm-icon">${icon}</div>
+        <div class="snx-confirm-title">${_esc(title)}</div>
+        ${sub ? `<div class="snx-confirm-sub">${_esc(sub)}</div>` : ''}
+        <div class="snx-confirm-actions">
+          <button class="snx-confirm-cancel">Cancel</button>
+          <button class="snx-confirm-ok${okClass ? ' ' + okClass : ''}">${_esc(okLabel)}</button>
+        </div>
+      </div>
+    `;
+
+    const close = (result) => { overlay.remove(); resolve(result); };
+    overlay.querySelector('.snx-confirm-cancel').addEventListener('click', () => close(false));
+    overlay.querySelector('.snx-confirm-ok').addEventListener('click',     () => close(true));
+    // Tap backdrop to cancel
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(false); });
+
+    document.body.appendChild(overlay);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VIEWER GUEST GRID — real-time presence display for followers
+   ─────────────────────────────────────────────────────────────
+   Watches liveGuests/{roomId} in RTDB.
+   Each entry: { uid, name, avatar, camOn, micOn, isHost? }
+   Renders placeholder cards (no live video) so all viewers see
+   who is in each box and their cam/mic status in real time.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── HOST: Broadcast current layout + size to all viewers via RTDB ── */
+function _broadcastLayout() {
+  if (!_roomId) return;
+  try {
+    update(ref(_liveDB, `liveRooms/${_roomId}`), {
+      guestLayout:  _guestLayout,
+      guestBoxSize: _guestBoxSize,
+    });
+  } catch(_) {}
+}
+
+/* ── VIEWER / GUEST: Subscribe to layout changes broadcast by the host ── */
+function _startLayoutSync() {
+  if (!_roomId) return;
+  // Detach any previous listener
+  if (_layoutSyncUnsub) { try { _layoutSyncUnsub(); } catch(_) {} _layoutSyncUnsub = null; }
+
+  const roomRef = ref(_liveDB, `liveRooms/${_roomId}`);
+  // onValue returns an unsubscribe function in the modular SDK
+  _layoutSyncUnsub = onValue(roomRef, snap => {
+    if (!snap.exists()) return;
+    const d = snap.val();
+    let changed = false;
+    if (d.guestLayout  && d.guestLayout  !== _guestLayout)  { _guestLayout  = d.guestLayout;  changed = true; }
+    if (d.guestBoxSize && d.guestBoxSize !== _guestBoxSize)  { _guestBoxSize = d.guestBoxSize; changed = true; }
+    if (changed) _applyGuestLayout();
+  });
+}
+
+function _startViewerGuestGrid() {
+  if (!_roomId) return;
+  const guestsRef = ref(_liveDB, `liveGuests/${_roomId}`);
+
+  _viewerGuestUnsub = onValue(guestsRef, snap => {
+    const grid = D.guestGrid;
+    if (!grid) return;
+
+    // Build current set of UIDs from RTDB snapshot
+    const incoming = {};
+    if (snap.exists()) {
+      snap.forEach(child => {
+        const g = child.val();
+        if (g && g.uid) incoming[child.key] = g;
+      });
+    }
+
+    // ── Remove cards for guests who left ──
+    grid.querySelectorAll('.vgc-cell').forEach(card => {
+      if (!incoming[card.dataset.guestKey]) card.remove();
+    });
+
+    // ── Add or update cards for current guests ──
+    const orderedKeys = Object.keys(incoming).sort((a, b) => {
+      // _host_ always first, then by joinedAt
+      if (a === '_host_') return -1;
+      if (b === '_host_') return  1;
+      return (incoming[a].joinedAt || 0) - (incoming[b].joinedAt || 0);
+    });
+
+    orderedKeys.forEach(key => {
+      const g = incoming[key];
+      let card = grid.querySelector(`.vgc-cell[data-guest-key="${key}"]`);
+
+      if (!card) {
+        // ── Create new card ──
+        card = document.createElement('div');
+        card.className = 'guest-cell vgc-cell' + (g.isHost ? ' host-cell' : '');
+        card.dataset.guestKey = key;
+        card.dataset.uid      = g.uid;
+
+        // Avatar circle
+        const avatarWrap = document.createElement('div');
+        avatarWrap.className = 'vgc-avatar';
+        if (g.avatar) {
+          avatarWrap.style.backgroundImage = `url('${_esc(g.avatar)}')`;
+        } else {
+          avatarWrap.textContent = (g.name || '?')[0].toUpperCase();
+        }
+        card.appendChild(avatarWrap);
+
+        // Camera-off overlay
+        const camOffEl = document.createElement('div');
+        camOffEl.className = 'vgc-cam-off';
+        camOffEl.innerHTML = '<span>📷</span><span>Camera off</span>';
+        card.appendChild(camOffEl);
+
+        // Name label
+        const nameEl = document.createElement('div');
+        nameEl.className = 'guest-cell-name vgc-name';
+        nameEl.textContent = g.isHost ? (g.name + ' (Host)') : (g.name || 'Guest');
+        card.appendChild(nameEl);
+
+        // Status icons bar
+        const statusBar = document.createElement('div');
+        statusBar.className = 'vgc-status';
+        statusBar.innerHTML = `
+          <span class="vgc-icon-cam">${g.camOn !== false ? '📷' : '🚫'}</span>
+          <span class="vgc-icon-mic">${g.micOn !== false ? '🎤' : '🔇'}</span>
+          ${g.isHost ? '<span class="vgc-host-badge">HOST</span>' : ''}
+        `;
+        card.appendChild(statusBar);
+
+        // Insert: host always first
+        if (g.isHost) {
+          grid.insertBefore(card, grid.firstChild);
+          // ── Attach host video stream to the host cell so it never disappears ──
+          // For viewers, the host video arrives via WebRTC on #liveVideo.
+          // Re-use that stream in the host cell so the grid always shows the host feed.
+          _attachHostVideoToCell(card);
+        } else {
+          grid.appendChild(card);
+        }
+
+        // If this is the current viewer's own cell and they have a live guest stream,
+        // attach the stream so they see their own live video (not just the avatar).
+        if (_guestStream && g.uid === _user?.uid) {
+          _attachGuestSelfStream(_guestStream);
+        }
+      } else {
+        // ── Update existing card ──
+        const camIcon = card.querySelector('.vgc-icon-cam');
+        const micIcon = card.querySelector('.vgc-icon-mic');
+        const camOff  = card.querySelector('.vgc-cam-off');
+        if (camIcon) camIcon.textContent = g.camOn !== false ? '📷' : '🚫';
+        if (micIcon) micIcon.textContent = g.micOn !== false ? '🎤' : '🔇';
+        if (camOff)  camOff.classList.toggle('vgc-cam-off--visible', g.camOn === false);
+        // Ensure host video is attached if not yet (e.g. stream arrived after card was built)
+        if (g.isHost && !card.querySelector('video')) {
+          _attachHostVideoToCell(card);
+        }
+      }
+    });
+
+    // ── Show/hide grid based on whether any guests are present ──
+    const guestCount = orderedKeys.filter(k => !incoming[k].isHost).length;
+    grid.dataset.count = guestCount.toString();
+    if (guestCount > 0) {
+      grid.classList.add('has-guests');
+    } else {
+      grid.classList.remove('has-guests');
+    }
+    _applyGuestLayout();
+  });
+}
+
+/* ── Attach the host's live video stream into a viewer-side host cell ──
+   The host stream arrives via WebRTC on #liveVideo. We create a <video>
+   element in the host cell that reads from the same MediaStream so the
+   host camera is always visible, even when the guest grid is shown. */
+function _attachHostVideoToCell(cell) {
+  const _tryAttach = (attempts) => {
+    const liveVid = D.liveVideo;
+    if (!liveVid) return;
+    const stream = liveVid.srcObject;
+    if (!stream) {
+      // Host stream not yet arrived — retry up to 30 times (3 seconds)
+      if (attempts > 0) setTimeout(() => _tryAttach(attempts - 1), 100);
+      return;
+    }
+    // Don't add a second video if one already exists
+    if (cell.querySelector('video')) return;
+    const vid = document.createElement('video');
+    vid.autoplay   = true;
+    vid.muted      = false;   // viewers should hear the host
+    vid.playsInline = true;
+    vid.srcObject  = stream;
+    vid.play().catch(() => {});
+    // Insert before the name label so it sits behind the overlay elements
+    const nameEl = cell.querySelector('.vgc-name, .guest-cell-name');
+    cell.insertBefore(vid, nameEl || null);
+    // Hide avatar once video is attached
+    const avatar = cell.querySelector('.vgc-avatar');
+    if (avatar) avatar.style.display = 'none';
+    // Hide cam-off overlay (host cam state already reflects in the card)
+    const camOff = cell.querySelector('.vgc-cam-off');
+    if (camOff) camOff.classList.remove('vgc-cam-off--visible');
+  };
+  _tryAttach(30);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GUEST BOX SYSTEM
+   ─────────────────────────────────────────────────────────────
+   RTDB paths used:
+     guestRequests/{roomId}/{viewerUid}  → { uid, name, avatar, status:'pending'|'accepted'|'declined' }
+     guestSignaling/{roomId}/{viewerUid} → { offer, answer, guestCandidates:{}, hostCandidates:{} }
+
+   Flow:
+     Viewer:  taps "Request a Box"
+              → writes guestRequests/{roomId}/{uid}  status:'pending'
+              → watches status node for 'accepted' / 'declined'
+
+     Host:    listens to guestRequests/{roomId}
+              → sees pending card → Accept / Decline
+              Accept → writes status:'accepted'  + initiates WebRTC offer
+              Decline → removes request node
+
+     WebRTC:  host is offerer, guest is answerer (like creator/viewer main flow)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── VIEWER: Request a Box ── */
+async function _viewerRequestBox() {
+  console.log('[BoxRequest] Request button clicked');
+
+  // ── Guard: user must be logged in ──
+  if (!_user) {
+    console.warn('[BoxRequest] User not authenticated');
+    toast('❌ Please sign in to request a box.');
+    return;
+  }
+
+  // ── Guard: anonymous users are blocked by Firestore rules ──
+  if (_user.isAnonymous) {
+    toast('❌ Sign in with an account to request a box.');
+    return;
+  }
+
+  // ── Guard: user data must be loaded ──
+  if (!_userData) {
+    toast('Loading your profile… Please try again.');
+    return;
+  }
+
+  // ── Guard: must have a valid room ──
+  if (!_roomId) {
+    console.warn('[BoxRequest] Missing liveId (roomId is null)');
+    toast('❌ No live stream found. Try refreshing.');
+    return;
+  }
+
+  const btn = D.btnRequestBox;
+
+  // ── Guard: already in a guest box ──
+  if (btn && btn.style.display === 'none') {
+    console.log('[BoxRequest] Viewer already in a guest box');
+    return;
+  }
+
+  // ── Guard: already has a pending request ──
+  if (btn && btn.classList.contains('pending')) {
+    console.log('[BoxRequest] Viewer already has a pending request');
+    toast('Your request is already pending…');
+    return;
+  }
+
+  // ── Resolve hostId from RTDB room ──
+  let hostId = null;
+  try {
+    const roomSnap = await get(ref(_liveDB, `liveRooms/${_roomId}`));
+    if (roomSnap.exists()) {
+      hostId = roomSnap.val().hostId || null;
+    }
+  } catch (e) {
+    console.error('[BoxRequest] Could not read liveRoom to get hostId:', e);
+    toast('❌ Firebase connection error. Please try again.');
+    return;
+  }
+
+  if (!hostId) {
+    console.warn('[BoxRequest] Missing hostId — cannot send request');
+    toast('❌ Could not find stream host. Try refreshing.');
+    return;
+  }
+
+  console.log('[BoxRequest] Creating request — liveId:', _roomId, 'hostId:', hostId, 'viewerId:', _user.uid);
+
+  const viewerName   = _userData.displayName || _user.email?.split('@')[0] || 'Guest';
+  const viewerAvatar = _userData.avatar || _userData.profilePicture || '';
+  const requestId    = `${_roomId}_${_user.uid}`;
+
+  // ── Write to Firestore boxRequests ──
+  try {
+    await setDoc(doc(_db, 'boxRequests', requestId), {
+      liveId:             _roomId,
+      hostId,
+      viewerId:           _user.uid,
+      viewerName,
+      viewerProfileImage: viewerAvatar,
+      status:             'pending',
+      createdAt:          serverTimestamp(),
+    });
+    console.log('[BoxRequest] Firestore write successful — requestId:', requestId);
+  } catch (e) {
+    console.error('[BoxRequest] Firestore write failed:', e.code, e.message);
+    if (e.code === 'permission-denied') {
+      toast('❌ Permission denied. Make sure you are signed in.');
+    } else {
+      toast('❌ Could not send request. Please try again.');
+    }
+    return;
+  }
+
+  // ── Write to RTDB guestRequests (for real-time WebRTC signaling flow) ──
+  const rtdbReqRef = ref(_liveDB, `guestRequests/${_roomId}/${_user.uid}`);
+  try {
+    await set(rtdbReqRef, {
+      uid:       _user.uid,
+      name:      viewerName,
+      avatar:    viewerAvatar,
+      requestId,
+      status:    'pending',
+      ts:        Date.now(),
+    });
+    console.log('[BoxRequest] RTDB guestRequest written');
+  } catch (e) {
+    console.error('[BoxRequest] RTDB write failed:', e.code, e.message);
+    // Non-fatal — Firestore is the source of truth for the host notification
+  }
+
+  // ── Update button to show pending state ──
+  if (btn) {
+    btn.classList.add('pending');
+  }
+  if (D.btnRequestBoxLabel) D.btnRequestBoxLabel.textContent = 'Waiting…';
+  toast('📺 Request sent to host!');
+
+  // ── Watch Firestore boxRequest status for host response ──
+  if (_guestStatusUnsub) { try { _guestStatusUnsub(); } catch(_){} _guestStatusUnsub = null; }
+
+  const reqDocRef = doc(_db, 'boxRequests', requestId);
+  _guestStatusUnsub = onSnapshot(reqDocRef, async snap => {
+    if (!snap.exists()) return;
+    const status = snap.data().status;
+    console.log('[BoxRequest] Status update received:', status);
+
+    if (status === 'accepted') {
+      if (btn) {
+        btn.classList.remove('pending');
+        btn.style.display = 'none';
+      }
+      toast('✅ Accepted! Joining as guest…');
+      _guestStatusUnsub && _guestStatusUnsub();
+      _guestStatusUnsub = null;
+      await _guestJoinAsViewer();
+
+    } else if (status === 'declined') {
+      if (btn) {
+        btn.classList.remove('pending');
+      }
+      if (D.btnRequestBoxLabel) D.btnRequestBoxLabel.textContent = 'Request a Box';
+      toast('Request declined.');
+      _guestStatusUnsub && _guestStatusUnsub();
+      _guestStatusUnsub = null;
+      // Clean up Firestore doc
+      try { await deleteDoc(reqDocRef); } catch(_) {}
+    }
+  }, err => {
+    console.error('[BoxRequest] Snapshot listener error:', err.code, err.message);
+    if (err.code === 'permission-denied') {
+      toast('❌ Permission denied watching request status.');
+    }
+  });
+}
+
+/* ── VIEWER: Guest cam toggle ── */
+function _toggleGuestCam() {
+  if (!_guestStream) return;
+  _guestCamOn = !_guestCamOn;
+  _guestStream.getVideoTracks().forEach(t => { t.enabled = _guestCamOn; });
+  if (D.btnGuestCam) D.btnGuestCam.classList.toggle('off', !_guestCamOn);
+  if (D.btnGuestCamLabel) D.btnGuestCamLabel.textContent = _guestCamOn ? 'Cam' : 'Cam Off';
+  const icon = D.btnGuestCam && D.btnGuestCam.querySelector('span:first-child');
+  if (icon) icon.textContent = _guestCamOn ? '📷' : '🚫';
+  // Broadcast cam state so host and other viewers see the change
+  if (_user && _roomId) try { update(ref(_liveDB, `liveGuests/${_roomId}/${_user.uid}`), { camOn: _guestCamOn }); } catch(_) {}
+}
+
+/* ── VIEWER: Guest mic toggle ── */
+function _toggleGuestMic() {
+  if (!_guestStream) return;
+  _guestMicOn = !_guestMicOn;
+  _guestStream.getAudioTracks().forEach(t => { t.enabled = _guestMicOn; });
+  if (D.btnGuestMic) D.btnGuestMic.classList.toggle('off', !_guestMicOn);
+  if (D.btnGuestMicLabel) D.btnGuestMicLabel.textContent = _guestMicOn ? 'Mic' : 'Mic Off';
+  const icon = D.btnGuestMic && D.btnGuestMic.querySelector('span:first-child');
+  if (icon) icon.textContent = _guestMicOn ? '🎤' : '🔇';
+  toast(_guestMicOn ? 'Mic on' : 'Mic muted');
+  // Broadcast mic state so host and other viewers see the change
+  if (_user && _roomId) try { update(ref(_liveDB, `liveGuests/${_roomId}/${_user.uid}`), { micOn: _guestMicOn }); } catch(_) {}
+}
+
+/* ── VIEWER: Leave the guest box voluntarily ── */
+async function _guestLeaveBox() {
+  // Guard: only a viewer who is currently in a box can leave
+  if (!_guestStream && !_guestPc) return;
+
+  const confirmed = await _snxConfirm({
+    icon:     '🚪',
+    title:    'Leave guest box?',
+    sub:      'You will return to watching the live stream.',
+    okLabel:  'Leave Box',
+    okClass:  '',
+  });
+  if (!confirmed) return;
+
+  _guestDoLeave();
+}
+
+/* ── Internal: perform the guest leave cleanup (called from Leave Box or removedByHost signal) ── */
+function _guestDoLeave() {
+  // Close peer connection — triggers onconnectionstatechange cleanup below,
+  // but also handle directly here for immediate UI response
+  if (_guestPc) {
+    try { _guestPc.close(); } catch(_) {}
+    _guestPc = null;
+  }
+
+  // Remove own presence from RTDB so grid updates for everyone instantly
+  if (_user && _roomId) {
+    try { remove(ref(_liveDB, `liveGuests/${_roomId}/${_user.uid}`)); } catch(_) {}
+    // Clean up signaling data
+    try { remove(ref(_liveDB, `guestSignaling/${_roomId}/${_user.uid}`)); } catch(_) {}
+    try { remove(ref(_liveDB, `guestRequests/${_roomId}/${_user.uid}`)); } catch(_) {}
+    // Clean up Firestore boxRequest
+    const requestId = `${_roomId}_${_user.uid}`;
+    try { deleteDoc(doc(_db, 'boxRequests', requestId)); } catch(_) {}
+  }
+
+  // Stop local guest media tracks
+  if (_guestStream) {
+    try { _guestStream.getTracks().forEach(t => t.stop()); } catch(_) {}
+    _guestStream = null;
+  }
+
+  // Hide guest controls, restore Request a Box button
+  if (D.btnGuestCam)  D.btnGuestCam.style.display  = 'none';
+  if (D.btnGuestMic)  D.btnGuestMic.style.display  = 'none';
+  if (D.btnLeaveBox)  D.btnLeaveBox.style.display   = 'none';
+  if (D.btnRequestBox) {
+    D.btnRequestBox.style.display = '';
+    D.btnRequestBox.classList.remove('pending');
+  }
+  if (D.btnRequestBoxLabel) D.btnRequestBoxLabel.textContent = 'Request a Box';
+
+  toast('You left the guest box.');
+}
+
+/* ── VIEWER: Join as a guest box (answerer) ── */
+async function _guestJoinAsViewer() {
+  if (!_user || !_roomId) return;
+
+  let guestStream;
+  try {
+    guestStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: true,
+    });
+  } catch (e) {
+    console.error('[GuestBox] getUserMedia failed:', e.name, e.message);
+    if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+      toast('❌ Camera & mic access denied. Allow in browser settings.');
+    } else if (e.name === 'NotFoundError') {
+      toast('❌ No camera/mic found on this device.');
+    } else {
+      toast('❌ Could not access camera. Please try again.');
+    }
+    return;
+  }
+
+  // Store stream so cam/mic toggles work
+  _guestStream = guestStream;
+  _guestCamOn  = true;
+  _guestMicOn  = true;
+
+  const sigRef = ref(_liveDB, `guestSignaling/${_roomId}/${_user.uid}`);
+  const MAX_WAIT = 10000;
+  const startedAt = Date.now();
+
+  // Wait for offer from host
+  const _waitForOffer = () => new Promise((resolve, reject) => {
+    const unsub = onValue(sigRef, snap => {
+      if (!snap.exists() || !snap.val().offer) return;
+      off(sigRef, unsub);
+      resolve(snap.val());
+    });
+    setTimeout(() => { off(sigRef, unsub); reject(new Error('offer timeout')); }, MAX_WAIT);
+  });
+
+  let sigData;
+  try { sigData = await _waitForOffer(); }
+  catch (e) { toast('Host did not respond in time.'); guestStream.getTracks().forEach(t=>t.stop()); return; }
+
+  const guestPc = new RTCPeerConnection(_ICE_SERVERS);
+
+  // Add local tracks
+  guestStream.getTracks().forEach(t => guestPc.addTrack(t, guestStream));
+
+  const _pendingCands = [];
+  let _answerWritten = false;
+
+  guestPc.onicecandidate = async (e) => {
+    if (!e.candidate) return;
+    if (!_answerWritten) { _pendingCands.push(e.candidate.toJSON()); return; }
+    try { await push(ref(_liveDB, `guestSignaling/${_roomId}/${_user.uid}/guestCandidates`), e.candidate.toJSON()); } catch(_) {}
+  };
+
+  try {
+    await guestPc.setRemoteDescription(new RTCSessionDescription(sigData.offer));
+  } catch(e) { toast('Connection error.'); guestPc.close(); guestStream.getTracks().forEach(t=>t.stop()); return; }
+
+  const answer = await guestPc.createAnswer();
+  await guestPc.setLocalDescription(answer);
+
+  try {
+    await update(sigRef, { answer: { type: answer.type, sdp: answer.sdp } });
+    _answerWritten = true;
+  } catch(e) { toast('Connection error.'); guestPc.close(); guestStream.getTracks().forEach(t=>t.stop()); return; }
+
+  // Flush pending candidates
+  for (const c of _pendingCands) {
+    try { await push(ref(_liveDB, `guestSignaling/${_roomId}/${_user.uid}/guestCandidates`), c); } catch(_) {}
+  }
+  _pendingCands.length = 0;
+
+  // Apply existing host candidates
+  const appliedHostCands = new Set();
+  const hc = sigData.hostCandidates || {};
+  for (const [k, c] of Object.entries(hc)) {
+    appliedHostCands.add(k);
+    try { await guestPc.addIceCandidate(new RTCIceCandidate(c)); } catch(_) {}
+  }
+
+  // Listen for more host candidates
+  onValue(sigRef, async snap => {
+    if (!snap.exists()) return;
+    const d = snap.val();
+    if (d.hostCandidates) {
+      for (const [k, c] of Object.entries(d.hostCandidates)) {
+        if (appliedHostCands.has(k)) continue;
+        appliedHostCands.add(k);
+        try { await guestPc.addIceCandidate(new RTCIceCandidate(c)); } catch(_) {}
+      }
+    }
+  });
+
+  // Store peer connection so disconnect handler can clean up
+  _guestPc = guestPc;
+
+  // ── Publish own presence to RTDB so everyone (incl. self) sees this box ──
+  const guestName   = _userData?.displayName || _user.email?.split('@')[0] || 'Guest';
+  const guestAvatar = _userData?.avatar || _userData?.profilePicture || '';
+  try {
+    await set(ref(_liveDB, `liveGuests/${_roomId}/${_user.uid}`), {
+      uid:      _user.uid,
+      name:     guestName,
+      avatar:   guestAvatar,
+      camOn:    true,
+      micOn:    true,
+      joinedAt: Date.now(),
+    });
+  } catch(_) {}
+
+  // ── Subscribe to full guest grid (viewer sees all boxes including own) ──
+  // If already subscribed (joined as viewer before requesting a box), it
+  // is already running — the new RTDB entry above will trigger a re-render.
+  // If not yet subscribed, start now.
+  if (!_viewerGuestUnsub) {
+    _startViewerGuestGrid();
+  }
+
+  // ── Subscribe to layout sync if not already running ──
+  if (!_layoutSyncUnsub) {
+    _startLayoutSync();
+  }
+
+  // ── Attach live stream to own cell once RTDB grid renders it ──
+  // Poll for the cell (RTDB listener may not have fired yet)
+  _attachGuestSelfStream(guestStream);
+
+  // Show cam/mic/leave toggle buttons now that the viewer is in a box
+  if (D.btnGuestCam) D.btnGuestCam.style.display = 'flex';
+  if (D.btnGuestMic) D.btnGuestMic.style.display = 'flex';
+  if (D.btnLeaveBox) D.btnLeaveBox.style.display  = 'flex';
+
+  // ── Listen for host-remove signal on own signaling node ──
+  // Host sets removedByHost:true when it removes this guest.
+  // Guest client responds by cleaning up immediately.
+  let _removedListened = false;
+  const _removedRef = ref(_liveDB, `guestSignaling/${_roomId}/${_user.uid}/removedByHost`);
+  onValue(_removedRef, snap => {
+    if (!snap.exists() || !snap.val()) return;
+    if (_removedListened) return;
+    _removedListened = true;
+    off(_removedRef);
+    toast('The host removed you from the guest box.');
+    _guestDoLeave();
+  });
+
+  // Handle peer disconnect: delegate to _guestDoLeave for consistent cleanup
+  guestPc.onconnectionstatechange = () => {
+    if (guestPc.connectionState === 'disconnected' || guestPc.connectionState === 'failed' || guestPc.connectionState === 'closed') {
+      // Only run if _guestDoLeave hasn't already cleaned up
+      if (_guestStream || _guestPc) {
+        _guestDoLeave();
+      }
+    }
+  };
+}
+
+/* ── Attach the guest's own live stream to their cell in the RTDB-driven grid ──
+   The RTDB onValue callback may render the cell asynchronously; retry until found. */
+function _attachGuestSelfStream(stream) {
+  const uid = _user?.uid;
+  if (!uid || !stream) return;
+
+  const _tryAttach = (attempts) => {
+    const grid = D.guestGrid;
+    if (!grid) return;
+    // Find own cell by uid (rendered by _startViewerGuestGrid)
+    const cell = grid.querySelector(`.vgc-cell[data-uid="${uid}"]`);
+    if (cell) {
+      // Replace avatar with live video
+      let vid = cell.querySelector('video');
+      if (!vid) {
+        vid = document.createElement('video');
+        vid.autoplay = true;
+        vid.muted    = true;   // mute self-preview
+        vid.playsInline = true;
+        // Insert before name label
+        const nameEl = cell.querySelector('.vgc-name, .guest-cell-name');
+        cell.insertBefore(vid, nameEl || null);
+      }
+      vid.srcObject = stream;
+      vid.play().catch(() => {});
+      // Hide camera-off overlay since stream is live
+      const camOff = cell.querySelector('.vgc-cam-off');
+      if (camOff) camOff.classList.remove('vgc-cam-off--visible');
+      return; // done
+    }
+    // Cell not yet rendered — retry up to 20 times (2 seconds total)
+    if (attempts > 0) {
+      setTimeout(() => _tryAttach(attempts - 1), 100);
+    }
+  };
+
+  _tryAttach(20);
+}
+
+/* ── HOST: Listen for incoming guest requests (Firestore + RTDB) ── */
+function _hostListenForGuestRequests() {
+  if (!_roomId || !_user) return;
+  console.log('[BoxRequest] Host listening for guest requests on roomId:', _roomId);
+
+  // Reset the seen-UID tracker when starting a new listen session
+  _shownReqUids.clear();
+
+  // ── Primary listener: Firestore boxRequests ──
+  const fsReqQuery = query(
+    collection(_db, 'boxRequests'),
+    where('liveId',  '==', _roomId),
+    where('hostId',  '==', _user.uid),
+    where('status',  '==', 'pending')
+  );
+
+  const fsUnsub = onSnapshot(fsReqQuery, snap => {
+    snap.docChanges().forEach(change => {
+      if (change.type === 'added') {
+        const d = change.doc.data();
+        console.log('[BoxRequest] Request received by host from viewer:', d.viewerId, 'name:', d.viewerName);
+        if (!_shownReqUids.has(d.viewerId)) {
+          _shownReqUids.add(d.viewerId);
+          _hostShowRequestCard({
+            uid:        d.viewerId,
+            name:       d.viewerName,
+            avatar:     d.viewerProfileImage || '',
+            requestId:  change.doc.id,
+            status:     'pending',
+          });
+        }
+      }
+    });
+  }, err => {
+    console.error('[BoxRequest] Firestore boxRequests listener error:', err.code, err.message);
+  });
+
+  // ── Fallback: RTDB guestRequests (only fires on child_added, not all value changes) ──
+  const rtdbReqsRef = ref(_liveDB, `guestRequests/${_roomId}`);
+  // Use onChildAdded (via onValue snapshot forEach for new items only)
+  // To avoid duplicates we check _shownReqUids which is shared with the Firestore path
+  const rtdbUnsub = onValue(rtdbReqsRef, snap => {
+    if (!snap.exists()) return;
+    snap.forEach(child => {
+      const req = child.val();
+      if (req.status === 'pending' && !_shownReqUids.has(req.uid)) {
+        _shownReqUids.add(req.uid);
+        _hostShowRequestCard(req);
+      }
+    });
+  });
+
+  // Combine both unsubs into _guestReqUnsub
+  _guestReqUnsub = () => {
+    try { fsUnsub(); }   catch(_) {}
+    try { off(rtdbReqsRef); } catch(_) {}
+    _shownReqUids.clear();
+  };
+}
+
+/* ── HOST: Show a request card ── */
+function _hostShowRequestCard(req) {
+  const queue = D.guestRequestQueue;
+  if (!queue) return;
+
+  // Prevent duplicate cards
+  if (queue.querySelector(`[data-uid="${req.uid}"]`)) return;
+
+  const card = document.createElement('div');
+  card.className = 'guest-request-card';
+  card.dataset.uid = req.uid;
+
+  const avatarEl = document.createElement('div');
+  avatarEl.className = 'guest-req-avatar';
+  if (req.avatar) {
+    avatarEl.style.backgroundImage = `url('${req.avatar}')`;
+  } else {
+    avatarEl.textContent = (req.name || '?')[0].toUpperCase();
+  }
+
+  const nameWrap = document.createElement('div');
+  nameWrap.style.cssText = 'flex:1;min-width:0;';
+  nameWrap.innerHTML = `
+    <div class="guest-req-name">${_esc(req.name || 'Guest')}</div>
+    <div class="guest-req-sub">wants to join your box</div>
+  `;
+
+  const actions = document.createElement('div');
+  actions.className = 'guest-req-actions';
+
+  const acceptBtn = document.createElement('button');
+  acceptBtn.className = 'guest-req-accept';
+  acceptBtn.textContent = 'Accept';
+  acceptBtn.addEventListener('click', () => {
+    card.remove();
+    _hostAcceptGuest(req);  // req carries requestId
+  });
+
+  const declineBtn = document.createElement('button');
+  declineBtn.className = 'guest-req-decline';
+  declineBtn.textContent = 'Decline';
+  declineBtn.addEventListener('click', () => {
+    card.remove();
+    _hostDeclineGuest(req.uid, req.requestId);
+  });
+
+  actions.appendChild(acceptBtn);
+  actions.appendChild(declineBtn);
+  card.appendChild(avatarEl);
+  card.appendChild(nameWrap);
+  card.appendChild(actions);
+  queue.appendChild(card);
+
+  // Auto-dismiss after 30 seconds
+  setTimeout(() => {
+    if (card.parentNode) {
+      card.remove();
+      _hostDeclineGuest(req.uid, req.requestId);
+    }
+  }, 30000);
+}
+
+/* ── HOST: Accept guest ── */
+async function _hostAcceptGuest(req) {
+  if (!_roomId || !_localStream) return;
+
+  const guestUid  = req.uid;
+  const requestId = req.requestId || `${_roomId}_${guestUid}`;
+  const sigRef    = ref(_liveDB, `guestSignaling/${_roomId}/${guestUid}`);
+
+  console.log('[BoxRequest] Host accepting guest:', guestUid, 'name:', req.name);
+
+  // ── Update Firestore boxRequest status to "accepted" ──
+  try {
+    await updateDoc(doc(_db, 'boxRequests', requestId), { status: 'accepted' });
+    console.log('[BoxRequest] Firestore boxRequest status → accepted');
+  } catch (e) {
+    console.error('[BoxRequest] Could not update Firestore boxRequest (accepted):', e.code, e.message);
+  }
+
+  // ── Update RTDB guestRequest status to "accepted" ──
+  try { await update(ref(_liveDB, `guestRequests/${_roomId}/${guestUid}`), { status: 'accepted' }); } catch(_) {}
+
+  console.log('[BoxRequest] Guest added to box — starting WebRTC signaling for:', guestUid);
+
+  // Create peer connection for this guest
+  const guestPc = new RTCPeerConnection(_ICE_SERVERS);
+
+  // Receive guest's video track
+  guestPc.ontrack = (e) => {
+    const stream = e.streams[0] || new MediaStream([e.track]);
+    _hostAddGuestCell(guestUid, req.name || 'Guest', req.avatar || '', stream, guestPc);
+  };
+
+  const _pendingHostCands = [];
+  let _offerWritten = false;
+
+  guestPc.onicecandidate = async (e) => {
+    if (!e.candidate) return;
+    if (!_offerWritten) { _pendingHostCands.push(e.candidate.toJSON()); return; }
+    try { await push(ref(_liveDB, `guestSignaling/${_roomId}/${guestUid}/hostCandidates`), e.candidate.toJSON()); } catch(_) {}
+  };
+
+  const offer = await guestPc.createOffer({ offerToReceiveVideo: true, offerToReceiveAudio: true });
+  await guestPc.setLocalDescription(offer);
+
+  try {
+    await set(sigRef, { offer: { type: offer.type, sdp: offer.sdp }, guestCandidates: {}, hostCandidates: {} });
+    _offerWritten = true;
+  } catch(e) { toast('Could not connect guest.'); guestPc.close(); return; }
+
+  // Flush pending host candidates
+  for (const c of _pendingHostCands) {
+    try { await push(ref(_liveDB, `guestSignaling/${_roomId}/${guestUid}/hostCandidates`), c); } catch(_) {}
+  }
+  _pendingHostCands.length = 0;
+
+  // Watch for guest answer + ICE
+  const appliedGuestCands = new Set();
+  onValue(sigRef, async snap => {
+    if (!snap.exists()) return;
+    const d = snap.val();
+    if (d.answer && guestPc.remoteDescription === null) {
+      try { await guestPc.setRemoteDescription(new RTCSessionDescription(d.answer)); } catch(_) {}
+    }
+    if (guestPc.remoteDescription && d.guestCandidates) {
+      for (const [k, c] of Object.entries(d.guestCandidates)) {
+        if (appliedGuestCands.has(k)) continue;
+        appliedGuestCands.add(k);
+        try { await guestPc.addIceCandidate(new RTCIceCandidate(c)); } catch(_) {}
+      }
+    }
+  });
+
+  // Store peer
+  _guestPeers[guestUid] = { pc: guestPc, name: req.name, avatar: req.avatar };
+
+  // ── Publish guest presence to RTDB so viewers can see the new box ──
+  try {
+    await set(ref(_liveDB, `liveGuests/${_roomId}/${guestUid}`), {
+      uid:       guestUid,
+      name:      req.name  || 'Guest',
+      avatar:    req.avatar || '',
+      camOn:     true,
+      micOn:     true,
+      joinedAt:  Date.now(),
+    });
+  } catch(_) {}
+
+  toast(`✅ ${req.name || 'Guest'} joined!`);
+}
+
+/* ── HOST: Decline guest ── */
+async function _hostDeclineGuest(guestUid, requestId) {
+  const reqId = requestId || `${_roomId}_${guestUid}`;
+  console.log('[BoxRequest] Host declining guest:', guestUid);
+
+  // ── Update Firestore boxRequest status to "declined" ──
+  try {
+    await updateDoc(doc(_db, 'boxRequests', reqId), { status: 'declined' });
+    console.log('[BoxRequest] Firestore boxRequest status → declined, viewer will be notified');
+  } catch (e) {
+    console.error('[BoxRequest] Could not update Firestore boxRequest (declined):', e.code, e.message);
+  }
+
+  // ── Update RTDB status → declined, then remove ──
+  try { await update(ref(_liveDB, `guestRequests/${_roomId}/${guestUid}`), { status: 'declined' }); } catch(_) {}
+  setTimeout(async () => {
+    try { await remove(ref(_liveDB, `guestRequests/${_roomId}/${guestUid}`)); } catch(_) {}
+    // Clean up Firestore doc after 5s (viewer has had time to see the declined status)
+    try { await deleteDoc(doc(_db, 'boxRequests', reqId)); } catch(_) {}
+  }, 5000);
+}
+
+/* ── HOST: Add a guest cell to the video grid ── */
+function _hostAddGuestCell(uid, name, avatar, stream, pc) {
+  const grid = D.guestGrid;
+  if (!grid) return;
+
+  // If grid doesn't yet have host, add host cell first
+  if (!grid.querySelector('.host-cell')) {
+    _addHostCellToGrid();
+  }
+
+  // Prevent duplicate guest cells
+  if (grid.querySelector(`[data-uid="${uid}"]`)) return;
+
+  grid.classList.add('has-guests');
+  grid.dataset.count = (Object.keys(_guestPeers).length).toString();
+
+  const cell = document.createElement('div');
+  cell.className = 'guest-cell';
+  cell.dataset.uid = uid;
+
+  const vid = document.createElement('video');
+  vid.autoplay = true;
+  vid.muted = false;
+  vid.playsInline = true;
+  vid.srcObject = stream;
+  vid.play().catch(()=>{});
+  cell.appendChild(vid);
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'guest-cell-name';
+  nameEl.textContent = name || 'Guest';
+  cell.appendChild(nameEl);
+
+  // Host can remove a guest by tapping ✕
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'guest-cell-remove';
+  removeBtn.textContent = '✕';
+  removeBtn.title = 'Remove guest';
+  removeBtn.addEventListener('click', () => {
+    _hostRemoveGuest(uid);
+  });
+  cell.appendChild(removeBtn);
+
+  grid.appendChild(cell);
+
+  // Store stream ref
+  if (_guestPeers[uid]) _guestPeers[uid].stream = stream;
+  if (_guestPeers[uid]) _guestPeers[uid].cell   = cell;
+
+  _applyGuestLayout();
+
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+      // Automatic peer disconnect: no confirmation needed
+      _hostDoRemoveGuest(uid);
+    }
+  };
+}
+
+/* ── HOST: Add own video as the host cell in the grid ── */
+function _addHostCellToGrid() {
+  const grid = D.guestGrid;
+  if (!grid || grid.querySelector('.host-cell')) return;
+
+  const cell = document.createElement('div');
+  cell.className = 'guest-cell host-cell';
+
+  const vid = document.createElement('video');
+  vid.autoplay = true;
+  vid.muted = true;   // mute self-preview
+  vid.playsInline = true;
+  if (_localStream) { vid.srcObject = _localStream; vid.play().catch(()=>{}); }
+  // Mirror host camera (same as main #liveVideo)
+  vid.style.transform = 'scaleX(-1)';
+  cell.appendChild(vid);
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'guest-cell-name';
+  nameEl.textContent = (_userData?.displayName || 'Host') + ' (You)';
+  cell.appendChild(nameEl);
+
+  grid.insertBefore(cell, grid.firstChild);
+}
+
+/* ── HOST: Remove a guest (with confirmation) ── */
+async function _hostRemoveGuest(uid) {
+  const peer = _guestPeers[uid];
+  const guestName = peer?.name || 'this guest';
+
+  const confirmed = await _snxConfirm({
+    icon:    '✕',
+    title:   `Remove ${guestName}?`,
+    sub:     'They will be disconnected from the guest box.',
+    okLabel: 'Remove',
+    okClass: '',
+  });
+  if (!confirmed) return;
+
+  _hostDoRemoveGuest(uid);
+}
+
+/* ── Internal: perform the host-side guest removal ── */
+function _hostDoRemoveGuest(uid) {
+  // ── Signal the guest client to disconnect gracefully ──
+  // Write removedByHost flag BEFORE closing the peer so the guest's listener fires
+  try {
+    set(ref(_liveDB, `guestSignaling/${_roomId}/${uid}/removedByHost`), true);
+  } catch(_) {}
+
+  const peer = _guestPeers[uid];
+  if (peer) {
+    if (peer.pc) { try { peer.pc.close(); } catch(_){} }
+    if (peer.cell) { try { peer.cell.remove(); } catch(_){} }
+    delete _guestPeers[uid];
+  }
+  // Allow this UID to send a new request in a future session
+  _shownReqUids.delete(uid);
+  try { remove(ref(_liveDB, `guestRequests/${_roomId}/${uid}`)); }  catch(_) {}
+  // Remove signaling AFTER a short delay so the guest client can read the removedByHost flag
+  setTimeout(() => {
+    try { remove(ref(_liveDB, `guestSignaling/${_roomId}/${uid}`)); } catch(_) {}
+  }, 3000);
+  // Remove guest presence so viewers' grids update instantly
+  try { remove(ref(_liveDB, `liveGuests/${_roomId}/${uid}`)); } catch(_) {}
+  // Clean up Firestore boxRequest
+  const requestId = `${_roomId}_${uid}`;
+  try { deleteDoc(doc(_db, 'boxRequests', requestId)); } catch(_) {}
+
+  const grid = D.guestGrid;
+  if (!grid) return;
+  const guestCount = Object.keys(_guestPeers).length;
+  grid.dataset.count = guestCount.toString();
+
+  if (guestCount === 0) {
+    // Remove host cell too, show plain main video
+    grid.querySelector('.host-cell')?.remove();
+    grid.classList.remove('has-guests');
+    if (D.liveVideo) { D.liveVideo.style.opacity = ''; D.liveVideo.style.pointerEvents = ''; }
+  }
+  _applyGuestLayout();
+}
+
+/* ── Tear down all guest peers (called on endLive) ── */
+function _teardownAllGuestPeers() {
+  for (const uid of Object.keys(_guestPeers)) {
+    const p = _guestPeers[uid];
+    if (p.pc)   { try { p.pc.close(); }   catch(_){} }
+    if (p.cell) { try { p.cell.remove(); } catch(_){} }
+  }
+  _guestPeers = {};
+  if (D.guestGrid) {
+    D.guestGrid.innerHTML = '';
+    D.guestGrid.classList.remove('has-guests');
+    D.guestGrid.dataset.count = '0';
+  }
+  // Clean up all signaling + requests + guest presence for this room (RTDB)
+  if (_roomId) {
+    try { remove(ref(_liveDB, `guestRequests/${_roomId}`)); }  catch(_) {}
+    try { remove(ref(_liveDB, `guestSignaling/${_roomId}`)); } catch(_) {}
+    try { remove(ref(_liveDB, `liveGuests/${_roomId}`)); }     catch(_) {}
+  }
+  // Clean up all pending Firestore boxRequests for this room
+  if (_roomId) {
+    getDocs(query(
+      collection(_db, 'boxRequests'),
+      where('liveId', '==', _roomId)
+    )).then(snap => {
+      snap.forEach(d => { try { deleteDoc(d.ref); } catch(_) {} });
+    }).catch(() => {});
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   LAYOUT ENGINE
+   ═══════════════════════════════════════════════════ */
+
+function _applyGuestLayout() {
+  const grid = D.guestGrid;
+  if (!grid) return;
+
+  // ── Viewer mode: grid state is managed entirely by _startViewerGuestGrid.
+  //    _guestPeers is always empty for viewers, so we must NOT recompute from it.
+  //    Just apply visual layout (size class + equal-grid math) based on DOM state.
+  if (_mode === 'viewer') {
+    const guestCount = parseInt(grid.dataset.count || '0', 10);
+    grid.dataset.layout = _guestLayout;
+    grid.classList.remove('box-sm', 'box-md', 'box-lg');
+    grid.classList.add('box-' + _guestBoxSize);
+    if (guestCount === 0) { grid.classList.remove('has-guests'); return; }
+    grid.classList.add('has-guests');
+    if (_guestLayout === 'grid') {
+      _applyEqualGrid(grid, guestCount + 1);
+    } else if (_guestLayout === 'float') {
+      _applyFloatLayout(grid, guestCount);
+    } else if (_guestLayout === 'auto' && guestCount >= 5) {
+      _applyEqualGrid(grid, guestCount + 1);
+    }
+    return;
+  }
+
+  // ── Creator mode: derive count from _guestPeers ──
+  const guestCount = Object.keys(_guestPeers).length;  // guests only (not host)
+
+  grid.dataset.count  = guestCount.toString();
+  grid.dataset.layout = _guestLayout;
+
+  // Box size class
+  grid.classList.remove('box-sm', 'box-md', 'box-lg');
+  grid.classList.add('box-' + _guestBoxSize);
+
+  if (guestCount === 0) {
+    grid.classList.remove('has-guests');
+    return;
+  }
+  grid.classList.add('has-guests');
+
+  // For the 'grid' layout and 6+ guests in 'auto', set equal sizes via JS
+  if (_guestLayout === 'grid') {
+    _applyEqualGrid(grid, guestCount + 1); // +1 for host
+  } else if (_guestLayout === 'float') {
+    _applyFloatLayout(grid, guestCount);
+  } else if (_guestLayout === 'auto' && guestCount >= 5) {
+    _applyEqualGrid(grid, guestCount + 1);
+  }
+}
+
+/* ── Equal grid: calculate rows/cols then set dimensions ── */
+function _applyEqualGrid(grid, totalCells) {
+  const cols  = Math.ceil(Math.sqrt(totalCells));
+  const rows  = Math.ceil(totalCells / cols);
+  const w     = (100 / cols).toFixed(2) + '%';
+  const h     = (100 / rows).toFixed(2) + '%';
+  grid.querySelectorAll('.guest-cell').forEach(cell => {
+    cell.style.width  = w;
+    cell.style.height = h;
+  });
+}
+
+/* ── Float layout: cascade guest boxes from top-right ── */
+function _applyFloatLayout(grid, guestCount) {
+  let guestIndex = 0;
+  grid.querySelectorAll('.guest-cell:not(.host-cell)').forEach(cell => {
+    const col = guestIndex % 3;
+    const row = Math.floor(guestIndex / 3);
+    cell.style.width  = '160px';
+    cell.style.height = '120px';
+    cell.style.right  = (12 + col * 176) + 'px';
+    cell.style.top    = (12 + row * 136) + 'px';
+    cell.style.bottom = 'auto';
+    cell.style.left   = 'auto';
+    guestIndex++;
+  });
+}
+
+/* ── Toggle layout panel ── */
+function _toggleLayoutPanel() {
+  _layoutPanelOpen ? _closeLayoutPanel() : _openLayoutPanel();
+}
+
+function _openLayoutPanel() {
+  if (!D.layoutSettingsPanel) return;
+  D.layoutSettingsPanel.style.display = 'block';
+  _layoutPanelOpen = true;
+  if (D.btnLayoutSettings) D.btnLayoutSettings.classList.add('has-guests');
+}
+
+function _closeLayoutPanel() {
+  if (!D.layoutSettingsPanel) return;
+  D.layoutSettingsPanel.style.display = 'none';
+  _layoutPanelOpen = false;
 }

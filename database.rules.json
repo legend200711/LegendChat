@@ -164,21 +164,6 @@
         ".read":  "auth != null",
         ".write": "auth != null && auth.uid == $uid"
       }
-    },
-
-    // ── Gift events real-time feed (for live page) ────────────────────
-    //
-    //  giftEvents/{liveRoomId}/{eventId}
-    //    senderId, senderName, giftId, giftEmoji, giftName, coins, ts
-    //
-    //  Any authenticated viewer can read; only auth'd non-anon users write.
-    "giftEvents": {
-      "$liveRoomId": {
-        ".read": "auth != null",
-        "$eventId": {
-          ".write": "auth != null"
-        }
-      }
     }
 
   }

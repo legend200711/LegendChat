@@ -60,6 +60,9 @@
   let _isHost   = false;
   let _isCohostOfRoom = null;
 
+  // ── Global co-host feature flag (set by Founder via settings/features) ─────
+  let _coHostEnabled = true;   // optimistic default; overridden after Firestore fetch
+
   // ── Live RTDB listeners ────────────────────────────────────────────────────
   let _activeUnsub      = null;   // cohosts/{room}/active
   let _inviteInboxUnsub = null;   // coHostRequests listener (invitee)
@@ -89,18 +92,69 @@
     _roomId   = roomId;
     _isHost   = isHost;
 
-    _injectUI();
-    _wireEvents();
+    // Fetch the global co-host enabled flag from Firestore, then boot
+    _fetchCoHostFlag().then(() => {
+      _injectUI();
+      _wireEvents();
+      _applyCoHostEnabled();   // hide/show button based on flag
 
-    if (_isHost) {
-      _loadSettings();
-      _subscribeActiveCohosts();
-      _subscribeDeclineNotifications();
-      // Announce self as available in presence
-      _writePresence('online');
-    } else {
+      if (_isHost) {
+        _loadSettings();
+        _subscribeActiveCohosts();
+        _subscribeDeclineNotifications();
+        _writePresence('online');
+      } else {
+        if (_coHostEnabled) _watchForInvite();
+        _writePresence('online');
+      }
+
+      // Subscribe to live changes so Founder toggling OFF mid-stream takes effect
+      _subscribeCoHostFlag();
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CO-HOST FEATURE FLAG — read from Firestore settings/features
+     ═══════════════════════════════════════════════════════════════════════════ */
+  async function _fetchCoHostFlag() {
+    if (!_db) return;
+    try {
+      const { doc: fsDoc, getDoc: fsGetDoc } = await _importFirestore();
+      const snap = await fsGetDoc(fsDoc(_db, 'settings', 'features'));
+      if (snap.exists()) {
+        const data = snap.data();
+        _coHostEnabled = data.coHostEnabled !== false;
+      }
+    } catch (_) {}
+  }
+
+  function _subscribeCoHostFlag() {
+    if (!_db) return;
+    _importFirestore().then(({ doc: fsDoc, onSnapshot: fsOnSnapshot }) => {
+      try {
+        fsOnSnapshot(fsDoc(_db, 'settings', 'features'), snap => {
+          const prev = _coHostEnabled;
+          _coHostEnabled = !snap.exists() || snap.data().coHostEnabled !== false;
+          if (_coHostEnabled !== prev) _applyCoHostEnabled();
+        });
+      } catch (_) {}
+    });
+  }
+
+  /* Apply or remove co-host UI based on current _coHostEnabled flag */
+  function _applyCoHostEnabled() {
+    const btn = document.getElementById('btnCoHost');
+    if (btn) btn.style.display = _coHostEnabled ? '' : 'none';
+
+    const section = document.getElementById('cohostSettingsSection');
+    if (section) section.style.display = _coHostEnabled ? '' : 'none';
+
+    const card = document.getElementById('cohostInviteCard');
+    if (card && !_coHostEnabled) _hideInviteCard();
+
+    if (_coHostEnabled && !_isHost && _inviteInboxUnsub === null) {
+      // Re-subscribe invite watcher if it was never started (flag was OFF at boot)
       _watchForInvite();
-      _writePresence('online');
     }
   }
 
@@ -137,7 +191,7 @@
     btn.className = 'live-ctrl-btn';
     btn.title     = 'Co-Host Settings';
     btn.setAttribute('aria-label', 'Open co-host settings');
-    btn.innerHTML = '<span class="live-btn-icon">🎙️</span><span class="live-btn-label">Co-Host</span>';
+    btn.textContent = '🎙️';
     const endBtn = document.getElementById('btnEndLive');
     if (endBtn && endBtn.parentNode) {
       endBtn.parentNode.insertBefore(btn, endBtn);
@@ -461,13 +515,12 @@
      ═══════════════════════════════════════════════════════════════════════════ */
   async function _sendInvite(friend) {
     // ── Pre-flight checks ──────────────────────────────────────────────────
-    if (!_isHost) {
-      _liveToast('Only the host can send co-host invites.');
+    if (!_coHostEnabled) {
+      _liveToast('Co-host system is currently disabled by the Founder.');
       return;
     }
-    // Block if Founder turned the system off while live
-    if (window._snxCoHostEnabled === false) {
-      _liveToast('Co-host system is currently disabled by the Founder.');
+    if (!_isHost) {
+      _liveToast('Only the host can send co-host invites.');
       return;
     }
     if (!_cohostSettings.allowCohosts) {
@@ -900,28 +953,15 @@
 
   /* ═══════════════════════════════════════════════════════════════════════════
      BOOTSTRAP — wait for live.js to fire snxLiveReady
-     coHostEnabled is pre-read by live.js and passed in the event detail.
-     When OFF: suppresses all UI and invite handling silently.
      ═══════════════════════════════════════════════════════════════════════════ */
   window.addEventListener('snxLiveReady', e => {
-    const { db, liveDB, auth, user, userData, roomId, isHost, coHostEnabled } = e.detail || {};
+    const { db, liveDB, auth, user, userData, roomId, isHost } = e.detail || {};
     if (!db || !liveDB || !auth || !user || !roomId) {
       console.error('[CoHost] snxLiveReady missing required data:', {
         db: !!db, liveDB: !!liveDB, auth: !!auth, user: !!user, roomId
       });
       return;
     }
-
-    // ── Founder feature flag: coHostEnabled (default ON when absent) ──
-    if (coHostEnabled === false) {
-      // Co-host is OFF — ensure no UI is visible and stop
-      ['btnCoHost','cohostPanel','cohostInviteCard','cohostSettingsSection'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.remove();
-      });
-      return; // do NOT call _init
-    }
-
     _init(db, liveDB, auth, user, userData, roomId, isHost);
   });
 

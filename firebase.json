@@ -2,10 +2,6 @@
   "projects": {
     "default": "horr-a08f4"
   },
-  "functions": {
-    "source": "functions",
-    "runtime": "nodejs20"
-  },
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"

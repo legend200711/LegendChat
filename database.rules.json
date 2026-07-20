@@ -127,6 +127,14 @@
         ".read":  "auth != null",
         ".write": "auth != null && auth.uid == $uid"
       }
+    },
+
+    // ── Online / live presence for friends list ───────────────────────
+    "users": {
+      "$uid": {
+        ".read":  "auth != null",
+        ".write": "auth != null && auth.uid == $uid"
+      }
     }
 
   }

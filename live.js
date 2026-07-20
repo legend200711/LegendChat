@@ -616,6 +616,12 @@ async function startLive() {
   try {
     await updateDoc(doc(_db, 'users', _user.uid), { isLive: true, liveRoomId: _roomId });
   } catch (_) {}
+
+  // ── RTDB users/{uid} presence: mark as live ──
+  try {
+    await set(ref(_liveDB, 'users/' + _user.uid + '/live'),   true);
+    await set(ref(_liveDB, 'users/' + _user.uid + '/online'), true);
+  } catch (_) {}
   // _createLiveFeedPost intentionally omitted — live sessions must not create
   // feed posts; they appear only in the story bar and Live Hub.
   _createLiveStory(creatorData);
@@ -832,6 +838,9 @@ async function endLive() {
       liveRoomId: deleteField(),
     });
   } catch (_) {}
+
+  // ── RTDB users/{uid} presence: mark live ended ──
+  try { await set(ref(_liveDB, 'users/' + _user.uid + '/live'), false); } catch (_) {}
 
   /* ── Delete live feed post from main Firestore (safety net for old data) ── */
   if (_feedPostId) {

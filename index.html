@@ -8798,6 +8798,7 @@ body.arcade-fs-ios body::after { display:none !important; }
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, browserLocalPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, getDocFromCache, updateDoc, deleteDoc, collection, addDoc, query, orderBy, limit, onSnapshot, arrayUnion, arrayRemove, runTransaction, where, getDocs, writeBatch, increment, serverTimestamp, enableNetwork, disableNetwork } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
   import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
+  import { getDatabase as _getRtdb, ref as _rtdbRef, set as _rtdbSet, onDisconnect as _rtdbOnDisconnect, serverTimestamp as _rtdbServerTimestamp, onValue as _rtdbOnValue, off as _rtdbOff } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyByZRmp6R9HY17T2_WdJUFWeeaLNOP6y2Y",
@@ -8812,6 +8813,7 @@ body.arcade-fs-ios body::after { display:none !important; }
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
+  const _presenceRtdb = _getRtdb(app);
 
   // ── Ensure auth token is always persisted in localStorage (survives tab/app close) ──
   setPersistence(auth, browserLocalPersistence).catch(() => {});
@@ -8829,6 +8831,9 @@ body.arcade-fs-ios body::after { display:none !important; }
   window._snxDoc        = doc;
   window._snxGetDoc     = getDoc;
   window._snxUpdateDoc  = updateDoc;
+
+  // ── Expose RTDB helpers for presence (used by _attachFriendRtdbStatus) ──
+  window._snxRtdbApi = { getDatabase: _getRtdb, ref: _rtdbRef, onValue: _rtdbOnValue, off: _rtdbOff };
 
   // ── Full Firestore namespace for feature scripts ──
   window._snxFirestore = {
@@ -9528,6 +9533,7 @@ body.arcade-fs-ios body::after { display:none !important; }
   window.handleLogout = async () => {
       if (currentUser) {
           try { await updateDoc(doc(db, "users", currentUser.uid), { status: "offline", lastSeen: Date.now() }); } catch(_) {}
+          try { await _rtdbSet(_rtdbRef(_presenceRtdb, 'users/' + currentUser.uid), { online: false, live: false, lastSeen: _rtdbServerTimestamp() }); } catch(_) {}
       }
       signOut(auth);
   };
@@ -9698,6 +9704,20 @@ body.arcade-fs-ios body::after { display:none !important; }
           }
 
           try { await updateDoc(doc(db, "users", user.uid), { status: "online", lastSeen: Date.now() }); } catch(_) {}
+
+          // ── RTDB presence: users/{uid} — online/live status for friends list ──
+          try {
+              const _uStatusRef = _rtdbRef(_presenceRtdb, 'users/' + user.uid);
+              await _rtdbSet(_uStatusRef, { online: true, live: false, lastSeen: _rtdbServerTimestamp() });
+              _rtdbOnDisconnect(_uStatusRef).set({ online: false, live: false, lastSeen: _rtdbServerTimestamp() });
+          } catch(_) {}
+
+          // ── Heartbeat: keep RTDB presence alive every 30 s ──
+          setInterval(() => {
+              if (auth.currentUser) {
+                  try { _rtdbSet(_rtdbRef(_presenceRtdb, 'users/' + auth.currentUser.uid), { online: true, live: false, lastSeen: _rtdbServerTimestamp() }); } catch(_) {}
+              }
+          }, 30000);
 
           // Save email to Firestore so username login works for existing accounts
           try {
@@ -12012,7 +12032,14 @@ body.arcade-fs-ios body::after { display:none !important; }
       renderFriendsPage();
   };
 
+  // ── Track per-friend RTDB presence unsubscribers so we can cancel on re-render ──
+  let _friendPresenceUnsubs = [];
+
   async function renderFriendsPage() {
+      // Cancel previous RTDB presence listeners before re-rendering
+      _friendPresenceUnsubs.forEach(fn => { try { fn(); } catch(_) {} });
+      _friendPresenceUnsubs = [];
+
       const myS = await getDoc(doc(db,"users",currentUser.uid));
       const md = myS.data();
       const friends = md.friends||[], family = md.family||[], received = md.friendRequestsReceived||[];
@@ -12027,11 +12054,13 @@ body.arcade-fs-ios body::after { display:none !important; }
       fDocs.forEach((d,i) => {
           const u = d.exists()?d.data():{displayName:friends[i].substring(0,8),username:'',avatar:'',uid:friends[i]};
           const isF2 = family.includes(u.uid);
-          const row = document.createElement('div'); row.className='friend-card';
+          const row = document.createElement('div'); row.className='friend-card'; row.dataset.uid = u.uid;
           row.innerHTML=`<div class="friend-avatar" style="background-image:url('${u.avatar||''}');${!u.avatar?'display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:bold;color:#00AEEF;background:#0B1F3A;':''}" onclick="viewProfile('${u.uid}')" data-uid="${u.uid}">${!u.avatar?escFeed((u.displayName||'?')[0].toUpperCase()):''}</div>
-            <div class="friend-meta"><div class="friend-name" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;" onclick="viewProfile('${u.uid}')">${escFeed(u.displayName)}${buildBadgeHtml(u.badges||[],u.role||'member')}${isF2?'<span class="friend-tag-family">❤️ Family</span>':''}</div><div class="friend-handle">@${escFeed(u.username||'')}</div></div>
+            <div class="friend-meta"><div class="friend-name" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;" onclick="viewProfile('${u.uid}')">${escFeed(u.displayName)}${buildBadgeHtml(u.badges||[],u.role||'member')}${isF2?'<span class="friend-tag-family">❤️ Family</span>':''}</div><div class="friend-handle">@${escFeed(u.username||'')} <span class="friend-rtdb-status" data-uid="${u.uid}"></span></div></div>
             <div class="friend-actions"><button class="${isF2?'btn-family-on':'btn-family-off'}" onclick="toggleFamily('${u.uid}')">${isF2?'❤️':'🤍'}</button><button onclick="if(typeof window.ipcOpen==='function')window.ipcOpen('${u.uid}');else establishDirectMessageChannel('${u.uid}')">💬</button><button class="btn-decline" onclick="unfriend('${u.uid}')">✕</button></div>`;
           fb.appendChild(row);
+          // ── Live RTDB status listener for this friend ──
+          _friendPresenceUnsubs.push(_attachFriendRtdbStatus(u.uid));
       });
       // Requests tab
       const rb = document.getElementById("reqCountBadge");
@@ -12092,6 +12121,28 @@ body.arcade-fs-ios body::after { display:none !important; }
           fbox.innerHTML='<div class="empty-state">No family members yet.<br><span style="font-size:12px;color:#3a5a7a;">Tap ❤️ Add Family on someone\'s profile to send a request.</span></div>';
       }
       updateFriendBadges(received.length);
+  }
+
+  // ── Helper: subscribe to RTDB users/{uid} and update the status span in the friend card ──
+  function _attachFriendRtdbStatus(uid) {
+      const { getDatabase: _gdb, ref: _r, onValue: _ov, off: _off } = window._snxRtdbApi || {};
+      if (!_gdb) return () => {};  // RTDB not yet available
+      const rtdb    = _gdb(window._snxApp);
+      const nodeRef = _r(rtdb, 'users/' + uid);
+      const handler = snap => {
+          const s   = snap.val();
+          const el  = document.querySelector(`.friend-rtdb-status[data-uid="${uid}"]`);
+          if (!el) return;
+          if (s && s.live) {
+              el.innerHTML = '<span style="color:#ff3344;font-weight:800;font-size:10px;letter-spacing:0.5px;animation:snxLiveDot 1s ease-in-out infinite;">🔴 LIVE</span>';
+          } else if (s && s.online) {
+              el.innerHTML = '<span style="color:#39FF14;font-size:10px;font-weight:600;">🟢 Online</span>';
+          } else {
+              el.innerHTML = '<span style="color:#6a90b8;font-size:10px;">⚫ Offline</span>';
+          }
+      };
+      _ov(nodeRef, handler);
+      return () => _off(nodeRef, handler);
   }
 
   function updateFriendBadges(count) {

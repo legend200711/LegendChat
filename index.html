@@ -8798,7 +8798,7 @@ body.arcade-fs-ios body::after { display:none !important; }
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, browserLocalPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, getDocFromCache, updateDoc, deleteDoc, collection, addDoc, query, orderBy, limit, onSnapshot, arrayUnion, arrayRemove, runTransaction, where, getDocs, writeBatch, increment, serverTimestamp, enableNetwork, disableNetwork } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
   import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
-  import { getDatabase as _getRtdb, ref as _rtdbRef, set as _rtdbSet, onDisconnect as _rtdbOnDisconnect, serverTimestamp as _rtdbServerTimestamp, onValue as _rtdbOnValue, off as _rtdbOff } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  import { getDatabase as _getRtdb, ref as _rtdbRef, set as _rtdbSet, update as _rtdbUpdate, onDisconnect as _rtdbOnDisconnect, serverTimestamp as _rtdbServerTimestamp, onValue as _rtdbOnValue, off as _rtdbOff } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyByZRmp6R9HY17T2_WdJUFWeeaLNOP6y2Y",
@@ -9713,9 +9713,11 @@ body.arcade-fs-ios body::after { display:none !important; }
           } catch(_) {}
 
           // ── Heartbeat: keep RTDB presence alive every 30 s ──
+          // Use update() (not set()) so we only refresh online+lastSeen without
+          // overwriting the `live` field that live.js manages independently.
           setInterval(() => {
               if (auth.currentUser) {
-                  try { _rtdbSet(_rtdbRef(_presenceRtdb, 'users/' + auth.currentUser.uid), { online: true, live: false, lastSeen: _rtdbServerTimestamp() }); } catch(_) {}
+                  try { _rtdbUpdate(_rtdbRef(_presenceRtdb, 'users/' + auth.currentUser.uid), { online: true, lastSeen: _rtdbServerTimestamp() }); } catch(_) {}
               }
           }, 30000);
 

@@ -617,10 +617,9 @@ async function startLive() {
     await updateDoc(doc(_db, 'users', _user.uid), { isLive: true, liveRoomId: _roomId });
   } catch (_) {}
 
-  // ── RTDB users/{uid} presence: mark as live ──
+  // ── RTDB users/{uid} presence: mark as online + live in one atomic write ──
   try {
-    await set(ref(_liveDB, 'users/' + _user.uid + '/live'),   true);
-    await set(ref(_liveDB, 'users/' + _user.uid + '/online'), true);
+    await update(ref(_liveDB, 'users/' + _user.uid), { online: true, live: true, lastSeen: rtdbTimestamp() });
   } catch (_) {}
   // _createLiveFeedPost intentionally omitted — live sessions must not create
   // feed posts; they appear only in the story bar and Live Hub.

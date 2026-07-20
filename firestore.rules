@@ -529,27 +529,17 @@ service cloud.firestore {
       }
     }
 
-    // ── Co-Host Requests ───────────────────────────────────────────────────────
+    // ── Co-Host Requests (legacy) ───────────────────────────────────────────────
     //
     //   /coHostRequests/{requestId}
-    //     liveId      — the host's RTDB room id
-    //     hostId      — host uid
-    //     guestId     — invitee uid
-    //     status      — 'pending' | 'accepted' | 'declined'
-    //     createdAt   — server timestamp
-    //
+    //     liveId, hostId, guestId, status, createdAt
     //   requestId = "{liveId}_{guestId}"
-    //
-    // Host creates; guest reads their own invite and updates status.
-    // Viewers can read accepted records so they see the active co-host list.
 
     match /coHostRequests/{requestId} {
-      // Host can create an invite for a specific guest
       allow create: if isSignedIn()
         && request.auth.token.firebase.sign_in_provider != 'anonymous'
         && request.resource.data.hostId == request.auth.uid;
 
-      // Host or guest can read; viewers can read accepted ones
       allow read: if isSignedIn()
         && (
           request.auth.uid == resource.data.hostId
@@ -557,19 +547,69 @@ service cloud.firestore {
           || resource.data.status == 'accepted'
         );
 
-      // Guest can update status (accept / decline)
-      // Host can also update status (e.g. cancel invite after removing co-host)
       allow update: if isSignedIn()
         && (request.auth.uid == resource.data.guestId || request.auth.uid == resource.data.hostId)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
 
-      // Host or guest can delete (cleanup); Founder always can
       allow delete: if isSignedIn()
         && (
           request.auth.uid == resource.data.hostId
           || request.auth.uid == resource.data.guestId
           || isFounder()
         );
+    }
+
+    // ── Co-Host Invites ────────────────────────────────────────────────────────
+    //
+    //   /coHostInvites/{receiverUID}/senders/{senderUID}
+    //     from:   sender display name
+    //     status: 'pending' | 'accepted' | 'denied'
+    //     time:   server timestamp
+    //     roomId: live room id
+    //
+    // Sender (host) creates the invite doc.
+    // Receiver updates status (accept / deny) and then deletes the doc.
+    // Both parties can delete (cleanup after answering).
+
+    match /coHostInvites/{receiverUID} {
+      allow read: if isSignedIn() && isOwner(receiverUID);
+      allow write: if false; // only subcollection docs are written
+
+      match /senders/{senderUID} {
+        // Sender creates their own invite
+        allow create: if isSignedIn()
+          && request.auth.uid == senderUID
+          && request.auth.token.firebase.sign_in_provider != 'anonymous';
+
+        // Receiver (or sender) can read
+        allow read: if isSignedIn()
+          && (request.auth.uid == receiverUID || request.auth.uid == senderUID);
+
+        // Receiver updates status; sender can also update (cancel)
+        allow update: if isSignedIn()
+          && (request.auth.uid == receiverUID || request.auth.uid == senderUID)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+
+        // Either party or Founder can delete
+        allow delete: if isSignedIn()
+          && (request.auth.uid == receiverUID || request.auth.uid == senderUID || isFounder());
+      }
+    }
+
+    // ── Co-Hosts (active co-host records) ─────────────────────────────────────
+    //
+    //   /coHosts/{userUID}
+    //     coHost: true
+    //
+    // Written by the receiver when they accept an invite.
+    // Readable by any signed-in user (so host can verify).
+    // Deletable by the owner or Founder.
+
+    match /coHosts/{userUID} {
+      allow read: if isSignedIn();
+      // Only the user themselves writes their own coHost record
+      allow create, update: if isOwner(userUID);
+      allow delete: if isOwner(userUID) || isFounder();
     }
 
     // ── Wall Post Comments ─────────────────────────────────────────────────────

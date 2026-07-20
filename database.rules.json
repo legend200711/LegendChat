@@ -57,6 +57,35 @@
       }
     },
 
+    // ── Co-Host Invites (real-time delivery) ──────────────────────────
+    //
+    //  coHostInvites/{receiverUID}/{senderUID}
+    //    from, status, time
+    //
+    //  Sender writes; receiver reads and updates their own slot.
+    //  Both parties can delete (clean up after answering).
+    "coHostInvites": {
+      "$receiverUID": {
+        "$senderUID": {
+          ".read":  "auth != null && (auth.uid == $receiverUID || auth.uid == $senderUID)",
+          ".write": "auth != null && (auth.uid == $senderUID   || auth.uid == $receiverUID)"
+        }
+      }
+    },
+
+    // ── Co-Hosts (active co-host flag per user) ───────────────────────
+    //
+    //  coHosts/{uid}
+    //    coHost: true
+    //
+    //  Only the user themselves writes their coHost flag.
+    "coHosts": {
+      "$uid": {
+        ".read":  "auth != null",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+
     // ── Live Rooms ────────────────────────────────────────────────────
     "liveRooms": {
       "$roomId": {
